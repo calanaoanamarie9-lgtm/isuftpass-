@@ -8,16 +8,17 @@ name: Appointment reminders
 #
 # SETUP (both required, otherwise the job fails loudly by design):
 #   1. Secret  CRON_SECRET  -> must equal the CRON_SECRET env var in Render.
-#   2. Variable APP_URL     -> your live URL, e.g. https://isufstpass.onrender.com
-#                              (optional; falls back to the Render subdomain).
+#   2. Variable APP_URL     -> your live URL, e.g. https://isuftpass-9atj.onrender.com
+#                              (optional; falls back to the Render subdomain below).
 
 on:
   schedule:
-    # GitHub Actions cron is always UTC, and config/app.php sets timezone=UTC,
-    # so this matches Schedule::daily()->at('18:00') in routes/console.php.
+    # GitHub Actions cron is always UTC, and config/app.php sets timezone=UTC.
+    # 00:00 UTC == 08:00 AM Manila (UTC+8), matching
+    # Schedule::daily()->at('00:00') in routes/console.php.
     # Note: this endpoint bypasses the Laravel scheduler and sends immediately
     # at the time below — adjust the hour to change when reminders go out.
-    - cron: '0 18 * * *'
+    - cron: '0 0 * * *'
   # Lets you trigger a run manually from the Actions tab to test the wiring.
   workflow_dispatch:
 
@@ -42,7 +43,8 @@ jobs:
           fi
 
           # Render derives the subdomain from the service name in render.yaml.
-          BASE="${APP_URL:-https://isufstpass.onrender.com}"
+          # Keep this in sync with APP_URL in render.yaml if the service is renamed.
+          BASE="${APP_URL:-https://isuftpass-9atj.onrender.com}"
           BASE="${BASE%/}"
 
           echo "GET ${BASE}/cron/reminders"
