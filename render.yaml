@@ -10,8 +10,12 @@ services:
         value: production
       - key: APP_DEBUG
         value: "false"
+      # MUST be a real Laravel key ("base64:" + 44 chars). Render's
+      # generateValue produces a random string of the wrong length, which
+      # makes EncryptCookies throw "incorrect key length" on every request.
+      # sync: false keeps the dashboard value from being reverted by Blueprint.
       - key: APP_KEY
-        generateValue: true
+        sync: false
       - key: APP_URL
         sync: false
       - key: QR_URL
