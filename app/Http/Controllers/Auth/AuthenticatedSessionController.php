@@ -27,7 +27,29 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
-        if (! Auth::user()->is_active) {
+        $user = Auth::user();
+
+        // Office / staff accounts stay locked until an admin decides. Checked
+        // before is_active because a rejected account is also deactivated, and
+        // the applicant deserves to see why it was turned down.
+        if ($user->isPendingApproval()) {
+            Auth::guard('web')->logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Your office account is still pending administrator approval. Please check back later.',
+            ]);
+        }
+
+        if ($user->isRejected()) {
+            Auth::guard('web')->logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Your office account application was declined.'
+                    .($user->rejection_reason ? ' Reason: '.$user->rejection_reason : ' Contact the administrator for details.'),
+            ]);
+        }
+
+        if (! $user->is_active) {
             Auth::guard('web')->logout();
 
             throw ValidationException::withMessages([

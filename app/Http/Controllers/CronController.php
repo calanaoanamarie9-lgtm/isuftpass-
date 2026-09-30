@@ -9,17 +9,15 @@ use Illuminate\Http\Request;
 class CronController extends Controller
 {
     /**
-     * Fired by Vercel Cron (daily) or an external scheduler.
-     * Accepts the X-Cron-Secret header, or Vercel's own cron request headers.
+     * Fired by an external scheduler (e.g. Render Cron) or a manual request.
+     * Requires the X-Cron-Secret header to match CRON_SECRET.
      */
     public function reminders(Request $request): JsonResponse
     {
         $expected = config('app.cron_secret');
-        $fromVercel = $request->header('x-vercel-cron') === '1'
-            || str_contains((string) $request->userAgent(), 'vercel-cron');
 
-        $authorized = $expected !== null && hash_equals($expected, (string) $request->header('X-Cron-Secret', ''))
-            || $fromVercel;
+        $authorized = $expected !== null
+            && hash_equals($expected, (string) $request->header('X-Cron-Secret', ''));
 
         if (! $authorized) {
             abort(403);

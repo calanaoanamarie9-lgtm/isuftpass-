@@ -21,7 +21,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Shared secret required in the X-Cron-Secret header when an external
-    | scheduler (e.g. Vercel Cron) invokes the /cron/reminders endpoint.
+    | scheduler (e.g. Render Cron) invokes the /cron/reminders endpoint.
     |
     */
 

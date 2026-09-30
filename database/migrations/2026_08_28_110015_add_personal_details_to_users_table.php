@@ -8,16 +8,28 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('contact_number')->nullable();
-            $table->string('student_id')->nullable();
-            $table->string('course')->nullable();
-            $table->string('year_graduated')->nullable();
-            $table->string('organization')->nullable();
-            $table->string('address')->nullable();
-            $table->string('purpose')->nullable();
-            $table->string('relationship_to_student')->nullable();
-            $table->string('student_full_name')->nullable();
+        // The imported schema already had some of these columns, so add only
+        // the ones still missing rather than failing on a duplicate.
+        $missing = array_values(array_filter([
+            'contact_number',
+            'student_id',
+            'course',
+            'year_graduated',
+            'organization',
+            'address',
+            'purpose',
+            'relationship_to_student',
+            'student_full_name',
+        ], fn ($column) => ! Schema::hasColumn('users', $column)));
+
+        if ($missing === []) {
+            return;
+        }
+
+        Schema::table('users', function (Blueprint $table) use ($missing) {
+            foreach ($missing as $column) {
+                $table->string($column)->nullable();
+            }
         });
     }
 

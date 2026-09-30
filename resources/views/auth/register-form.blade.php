@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $userType === 'student' ? 'Student' : 'Other' }} Registration | ISUFSTPASS</title>
+    <title>{{ match ($userType) {
+        'student' => 'Student',
+        'office' => 'Office / Staff',
+        default => 'Other',
+    } }} Registration | ISUFSTPASS</title>
 
     <link rel="icon"
           type="image/png"
@@ -289,6 +293,24 @@
                                 ISUFST Student
                             </span>
 
+                        @elseif ($userType === 'office')
+
+                            <span class="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full">
+                                <svg class="w-4 h-4"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4M9 10h.01M15 10h.01M9 13h.01M15 13h.01"
+                                    />
+                                </svg>
+
+                                Office / Staff
+                            </span>
+
                         @else
 
                             <span class="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full">
@@ -317,7 +339,11 @@
                     <div class="mb-7">
 
                         <h2 class="text-4xl font-extrabold text-gray-900">
-                            {{ $userType === 'student' ? 'Student' : 'Other' }} Registration
+                            {{ match ($userType) {
+                                'student' => 'Student',
+                                'office' => 'Office / Staff',
+                                default => 'Other',
+                            } }} Registration
                         </h2>
 
                         <p class="mt-3 text-gray-500 leading-6">
@@ -328,6 +354,15 @@
                                     ISUFSTPASS
                                 </span>
                                 account to access university services.
+
+                            @elseif ($userType === 'office')
+
+                                Create an
+                                <span class="font-semibold text-gray-700">
+                                    ISUFSTPASS
+                                </span>
+                                account for your office. An administrator has to approve
+                                the application before you can sign in.
 
                             @else
 
@@ -353,6 +388,203 @@
                         @csrf
 
                         <input type="hidden" name="user_type" value="{{ $userType }}">
+
+
+                        @if ($userType === 'office')
+
+                            {{-- Office --}}
+                            <div>
+
+                                <label
+                                    for="office"
+                                    class="block text-sm font-semibold text-gray-800 mb-2"
+                                >
+                                    Office
+                                </label>
+
+                                <div class="relative">
+
+                                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+
+                                        <svg
+                                            class="w-5 h-5 text-gray-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4M9 10h.01M15 10h.01M9 13h.01M15 13h.01"
+                                            />
+                                        </svg>
+
+                                    </div>
+
+                                    <select
+                                        id="office"
+                                        name="office"
+                                        required
+                                        class="block w-full pl-12 pr-10 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none appearance-none"
+                                    >
+                                        <option value="" disabled {{ old('office') ? '' : 'selected' }}>
+                                            Select your office
+                                        </option>
+
+                                        @foreach ($offices as $officeOption)
+
+                                            <option value="{{ $officeOption->value }}" {{ old('office') === $officeOption->value ? 'selected' : '' }}>
+                                                {{ $officeOption->label() }}
+                                            </option>
+
+                                        @endforeach
+                                    </select>
+
+                                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </div>
+
+                                </div>
+
+                                @if ($errors->get('office'))
+
+                                    <p class="mt-2 text-sm text-red-600">
+                                        {{ $errors->first('office') }}
+                                    </p>
+
+                                @endif
+
+                            </div>
+
+
+                            {{-- Position / Designation --}}
+                            <div>
+
+                                <label
+                                    for="position"
+                                    class="block text-sm font-semibold text-gray-800 mb-2"
+                                >
+                                    Position / Designation
+                                </label>
+
+                                <div class="relative">
+
+                                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+
+                                        <svg
+                                            class="w-5 h-5 text-gray-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                            />
+                                        </svg>
+
+                                    </div>
+
+                                    <input
+                                        id="position"
+                                        name="position"
+                                        type="text"
+                                        value="{{ old('position') }}"
+                                        required
+                                        autocomplete="organization-title"
+                                        placeholder="e.g. Administrative Aide III"
+                                        class="block w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
+                                    >
+
+                                </div>
+
+                                @if ($errors->get('position'))
+
+                                    <p class="mt-2 text-sm text-red-600">
+                                        {{ $errors->first('position') }}
+                                    </p>
+
+                                @endif
+
+                            </div>
+
+
+                            {{-- Contact Number --}}
+                            <div>
+
+                                <label
+                                    for="contact_number"
+                                    class="block text-sm font-semibold text-gray-800 mb-2"
+                                >
+                                    Contact Number
+                                </label>
+
+                                <div class="relative">
+
+                                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+
+                                        <svg
+                                            class="w-5 h-5 text-gray-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M3 5a2 2 0 012-2h2.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V13a2 2 0 01-2 2H9a12 12 0 01-8-8V5z"
+                                            />
+                                        </svg>
+
+                                    </div>
+
+                                    <input
+                                        id="contact_number"
+                                        name="contact_number"
+                                        type="text"
+                                        value="{{ old('contact_number') }}"
+                                        required
+                                        autocomplete="tel"
+                                        placeholder="e.g. 09171234567"
+                                        class="block w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
+                                    >
+
+                                </div>
+
+                                @if ($errors->get('contact_number'))
+
+                                    <p class="mt-2 text-sm text-red-600">
+                                        {{ $errors->first('contact_number') }}
+                                    </p>
+
+                                @endif
+
+                            </div>
+
+
+                            {{-- Approval notice --}}
+                            <div class="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5">
+                                <div class="flex gap-3">
+                                    <svg class="w-5 h-5 shrink-0 text-indigo-600 mt-0.5"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <p class="text-sm text-indigo-900/80 leading-6">
+                                        Your application will be reviewed by an administrator.
+                                        You will only be able to sign in once it is approved.
+                                    </p>
+                                </div>
+                            </div>
+
+                        @endif
 
 
                         @if ($userType === 'other')

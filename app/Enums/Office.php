@@ -10,6 +10,7 @@ enum Office: string
     case Cashier = 'Cashier';
     case Accounting = 'Accounting';
     case Admin = 'Admin';
+    case Library = 'Library';
     case Cici = 'CICI';
     case CBMSD = 'CBMSD';
     case Coag = 'COAG';
@@ -39,6 +40,7 @@ enum Office: string
             self::Cashier => 'Cashier Office',
             self::Accounting => 'Accounting Office',
             self::Admin => 'Office of the Administrator',
+            self::Library => 'University Library',
                 self::Cici => 'College of Informatics and Computing Innovations',
                 self::CBMSD => 'College of Business, Management, and Development Studies',
                 self::Coag => 'College of Agriculture',
@@ -56,6 +58,7 @@ enum Office: string
                 self::Cashier => 'Financial transactions and official receipts for fees.',
                 self::Accounting => 'Billing, accounts, and fund-related concerns.',
                 self::Admin => 'General inquiries and administrative matters.',
+                self::Library => 'Library services, borrowing, references, and study resources.',
                 self::Cici => 'Department consultations, academic concerns, and college transactions.',
                 self::CBMSD => 'Business management consultations, academic advising, and college transactions.',
                 self::Coag => 'Agricultural consultations, academic advising, and college transactions.',
@@ -68,6 +71,7 @@ enum Office: string
                 self::Cashier => 'Finance Building, Ground Floor',
                 self::Accounting => 'Finance Building, 2nd Floor',
                 self::Admin => 'Main Building, 3rd Floor',
+                self::Library => 'Library Building, Ground Floor',
                 self::Cici => 'CICI Building, Ground Floor',
                 self::CBMSD => 'CBMSD Building, Ground Floor',
                 self::Coag => 'COAG Building, Ground Floor',

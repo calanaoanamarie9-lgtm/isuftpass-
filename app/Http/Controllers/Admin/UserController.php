@@ -27,11 +27,51 @@ class UserController extends Controller
             });
         }
 
+        if ($approval = $request->query('approval')) {
+            abort_unless(in_array($approval, [User::APPROVAL_PENDING, User::APPROVAL_APPROVED, User::APPROVAL_REJECTED], true), 404);
+
+            $query->where('approval_status', $approval);
+        }
+
         return view('admin.users.index', [
             'users' => $query->orderBy('created_at', 'desc')->paginate(12)->withQueryString(),
             'search' => trim((string) $request->query('q')),
             'roleFilter' => $request->query('role'),
+            'approvalFilter' => $request->query('approval'),
+            'pendingCount' => User::pendingApproval()->count(),
         ]);
+    }
+
+    /**
+     * Approve a pending office / staff application.
+     */
+    public function approve(Request $request, User $user): RedirectResponse
+    {
+        if ($user->isApproved()) {
+            return back()->with('error', $user->email . ' is already approved.');
+        }
+
+        $user->approve($request->user());
+
+        AuditLogger::log('user.approved', 'Approved the ' . ($user->office ?: 'office') . ' account for ' . $user->email . '.', $request->user());
+
+        return back()->with('status', 'Approved the account for ' . $user->email . '. They can now log in.');
+    }
+
+    /**
+     * Decline a pending office / staff application.
+     */
+    public function reject(Request $request, User $user): RedirectResponse
+    {
+        $data = $request->validate([
+            'rejection_reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $user->reject($request->user(), $data['rejection_reason'] ?? null);
+
+        AuditLogger::log('user.rejected', 'Rejected the ' . ($user->office ?: 'office') . ' account for ' . $user->email . '.', $request->user());
+
+        return back()->with('status', 'Rejected the account for ' . $user->email . '.');
     }
 
     public function store(Request $request): RedirectResponse

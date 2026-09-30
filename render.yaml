@@ -25,7 +25,7 @@ services:
       - key: DB_DATABASE
         value: postgres
       - key: DB_USERNAME
-        value: postgres.jvfsvnwauerafldjujiu
+        value: postgres.afpbkvqihgsqcjvoaooa
       - key: DB_PASSWORD
         sync: false
       - key: DB_SSLMODE
@@ -55,14 +55,17 @@ services:
       - key: MAIL_FROM_NAME
         value: ISUFSTPASS
       - key: SUPABASE_PROJECT_REF
-        value: jvfsvnwauerafldjujiu
+        value: afpbkvqihgsqcjvoaooa
       - key: S3_REGION
         value: ap-southeast-1
       - key: S3_BUCKET
         value: avatars
       - key: S3_ENDPOINT
-        value: https://jvfsvnwauerafldjujiu.supabase.co/storage/v1/s3
+        value: https://afpbkvqihgsqcjvoaooa.supabase.co/storage/v1/s3
       - key: S3_PUBLIC_URL
-        value: https://jvfsvnwauerafldjujiu.supabase.co/storage/v1/object/public/avatars
+        value: https://afpbkvqihgsqcjvoaooa.supabase.co/storage/v1/object/public/avatars
       - key: S3_USE_PATH_STYLE_ENDPOINT
         value: "true"
+    # Run pending migrations before the new container goes live. A failing
+    # migration aborts the deploy instead of shipping a half-updated schema.
+    preDeployCommand: php artisan migrate --force

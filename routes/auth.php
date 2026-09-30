@@ -18,6 +18,11 @@ Route::middleware(['guest', 'throttle:auth'])->group(function () {
 
     Route::post('register', [RegisteredUserController::class, 'store']);
 
+    // Office / staff applications cannot log in until an admin approves them,
+    // so this confirmation page has to stay reachable without a session.
+    Route::get('register/pending', [RegisteredUserController::class, 'pending'])
+        ->name('register.pending');
+
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 

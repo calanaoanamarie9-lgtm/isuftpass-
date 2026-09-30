@@ -16,7 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
 
-        // Vercel terminates TLS at the edge, so the container only ever sees
+        // Render terminates TLS at the edge, so the container only ever sees
         // HTTP via trusted proxies. Respect X-Forwarded-* to generate https
         // URLs and resolve the real client IP for rate limiting.
         $middleware->trustProxies(
