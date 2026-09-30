@@ -1,0 +1,56 @@
+name: Appointment reminders
+
+# Fires the app's public /cron/reminders endpoint, which calls
+# SendAppointmentReminders::dispatchSync() (see app/Http/Controllers/CronController).
+#
+# Render has no free cron tier, so this replaces a paid Render cron job with a
+# free scheduled GitHub Actions workflow instead.
+#
+# SETUP (both required, otherwise the job fails loudly by design):
+#   1. Secret  CRON_SECRET  -> must equal the CRON_SECRET env var in Render.
+#   2. Variable APP_URL     -> your live URL, e.g. https://isufstpass.onrender.com
+#                              (optional; falls back to the Render subdomain).
+
+on:
+  schedule:
+    # GitHub Actions cron is always UTC, and config/app.php sets timezone=UTC,
+    # so this matches Schedule::daily()->at('18:00') in routes/console.php.
+    # Note: this endpoint bypasses the Laravel scheduler and sends immediately
+    # at the time below — adjust the hour to change when reminders go out.
+    - cron: '0 18 * * *'
+  # Lets you trigger a run manually from the Actions tab to test the wiring.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger /cron/reminders
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::Secret CRON_SECRET is not set. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          # Render derives the subdomain from the service name in render.yaml.
+          BASE="${APP_URL:-https://isufstpass.onrender.com}"
+          BASE="${BASE%/}"
+
+          echo "GET ${BASE}/cron/reminders"
+          # Generous timeout: free Render services cold-start after idle periods.
+          curl --fail --silent --show-error \
+               --retry 2 --retry-delay 15 \
+               --max-time 180 \
+               -H "X-Cron-Secret: ${CRON_SECRET}" \
+               "${BASE}/cron/reminders"
+          echo ""
+          echo "OK"
