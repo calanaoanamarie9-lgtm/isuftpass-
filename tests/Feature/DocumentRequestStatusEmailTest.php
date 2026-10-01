@@ -14,13 +14,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
-/**
- * Email delivery is off for this deployment (Render's free tier blocks
- * outbound SMTP and no HTTPS mail API is configured), so every document
- * request status change now notifies the student through the in-app
- * notification channel only. These tests keep covering each status
- * transition while pinning down that no mailable leaves the building.
- */
 class DocumentRequestStatusEmailTest extends TestCase
 {
     use RefreshDatabase;
@@ -52,7 +45,7 @@ class DocumentRequestStatusEmailTest extends TestCase
         return [$student, $request];
     }
 
-    public function test_advancing_request_does_not_email_student(): void
+    public function test_advancing_request_emails_student(): void
     {
         Mail::fake();
 
@@ -65,14 +58,18 @@ class DocumentRequestStatusEmailTest extends TestCase
         $request->refresh();
         $this->assertEquals(DocumentRequestStatus::PROCESSING->value, $request->status);
 
-        Mail::assertNotSent(DocumentRequestStatusUpdate::class);
+        Mail::assertSent(DocumentRequestStatusUpdate::class, function ($mail) use ($student, $request) {
+            return $mail->hasTo($student->email)
+                && $mail->documentRequest->is($request)
+                && $request->status === DocumentRequestStatus::PROCESSING->value;
+        });
     }
 
-    public function test_ready_for_pickup_sends_no_email_but_keeps_claiming_details(): void
+    public function test_ready_for_pickup_sends_approval_email_with_claiming_details(): void
     {
         Mail::fake();
 
-        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::FOR_SIGNATURE->value);
+        [$student, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::FOR_SIGNATURE->value);
 
         $this->actingAs($this->makeRegistrar())
             ->post('/registrar/document-requests/' . $request->id . '/next')
@@ -81,15 +78,19 @@ class DocumentRequestStatusEmailTest extends TestCase
         $request->refresh();
         $this->assertEquals(DocumentRequestStatus::READY_FOR_PICKUP->value, $request->status);
 
-        Mail::assertNotSent(DocumentRequestReadyForPickup::class);
-        Mail::assertNothingSent();
+        Mail::assertSent(DocumentRequestReadyForPickup::class, function ($mail) use ($student, $request) {
+            return $mail->hasTo($student->email)
+                && $mail->documentRequest->is($request);
+        });
+
+        Mail::assertNotSent(DocumentRequestStatusUpdate::class);
     }
 
-    public function test_completing_request_sends_no_email(): void
+    public function test_completing_request_emails_transaction_completion_notice(): void
     {
         Mail::fake();
 
-        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::READY_FOR_PICKUP->value);
+        [$student, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::READY_FOR_PICKUP->value);
 
         $this->actingAs($this->makeRegistrar())
             ->post('/registrar/document-requests/' . $request->id . '/next')
@@ -99,8 +100,12 @@ class DocumentRequestStatusEmailTest extends TestCase
         $this->assertEquals(DocumentRequestStatus::COMPLETED->value, $request->status);
         $this->assertNotNull($request->completed_at);
 
-        Mail::assertNotSent(DocumentRequestCompleted::class);
-        Mail::assertNothingSent();
+        Mail::assertSent(DocumentRequestCompleted::class, function ($mail) use ($student, $request) {
+            return $mail->hasTo($student->email)
+                && $mail->documentRequest->is($request);
+        });
+
+        Mail::assertNotSent(DocumentRequestStatusUpdate::class);
     }
 
     public function test_ready_for_pickup_uses_registrar_release_date_and_time(): void
@@ -125,7 +130,7 @@ class DocumentRequestStatusEmailTest extends TestCase
         $this->assertEquals('13:30', $request->ready_at->format('H:i'));
     }
 
-    public function test_new_request_does_not_email_student_with_payment_instructions(): void
+    public function test_new_request_emails_student_with_payment_instructions(): void
     {
         Mail::fake();
 
@@ -144,17 +149,24 @@ class DocumentRequestStatusEmailTest extends TestCase
             ->assertRedirect(route('student.documents.index'));
 
         $request = $student->documentRequests()->first();
-        $this->assertNotNull($request, 'The document request must still be persisted.');
 
-        Mail::assertNotSent(DocumentRequestReceived::class);
-        Mail::assertNothingSent();
+        Mail::assertSent(DocumentRequestReceived::class, function ($mail) use ($student, $request) {
+            return $mail->hasTo($student->email)
+                && $mail->documentRequest->is($request)
+                && $mail->assertSeeInHtml('PAYMENT NOTICE')
+                && $mail->assertSeeInHtml('University Cashier')
+                && $mail->assertSeeInHtml('over-the-counter')
+                && $mail->assertSeeInHtml('100.00');
+        });
+
+        Mail::assertSent(DocumentRequestReceived::class, 1);
     }
 
-    public function test_cancelling_request_sends_no_email_but_records_the_reason(): void
+    public function test_cancelling_request_emails_rejection_notice(): void
     {
         Mail::fake();
 
-        [, $request] = $this->makeStudentWithRequest();
+        [$student, $request] = $this->makeStudentWithRequest();
 
         $this->actingAs($this->makeRegistrar())
             ->post('/registrar/document-requests/' . $request->id . '/cancel', [
@@ -166,7 +178,12 @@ class DocumentRequestStatusEmailTest extends TestCase
         $this->assertEquals(DocumentRequestStatus::CANCELLED->value, $request->status);
         $this->assertEquals('Incomplete requirements submitted', $request->rejection_reason);
 
-        Mail::assertNotSent(DocumentRequestRejected::class);
+        Mail::assertSent(DocumentRequestRejected::class, function ($mail) use ($student, $request) {
+            return $mail->hasTo($student->email)
+                && $mail->documentRequest->is($request)
+                && $mail->reason === 'Incomplete requirements submitted';
+        });
+
         Mail::assertNotSent(DocumentRequestStatusUpdate::class);
     }
 }

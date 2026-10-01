@@ -126,7 +126,9 @@ class RegistrarAppointmentTest extends TestCase
         $this->assertEquals($newSlot, $appointment->time_slot);
         $this->assertEquals('Daily limit reached for the day', $appointment->reschedule_reason);
 
-        Mail::assertNotSent(\App\Mail\AppointmentRescheduled::class);
+        Mail::assertSent(\App\Mail\AppointmentRescheduled::class, function ($mail) use ($student, $appointment) {
+            return $mail->hasTo($student->email) && $mail->appointment->is($appointment);
+        });
 
         $this->assertCount(1, $student->notifications);
         $this->assertEquals(AppointmentRescheduledNotification::class, $student->notifications->first()->type);
@@ -325,6 +327,9 @@ class RegistrarAppointmentTest extends TestCase
         $this->assertEquals('02:00 PM - 03:00 PM', $appointment->time_slot);
         $this->assertEquals('Office advisory', $appointment->reschedule_reason);
 
-        Mail::assertNothingSent();
+        Mail::assertSent(\App\Mail\AppointmentRescheduled::class, function ($mail) use ($student) {
+            return $mail->hasTo($student->email)
+                && str_contains($mail->oldSchedule, '09:00 AM - 10:00 AM');
+        });
     }
 }

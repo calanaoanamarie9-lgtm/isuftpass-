@@ -103,7 +103,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $this->assertNotNull($request->ready_at);
         $this->assertEquals(1, $student->notifications()->count());
 
-        Mail::assertNothingSent();
+        Mail::assertSent(DocumentRequestReadyForPickup::class, fn ($mail) => $mail->hasTo($student->email));
     }
 
     public function test_advancing_status_moves_through_pipeline_and_notifies_student(): void
