@@ -44,18 +44,15 @@ services:
         value: "*"
       - key: CRON_SECRET
         generateValue: true
+      # Render's FREE tier blocks outbound SMTP (ports 25/465/587) since
+      # 2025-09-26, so mail must go over Resend's HTTPS API instead.
+      # RESEND_API_KEY is set in the Render dashboard (never committed).
       - key: MAIL_MAILER
-        value: smtp
-      - key: MAIL_HOST
-        value: smtp.gmail.com
-      - key: MAIL_PORT
-        value: "587"
-      - key: MAIL_USERNAME
-        sync: false
-      - key: MAIL_PASSWORD
+        value: resend
+      - key: RESEND_API_KEY
         sync: false
       - key: MAIL_FROM_ADDRESS
-        sync: false
+        value: onboarding@resend.dev
       - key: MAIL_FROM_NAME
         value: ISUFSTPASS
       - key: SUPABASE_PROJECT_REF
