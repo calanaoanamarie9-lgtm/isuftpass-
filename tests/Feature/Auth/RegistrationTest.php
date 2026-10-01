@@ -14,7 +14,8 @@ class RegistrationTest extends TestCase
         $response = $this->get('/register');
 
         $response->assertStatus(200);
-        $response->assertSee('How would you like to register');
+        $response->assertSee('Create Your Account');
+        $response->assertSee('Choose the account type that best describes you');
     }
 
     public function test_registration_form_with_student_type_renders(): void

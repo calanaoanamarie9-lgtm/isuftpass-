@@ -194,6 +194,6 @@ class QrScanTest extends TestCase
         $url = \App\Support\QrUrl::to('/verify/pass/abc-123');
 
         $this->assertStringEndsWith('/verify/pass/abc-123', $url);
-        $this->assertStringContainsString('http://', $url);
+        $this->assertMatchesRegularExpression('/^https?:\/\//', $url);
     }
 }
