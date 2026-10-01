@@ -88,4 +88,19 @@ class MailFailureResilienceTest extends TestCase
 
         $this->assertFalse(\App\Support\SafeMailer::send($user, $mailable));
     }
+
+    public function test_forgot_password_form_survives_smtp_failure(): void
+    {
+        $user = $this->createStudent();
+
+        // The password reset goes through Laravel's notification pipeline
+        // rather than Mail::to(), so it needs its own guard.
+        \Illuminate\Support\Facades\Password::shouldReceive('sendResetLink')
+            ->andThrow(new \RuntimeException('SMTP connection could not be established'));
+
+        $response = $this->post('/forgot-password', ['email' => $user->email]);
+
+        $response->assertStatus(302);
+        $response->assertSessionHasErrors('email');
+    }
 }
