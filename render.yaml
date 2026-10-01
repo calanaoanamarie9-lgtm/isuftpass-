@@ -44,9 +44,19 @@ services:
         value: "*"
       - key: CRON_SECRET
         generateValue: true
+      # --- Mail -------------------------------------------------------------
       # Render's FREE tier blocks outbound SMTP (ports 25/465/587) since
-      # 2025-09-26, so mail must go over Resend's HTTPS API instead.
-      # RESEND_API_KEY is set in the Render dashboard (never committed).
+      # 2025-09-26, so plain SMTP can never work here. Mail therefore goes
+      # over Resend's HTTPS API, which the free tier does not block.
+      #
+      # Set in the Render dashboard (sync: false, never committed):
+      #   RESEND_API_KEY  <- https://resend.com -> API Keys
+      #                    free: 3,000 emails/month, 100/day, no card
+      #
+      # MAIL_FROM_ADDRESS is Resend's trial sender and needs no domain
+      # verification. Once you verify your own domain in Resend, change it
+      # here to a real address such as no-reply@isufst.edu.ph.
+      # ----------------------------------------------------------------------
       - key: MAIL_MAILER
         value: resend
       - key: RESEND_API_KEY
