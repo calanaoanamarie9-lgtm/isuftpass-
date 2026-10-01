@@ -44,15 +44,15 @@ services:
         value: "*"
       - key: CRON_SECRET
         generateValue: true
-      # Render's FREE tier blocks outbound SMTP (ports 25/465/587) since
-      # 2025-09-26, so mail must go over Resend's HTTPS API instead.
-      # RESEND_API_KEY is set in the Render dashboard (never committed).
+      # Email sending is DISABLED: Render's free tier blocks outbound SMTP
+      # (ports 25/465/587) and no HTTPS mail API is configured, so nothing
+      # could ever be delivered. Every notification is delivered in-app
+      # through the database channel instead. MAIL_MAILER=log guarantees no
+      # request ever waits on a mail transport again.
       - key: MAIL_MAILER
-        value: resend
-      - key: RESEND_API_KEY
-        sync: false
+        value: log
       - key: MAIL_FROM_ADDRESS
-        value: onboarding@resend.dev
+        value: no-reply@isufst.edu.ph
       - key: MAIL_FROM_NAME
         value: ISUFSTPASS
       - key: SUPABASE_PROJECT_REF
