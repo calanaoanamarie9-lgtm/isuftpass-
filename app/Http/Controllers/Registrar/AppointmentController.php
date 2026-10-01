@@ -9,9 +9,9 @@ use App\Mail\AppointmentRescheduled;
 use App\Models\Appointment;
 use App\Notifications\AppointmentRescheduledNotification;
 use App\Support\AuditLogger;
+use App\Support\SafeMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -113,7 +113,7 @@ class AppointmentController extends Controller
             . ' · '
             . ($appointment->original_time_slot ?? $appointment->time_slot);
 
-        Mail::to($appointment->user)->send(new AppointmentRescheduled($appointment, $oldSchedule));
+        SafeMailer::send($appointment->user, new AppointmentRescheduled($appointment, $oldSchedule));
         $appointment->user->notify(new AppointmentRescheduledNotification($appointment));
 
         AuditLogger::log('appointment.rescheduled', 'Rescheduled appointment ' . $appointment->reference_code . ' to ' . $data['date'] . ' (' . $data['time_slot'] . ').');

@@ -11,10 +11,10 @@ use App\Mail\DocumentRequestStatusUpdate;
 use App\Models\DocumentRequest;
 use App\Notifications\DocumentRequestStatusNotification;
 use App\Support\AuditLogger;
+use App\Support\SafeMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -124,15 +124,15 @@ class DocumentRequestController extends Controller
         );
 
         if ($status === DocumentRequestStatus::READY_FOR_PICKUP->value) {
-            Mail::to($documentRequest->user)->send(
+            SafeMailer::send($documentRequest->user, 
                 new DocumentRequestReadyForPickup($documentRequest)
             );
         } elseif ($status === DocumentRequestStatus::COMPLETED->value) {
-            Mail::to($documentRequest->user)->send(
+            SafeMailer::send($documentRequest->user, 
                 new DocumentRequestCompleted($documentRequest)
             );
         } else {
-            Mail::to($documentRequest->user)->send(
+            SafeMailer::send($documentRequest->user, 
                 new DocumentRequestStatusUpdate($documentRequest, $label, "Your document request {$message}.")
             );
         }
@@ -185,11 +185,11 @@ class DocumentRequestController extends Controller
         );
 
         if ($target === DocumentRequestStatus::READY_FOR_PICKUP) {
-            Mail::to($documentRequest->user)->send(new DocumentRequestReadyForPickup($documentRequest));
+            SafeMailer::send($documentRequest->user, new DocumentRequestReadyForPickup($documentRequest));
         } elseif ($target === DocumentRequestStatus::COMPLETED) {
-            Mail::to($documentRequest->user)->send(new DocumentRequestCompleted($documentRequest));
+            SafeMailer::send($documentRequest->user, new DocumentRequestCompleted($documentRequest));
         } else {
-            Mail::to($documentRequest->user)->send(
+            SafeMailer::send($documentRequest->user, 
                 new DocumentRequestStatusUpdate($documentRequest, $target->label(), "Your document request {$message}.")
             );
         }
@@ -229,7 +229,7 @@ class DocumentRequestController extends Controller
             )
         );
 
-        Mail::to($documentRequest->user)->send(
+        SafeMailer::send($documentRequest->user, 
             new DocumentRequestRejected($documentRequest, $reason)
         );
 

@@ -9,12 +9,12 @@ use App\Mail\AppointmentBooked;
 use App\Models\Appointment;
 use App\Notifications\AppointmentBookedNotification;
 use App\Notifications\AppointmentCancelledNotification;
+use App\Support\SafeMailer;
 use App\Support\SlotAvailabilityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
 class AppointmentController extends Controller
@@ -160,7 +160,7 @@ class AppointmentController extends Controller
             'reschedule_reason' => $overflow ? 'Schedule capacity has been reached.' : null,
         ]);
 
-        Mail::to($appointment->user)->send(new AppointmentBooked($appointment));
+        SafeMailer::send($appointment->user, new AppointmentBooked($appointment));
         $appointment->user->notify(new AppointmentBookedNotification($appointment));
 
         return redirect()

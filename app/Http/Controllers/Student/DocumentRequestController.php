@@ -16,13 +16,13 @@ use App\Models\User;
 use App\Notifications\DocumentRequestReceivedNotification;
 use App\Notifications\DocumentRequestStatusNotification;
 use App\Support\AuditLogger;
+use App\Support\SafeMailer;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -85,7 +85,7 @@ class DocumentRequestController extends Controller
 
         $documentRequest->documents()->attach($validated['document_ids']);
 
-        Mail::to($documentRequest->user)->send(new DocumentRequestReceived($documentRequest));
+        SafeMailer::send($documentRequest->user, new DocumentRequestReceived($documentRequest));
         $documentRequest->user->notify(new DocumentRequestReceivedNotification($documentRequest));
 
         return redirect()

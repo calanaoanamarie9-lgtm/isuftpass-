@@ -4,12 +4,12 @@ namespace App\Jobs;
 
 use App\Mail\AppointmentReminder;
 use App\Models\Appointment;
+use App\Support\SafeMailer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Mail;
 
 class SendAppointmentReminders implements ShouldQueue
 {
@@ -28,10 +28,12 @@ class SendAppointmentReminders implements ShouldQueue
             ->get();
 
         foreach ($appointments as $appointment) {
-            Mail::to($appointment->user->email)
-                ->send(new AppointmentReminder($appointment));
-
-            $appointment->update(['reminder_sent_at' => now()]);
+            // Only mark as reminded once delivery succeeded, so a transient
+            // SMTP failure is retried on the next scheduled run instead of
+            // silently dropping every remaining reminder in this batch.
+            if (SafeMailer::send($appointment->user->email, new AppointmentReminder($appointment))) {
+                $appointment->update(['reminder_sent_at' => now()]);
+            }
         }
     }
 }
