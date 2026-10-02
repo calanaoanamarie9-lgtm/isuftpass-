@@ -374,6 +374,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
     Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
     Route::put('/users/{user}/toggle', [AdminUserController::class, 'toggle'])->name('users.toggle');
+    Route::put('/users/{user}/password', [AdminUserController::class, 'resetPassword'])->name('users.password');
     Route::put('/users/{user}/approve', [AdminUserController::class, 'approve'])->name('users.approve');
     Route::put('/users/{user}/reject', [AdminUserController::class, 'reject'])->name('users.reject');
     Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');

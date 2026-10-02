@@ -1251,6 +1251,30 @@
 
                                                 </form>
 
+
+                                                {{-- RESET PASSWORD --}}
+                                                {{-- type="button" and outside a form, so the global
+                                                     click-to-confirm handler in app.js skips it and the
+                                                     modal opens instead of prompting twice. --}}
+                                                <button type="button"
+                                                        {{-- @js() emits 'single-quoted' JS, so the attribute
+                                                             must be double-quoted or it terminates early.
+                                                             Same construction as the open-reschedule buttons. --}}
+                                                        @click="$dispatch('open-reset-password', { action: @js(route('admin.users.password', $user)), email: @js($user->email) })"
+                                                        class="px-4 py-2
+                                                               rounded-lg
+                                                               bg-white
+                                                               border border-gray-200
+                                                               text-gray-600
+                                                               text-xs
+                                                               font-semibold
+                                                               hover:bg-gray-50
+                                                               transition">
+
+                                                    Reset
+
+                                                </button>
+
                                             @endif
 
 
@@ -1418,5 +1442,13 @@
         </div>
 
     </div>
+
+
+    {{-- =========================================================
+        RESET PASSWORD MODAL
+        Opened from the Reset button in the actions column via
+        $dispatch('open-reset-password', { action, email }).
+    ========================================================== --}}
+    @include('admin.users.partials.reset-password-modal')
 
 </x-app-layout>

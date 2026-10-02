@@ -9,6 +9,7 @@ use App\Models\Office;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AdminModuleTest extends TestCase
@@ -69,6 +70,66 @@ class AdminModuleTest extends TestCase
             ->assertSessionHas('error');
 
         $this->assertNotNull($admin->fresh());
+    }
+
+    public function test_admin_can_reset_a_users_password(): void
+    {
+        $admin = $this->makeAdmin();
+        $user = User::factory()->create(['role' => 'student', 'password' => 'password123']);
+
+        $this->actingAs($admin)
+            ->put("/admin/users/{$user->id}/password", [
+                'password' => 'BrandNewPass42',
+                'password_confirmation' => 'BrandNewPass42',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $user->refresh();
+
+        $this->assertTrue(Hash::check('BrandNewPass42', $user->password));
+        $this->assertFalse(Hash::check('password123', $user->password));
+
+        $this->assertDatabaseHas('audit_logs', ['action' => 'user.password_reset']);
+    }
+
+    public function test_password_reset_rejects_short_and_mismatched_passwords(): void
+    {
+        $admin = $this->makeAdmin();
+        $user = User::factory()->create(['role' => 'student', 'password' => 'password123']);
+
+        $this->actingAs($admin)
+            ->put("/admin/users/{$user->id}/password", [
+                'password' => 'short',
+                'password_confirmation' => 'short',
+            ])
+            ->assertSessionHasErrors('password');
+
+        $this->actingAs($admin)
+            ->put("/admin/users/{$user->id}/password", [
+                'password' => 'BrandNewPass42',
+                'password_confirmation' => 'DifferentPass42',
+            ])
+            ->assertSessionHasErrors('password');
+
+        $this->assertTrue(Hash::check('password123', $user->fresh()->password));
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'user.password_reset']);
+    }
+
+    public function test_student_cannot_reset_a_password(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $victim = User::factory()->create(['role' => 'student', 'password' => 'password123']);
+
+        $this->actingAs($student)
+            ->put("/admin/users/{$victim->id}/password", [
+                'password' => 'BrandNewPass42',
+                'password_confirmation' => 'BrandNewPass42',
+            ])
+            ->assertForbidden();
+
+        $this->assertTrue(Hash::check('password123', $victim->fresh()->password));
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'user.password_reset']);
     }
 
     public function test_deactivated_user_cannot_login(): void

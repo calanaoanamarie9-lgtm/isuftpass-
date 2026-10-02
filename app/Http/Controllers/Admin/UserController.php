@@ -130,6 +130,30 @@ class UserController extends Controller
         return back()->with('status', 'Account updated for ' . $user->email . '.');
     }
 
+    /**
+     * Set a new password for an account (admin-side reset).
+     *
+     * This exists for the accounts that cannot drive the emailed reset link
+     * themselves: a student at the counter, or anyone whose mailbox is not
+     * reachable. It deliberately does not go through the password broker - the
+     * admin hands the value over directly, so it must work with mail down.
+     *
+     * The value arrives in plain text and is hashed by the model's
+     * 'password' => 'hashed' cast, the same way store() already relies on it.
+     */
+    public function resetPassword(Request $request, User $user): RedirectResponse
+    {
+        $data = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
+        ]);
+
+        $user->update(['password' => $data['password']]);
+
+        AuditLogger::log('user.password_reset', 'Reset the password for ' . $user->email . '.', $request->user());
+
+        return back()->with('status', 'Password reset for ' . $user->email . '. Give the new password to them securely and have them change it after signing in.');
+    }
+
     public function destroy(User $user, Request $request): RedirectResponse
     {
         if ($user->is($request->user())) {
