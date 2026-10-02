@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
+use App\Models\ConsultationService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -70,6 +71,7 @@ class CiciController extends Controller
 
         return view('departments.CICI.consultations', [
             'office' => $office,
+            'services' => ConsultationService::forOffice($office)->ordered()->get(),
         ]);
     }
 

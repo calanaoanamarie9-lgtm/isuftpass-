@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Offices;
 
 use App\Http\Controllers\Controller;
+use App\Models\ConsultationService;
 use Illuminate\View\View;
 
 class GuidanceController extends Controller
@@ -39,6 +40,7 @@ class GuidanceController extends Controller
     {
         return view('Offices.Guidance.consultations', [
             'office' => 'Guidance',
+            'services' => ConsultationService::forOffice('Guidance')->ordered()->get(),
         ]);
     }
 

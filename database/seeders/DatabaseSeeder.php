@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             AccountingOfficeSeeder::class,
             LibraryOfficeSeeder::class,
             GuidanceOfficeSeeder::class,
+            ConsultationServiceSeeder::class,
         ]);
     }
 }

@@ -280,6 +280,9 @@ Route::middleware(['auth', 'role:student'])->prefix('student')->name('student.')
     Route::put('/appointments/{appointment}', [AppointmentController::class, 'update'])->name('appointments.update');
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
 
+    // 2b. Consultation Services Catalogue (pick a service → booking form pre-filled)
+    Route::get('/consultations', [\App\Http\Controllers\Student\ConsultationCatalogController::class, 'index'])->name('consultations.index');
+
     // 3. Document Requests
     Route::get('/document-requests', [DocumentRequestController::class, 'index'])->name('documents.index');
     Route::get('/document-requests/create', [DocumentRequestController::class, 'create'])->name('documents.create');
@@ -494,6 +497,36 @@ Route::middleware(['auth', 'role:department,guidance'])->prefix('guidance')->nam
     Route::get('/profile', [\App\Http\Controllers\Offices\GuidanceController::class, 'profile'])->name('profile');
     Route::get('/help', [\App\Http\Controllers\Offices\GuidanceController::class, 'help'])->name('help');
 });
+
+// Consultation services — every office / department manages only its own rows.
+// Ownership is resolved server-side from auth()->user()->office, never from the
+// URL, so the route prefix is just a namespace here.
+foreach ([
+    'cici' => 'department',
+    'cbmsd' => 'department',
+    'coag' => 'department',
+    'coed' => 'department',
+    'osas' => 'department,osas',
+    'accounting' => 'department,accounting',
+    'library' => 'department,library',
+    'guidance' => 'department,guidance',
+] as $consultationPrefix => $consultationRoles) {
+    Route::middleware(['auth', 'role:' . $consultationRoles])
+        ->prefix($consultationPrefix)
+        ->name($consultationPrefix . '.')
+        ->group(function () {
+            Route::get('/consultations/create', [\App\Http\Controllers\Consultation\ConsultationServiceController::class, 'create'])
+                ->name('consultations.create');
+            Route::post('/consultations', [\App\Http\Controllers\Consultation\ConsultationServiceController::class, 'store'])
+                ->name('consultations.store');
+            Route::get('/consultations/{consultationService}/edit', [\App\Http\Controllers\Consultation\ConsultationServiceController::class, 'edit'])
+                ->name('consultations.edit');
+            Route::put('/consultations/{consultationService}', [\App\Http\Controllers\Consultation\ConsultationServiceController::class, 'update'])
+                ->name('consultations.update');
+            Route::delete('/consultations/{consultationService}', [\App\Http\Controllers\Consultation\ConsultationServiceController::class, 'destroy'])
+                ->name('consultations.destroy');
+        });
+}
 
 // Alumni Office — alumni have registration_type = 'alumni' but role stays 'student'
 // (mirrors the web.php dashboard dispatch at "/dashboard":61 which returns alumni.dashboard).

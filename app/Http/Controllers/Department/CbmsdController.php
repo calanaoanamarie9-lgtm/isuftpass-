@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
+use App\Models\ConsultationService;
 use Illuminate\View\View;
 
 class CbmsdController extends Controller
@@ -69,6 +70,7 @@ class CbmsdController extends Controller
 
         return view('departments.CBMSD.consultations', [
             'office' => $office,
+            'services' => ConsultationService::forOffice($office)->ordered()->get(),
         ]);
     }
 

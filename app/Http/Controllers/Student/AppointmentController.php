@@ -94,12 +94,16 @@ class AppointmentController extends Controller
             ->header('Content-Disposition', 'attachment; filename="isufstpass-appointment-' . $appointment->reference_code . '.svg"');
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('student.appointments.create', [
             'offices' => Office::toSelect(),
             'timeSlots' => Appointment::TIME_SLOTS,
             'slotLimits' => Appointment::SLOT_LIMITS,
+
+            // Pre-filled when the student arrived from the consultation
+            // catalogue: ?office=Accounting&purpose=Payment Concerns
+            'preselect' => $request->only(['office', 'purpose']),
         ]);
     }
 

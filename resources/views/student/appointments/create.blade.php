@@ -240,7 +240,7 @@
                                         @foreach ($offices as $value => $label)
 
                                             <option value="{{ $value }}"
-                                                @selected(old('office', $appointment->office ?? null) === $value)>
+                                                @selected(old('office', $preselect['office'] ?? $appointment->office ?? null) === $value)>
 
                                                 {{ $label }}
 
@@ -267,7 +267,7 @@
                                     <input id="purpose"
                                            name="purpose"
                                            type="text"
-                                           value="{{ old('purpose', $appointment->purpose ?? '') }}"
+                                           value="{{ old('purpose', $preselect['purpose'] ?? $appointment->purpose ?? '') }}"
                                            required
                                            placeholder="e.g. Request for enrollment verification"
                                            class="w-full rounded-xl border-gray-300

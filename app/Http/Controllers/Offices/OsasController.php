@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Offices;
 
 use App\Http\Controllers\Controller;
+use App\Models\ConsultationService;
 use Illuminate\View\View;
 
 class OsasController extends Controller
@@ -39,6 +40,7 @@ class OsasController extends Controller
     {
         return view('Offices.OSAS.consultations', [
             'office' => 'OSAS',
+            'services' => ConsultationService::forOffice('OSAS')->ordered()->get(),
         ]);
     }
 

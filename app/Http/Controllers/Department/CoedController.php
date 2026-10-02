@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
+use App\Models\ConsultationService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -70,6 +71,7 @@ class CoedController extends Controller
 
         return view('departments.COED.consultations', [
             'office' => $office,
+            'services' => ConsultationService::forOffice($office)->ordered()->get(),
         ]);
     }
 
