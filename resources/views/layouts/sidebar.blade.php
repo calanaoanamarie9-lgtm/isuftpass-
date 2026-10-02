@@ -26,13 +26,38 @@
 
     /*
     |--------------------------------------------------------------------------
-    | Navigation Helper
+    | Navigation Helpers
     |--------------------------------------------------------------------------
+    | $navClass and $sectionClass are shared by every link and heading below,
+    | so restyling the sidebar only takes a change right here.
     */
-    $navClass = 'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-100 hover:bg-white/10 hover:text-white transition';
+    $navClass = 'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-blue-100 hover:bg-white/10 hover:text-white transition';
 
-    $sectionClass = 'px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-blue-300/70';
+    $sectionClass = 'sb-section flex items-center gap-3 px-3 mb-2.5 text-[10px] font-bold uppercase tracking-wider text-blue-300/70';
 @endphp
+
+
+<style>
+    /* Section headings get a hairline that fades out towards the right. */
+    aside .sb-section::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(to right, rgba(255, 255, 255, .2), rgba(255, 255, 255, 0));
+    }
+
+    /*
+        Current page. The script at the bottom of this file marks exactly one
+        link — the most specific match — so nested pages highlight their
+        parent item instead of lighting up the whole menu.
+    */
+    aside nav a.sb-active {
+        background-color: rgba(255, 255, 255, .16);
+        color: #fff;
+        font-weight: 600;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
+    }
+</style>
 
 
 <aside
@@ -44,10 +69,16 @@
     {{-- =========================================================
         BRAND
     ========================================================== --}}
-    <div class="h-16 flex items-center px-5 border-b border-white/10 shrink-0">
+    <div class="relative h-16 flex items-center px-5 border-b border-white/10 shrink-0 overflow-hidden">
 
-        <div class="flex items-center gap-3">
-            <div class="w-9 h-9 flex items-center justify-center">
+        {{-- soft glow so the bar does not read as a flat block --}}
+        <div class="absolute -top-12 -left-10 w-36 h-36
+                    bg-blue-400/25
+                    rounded-full blur-3xl
+                    pointer-events-none"></div>
+
+        <div class="relative flex items-center gap-3">
+            <div class="w-9 h-9 flex items-center justify-center shrink-0">
                 <img
                     src="{{ asset('img/isufstpass-logo.png') }}"
                     alt="ISUFSTPASS"
@@ -55,12 +86,12 @@
                 >
             </div>
 
-            <div class="leading-tight">
-                <p class="text-sm font-bold text-white tracking-wide">
+            <div class="leading-tight min-w-0">
+                <p class="text-sm font-bold text-white tracking-wide truncate">
                     ISUFSTPASS
                 </p>
-                <p class="text-[10px] text-blue-300">
-                    Digital ID & Access Portal
+                <p class="text-[10px] text-blue-300 truncate">
+                    Digital ID &amp; Access Portal
                 </p>
             </div>
         </div>
@@ -1026,6 +1057,13 @@
                         <span>My Appointments</span>
                     </a>
 
+                    <a href="{{ route('student.consultations.index') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+                        <span>💬</span>
+                        <span>Consultation Services</span>
+                    </a>
+
                     <a href="{{ route('student.pass.show') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
@@ -1186,3 +1224,51 @@
     </div>
 
 </aside>
+
+
+{{-- =========================================================
+     ACTIVE NAVIGATION MARKER
+     ---------------------------------------------------------
+     Server-rendered Blade cannot tell which link is "current"
+     without a route name on all 86 links, so the current path
+     is resolved once in the browser instead.
+
+     The longest match wins, so /student/appointments/create
+     highlights "My Appointments" rather than also lighting up
+     the "Book Now" shortcut beside it.
+========================================================== --}}
+<script>
+    (function () {
+        var path = window.location.pathname.replace(/\/+$/, '') || '/';
+        var links = document.querySelectorAll('aside nav a[href]');
+
+        var best = null;
+        var bestLength = -1;
+
+        links.forEach(function (link) {
+            var raw = link.getAttribute('href');
+            if (!raw || raw.charAt(0) === '#') return;
+
+            var href;
+            try {
+                href = new URL(raw, window.location.origin).pathname;
+            } catch (e) {
+                return;
+            }
+
+            href = href.replace(/\/+$/, '') || '/';
+            if (href === '/') return;
+
+            var isCurrent = path === href || path.indexOf(href + '/') === 0;
+
+            if (isCurrent && href.length > bestLength) {
+                bestLength = href.length;
+                best = link;
+            }
+        });
+
+        if (best) {
+            best.classList.add('sb-active');
+        }
+    })();
+</script>
