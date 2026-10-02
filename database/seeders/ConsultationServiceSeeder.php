@@ -9,7 +9,9 @@ use Illuminate\Database\Seeder;
  * Carries the previously hard-coded consultation services into the database
  * so every office / department can manage its own list.
  *
- * Uses updateOrCreate, so re-seeding never duplicates or deletes rows.
+ * Uses firstOrCreate, not updateOrCreate: this seeds defaults, so re-seeding
+ * fills in missing rows without reverting descriptions, sort order, or Active
+ * flags an office has since edited in production.
  */
 class ConsultationServiceSeeder extends Seeder
 {
@@ -56,7 +58,7 @@ class ConsultationServiceSeeder extends Seeder
 
         foreach ($offices as $office => $services) {
             foreach ($services as $index => [$name, $description]) {
-                ConsultationService::updateOrCreate(
+                ConsultationService::firstOrCreate(
                     ['office' => $office, 'name' => $name],
                     [
                         'description' => $description,
