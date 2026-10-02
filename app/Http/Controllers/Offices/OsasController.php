@@ -10,9 +10,7 @@ class OsasController extends Controller
 {
     public function dashboard(): View
     {
-        return view('Offices.OSAS.dashboard', [
-            'office' => 'OSAS',
-        ]);
+        return view('Offices.OSAS.dashboard', \App\Support\WorkspaceDashboard::data('OSAS'));
     }
 
     public function appointments(): View

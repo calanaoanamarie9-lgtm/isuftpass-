@@ -10,9 +10,7 @@ class LibraryController extends Controller
 {
     public function dashboard(): View
     {
-        return view('Offices.Library.dashboard', [
-            'office' => 'Library',
-        ]);
+        return view('Offices.Library.dashboard', \App\Support\WorkspaceDashboard::data('Library'));
     }
 
     public function appointments(): View

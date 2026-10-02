@@ -10,9 +10,7 @@ class AccountingController extends Controller
 {
     public function dashboard(): View
     {
-        return view('Offices.Accounting.dashboard', [
-            'office' => 'Accounting',
-        ]);
+        return view('Offices.Accounting.dashboard', \App\Support\WorkspaceDashboard::data('Accounting'));
     }
 
     public function appointments(): View

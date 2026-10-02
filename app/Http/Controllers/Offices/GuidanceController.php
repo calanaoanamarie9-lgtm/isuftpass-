@@ -10,9 +10,7 @@ class GuidanceController extends Controller
 {
     public function dashboard(): View
     {
-        return view('Offices.Guidance.dashboard', [
-            'office' => 'Guidance',
-        ]);
+        return view('Offices.Guidance.dashboard', \App\Support\WorkspaceDashboard::data('Guidance'));
     }
 
     public function appointments(): View

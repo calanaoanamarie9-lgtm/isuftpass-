@@ -11,18 +11,9 @@ class CoedController extends Controller
 {
     public function dashboard(): View
     {
-        $user = auth()->user();
-        $office = $user->officeScope();
-
-        $appointments = \App\Models\Appointment::with('user')
-            ->where('office', $office)
-            ->latest()
-            ->paginate(12);
-
-        return view('departments.COED.dashboard', [
-            'office' => $office,
-            'appointments' => $appointments,
-        ]);
+        return view('departments.COED.dashboard', \App\Support\WorkspaceDashboard::data(
+            auth()->user()->officeScope()
+        ));
     }
 
     public function appointments(): View
