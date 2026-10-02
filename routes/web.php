@@ -538,7 +538,12 @@ Route::middleware(['auth', 'role:student'])->prefix('alumni')->name('alumni.')->
 
     // Document Requests (reuse student document routes; alumni store in studentProfile)
     Route::get('/documents', [\App\Http\Controllers\Offices\AlumniController::class, 'documents'])->name('documents.index');
-    Route::get('/documents/new', [\App\Http\Controllers\Offices\AlumniController::class, 'documents'])->name('documents.new');
+    // "New Request" must open the creation hub rather than the list. AlumniController has
+    // no newRequest() method, so this route used to point at documents() and the sidebar's
+    // New Request link silently reloaded the request list — same destination as My Requests.
+    // Reuse the student hub, which is already reachable behind the role:student middleware
+    // that alumni sit behind (their role stays 'student'; only registration_type differs).
+    Route::get('/documents/new', [RequestController::class, 'newRequest'])->name('documents.new');
 
     // Appointments (reuse appointments; alumni book against offices)
     Route::get('/appointments', [\App\Http\Controllers\Offices\AlumniController::class, 'appointments'])->name('appointments.index');
