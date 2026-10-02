@@ -64,9 +64,33 @@ class DocumentRequestController extends Controller
         ]);
     }
 
+    /**
+     * Approval is gated on payment: a request cannot move forward until the
+     * cashier has recorded payment (paid_at is set). Rejecting deliberately
+     * stays available so an unpaid request is never left stuck in the
+     * pipeline with no way out.
+     *
+     * @return RedirectResponse|null the redirect to send when still unpaid
+     */
+    private function paymentRequired(DocumentRequest $documentRequest): ?RedirectResponse
+    {
+        if ($documentRequest->isPaid()) {
+            return null;
+        }
+
+        return back()->with('error', sprintf(
+            'Payment for %s has not been recorded yet, so this request cannot be approved. Ask the cashier to record the payment first.',
+            $documentRequest->request_number,
+        ));
+    }
+
     public function next(Request $request, DocumentRequest $documentRequest): RedirectResponse
     {
         abort_if(! $documentRequest->isActive(), 404);
+
+        if ($blocked = $this->paymentRequired($documentRequest)) {
+            return $blocked;
+        }
 
         $next = match ($documentRequest->status) {
             DocumentRequestStatus::SUBMITTED->value => [
@@ -145,6 +169,12 @@ class DocumentRequestController extends Controller
     public function updateStatus(Request $request, DocumentRequest $documentRequest): RedirectResponse
     {
         abort_if(! $documentRequest->isActive(), 404);
+
+        // Same gate as next(): this endpoint is not linked from the UI, but
+        // it must not become a side door around the payment requirement.
+        if ($blocked = $this->paymentRequired($documentRequest)) {
+            return $blocked;
+        }
 
         $data = $request->validate([
             'status' => ['required', Rule::in([

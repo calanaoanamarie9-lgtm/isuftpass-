@@ -37,6 +37,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
             'educational_level' => 'college',
             'claim_mode' => 'personal',
             'submitted_at' => now(),
+            'paid_at' => now(),
         ]);
         $request->documents()->attach($document->id);
 
@@ -80,7 +81,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->get('/registrar/document-requests/' . $student->documentRequests()->first()->id)
             ->assertOk()
-            ->assertSee('Document Details')
+            ->assertSee('Document Request Details')
             ->assertSee($student->name);
     }
 
@@ -145,6 +146,69 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->post('/registrar/document-requests/' . $request->id . '/next')
             ->assertNotFound();
+    }
+
+    public function test_registrar_cannot_approve_request_until_it_is_paid(): void
+    {
+        [$student, $request] = $this->makeStudentWithRequest();
+        $request->update(['paid_at' => null]);
+
+        $this->actingAs($this->makeRegistrar())
+            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $request->refresh();
+
+        $this->assertEquals(DocumentRequestStatus::SUBMITTED->value, $request->status);
+        $this->assertNull($request->processing_at);
+        $this->assertEquals(0, $student->notifications()->count());
+    }
+
+    public function test_registrar_cannot_set_status_directly_on_unpaid_request(): void
+    {
+        [, $request] = $this->makeStudentWithRequest();
+        $request->update(['paid_at' => null]);
+
+        $this->actingAs($this->makeRegistrar())
+            ->patch('/registrar/document-requests/' . $request->id . '/status', [
+                'status' => DocumentRequestStatus::READY_FOR_PICKUP->value,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertEquals(
+            DocumentRequestStatus::SUBMITTED->value,
+            $request->fresh()->status,
+        );
+    }
+
+    public function test_registrar_can_still_reject_an_unpaid_request(): void
+    {
+        $this->makeStudentWithRequest();
+        [, $request] = $this->makeStudentWithRequest();
+        $request->update(['paid_at' => null]);
+
+        $this->actingAs($this->makeRegistrar())
+            ->post('/registrar/document-requests/' . $request->id . '/cancel')
+            ->assertRedirect();
+
+        $this->assertEquals(
+            DocumentRequestStatus::CANCELLED->value,
+            $request->fresh()->status,
+        );
+    }
+
+    public function test_show_page_blocks_approval_until_paid(): void
+    {
+        [, $request] = $this->makeStudentWithRequest();
+        $request->update(['paid_at' => null]);
+
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/document-requests/' . $request->id)
+            ->assertOk()
+            ->assertSee('Approval blocked')
+            ->assertSee('Payment required first');
     }
 
     public function test_registrar_can_cancel_request_and_notify_student(): void
@@ -255,7 +319,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->get('/registrar/qr-verification?q=' . urlencode($payload))
             ->assertOk()
-            ->assertSee('No student found');
+            ->assertSee('No Student Found');
     }
 
     public function test_student_cannot_access_new_registrar_modules(): void

@@ -39,6 +39,7 @@ class DocumentRequestStatusEmailTest extends TestCase
             'educational_level' => 'college',
             'claim_mode' => 'personal',
             'submitted_at' => now(),
+            'paid_at' => now(),
         ]);
         $request->documents()->attach($document->id);
 
