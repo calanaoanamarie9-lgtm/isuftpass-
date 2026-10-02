@@ -24,7 +24,8 @@
                     </div>
                 </div>
 
-                <div class="flex items-end gap-2">
+                {{-- flex-wrap: the two date inputs + Apply/Reset buttons exceed 375px side by side --}}
+                <div class="flex flex-wrap items-end gap-2">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-1.5">From</label>
                         <input type="date" name="from" value="{{ $from }}"

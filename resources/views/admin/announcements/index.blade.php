@@ -322,7 +322,7 @@
                     </div>
 
 
-                    <div class="flex items-end gap-2">
+                    <div class="flex flex-wrap items-end gap-2">
 
                         <button type="submit"
                                 class="px-5 py-2.5 rounded-xl

@@ -180,7 +180,7 @@
 
                         <form method="POST"
                               action="{{ route('admin.slots.capacity', $office) }}"
-                              class="flex items-end gap-2">
+                              class="flex flex-wrap items-end gap-2">
 
                             @csrf
                             @method('PUT')
