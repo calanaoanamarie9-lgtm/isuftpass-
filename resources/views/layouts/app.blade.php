@@ -7,7 +7,7 @@
 
         <title>ISUFSTPASS - QR Code-Based Document Management System</title>
 
-        <link rel="icon" type="image/png" href="{{ asset('img/isufstpass-logo.png') }}">
+        @include('partials.pwa-head')
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

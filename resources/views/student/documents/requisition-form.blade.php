@@ -14,6 +14,8 @@
 
     @vite(['resources/css/app.css'])
 
+    @include('partials.pwa-head')
+
     <style>
 
         /* =========================================

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Verify Email - ISUFSTPASS</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    @include('partials.pwa-head')
 </head>
 
 <body class="min-h-screen bg-slate-50">

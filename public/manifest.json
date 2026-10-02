@@ -1,0 +1,31 @@
+{
+    "name": "ISUFSTPASS - QR Code-Based Document Management System",
+    "short_name": "ISUFSTPASS",
+    "description": "Iloilo State University of Fisheries Science and Technology - Dingle Campus digital ID and document transaction portal.",
+    "lang": "en",
+    "start_url": "/dashboard",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#FCFCFC",
+    "theme_color": "#12347d",
+    "icons": [
+        {
+            "src": "/img/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/img/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/img/icons/icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

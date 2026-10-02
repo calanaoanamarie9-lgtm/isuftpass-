@@ -7,6 +7,8 @@
     <title>Email Verified - ISUFSTPASS</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    @include('partials.pwa-head')
 </head>
 
 <body class="min-h-screen bg-slate-50">

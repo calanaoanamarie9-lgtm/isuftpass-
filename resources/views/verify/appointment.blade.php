@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <link rel="icon" type="image/png" href="{{ asset('img/isufstpass-logo.png') }}">
+    @include('partials.pwa-head')
 
     <meta
         name="viewport"
