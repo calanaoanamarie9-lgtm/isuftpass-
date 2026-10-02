@@ -1,20 +1,32 @@
 <x-app-layout>
-    <div class="min-h-screen bg-slate-50 py-8">
+
+    <div class="min-h-screen bg-[#f4f7fb] py-8">
+
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {{-- =========================================================
-                BACK
+                BACK TO APPOINTMENTS
             ========================================================== --}}
             <a href="{{ route('registrar.appointments.index') }}"
-               class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-700 transition">
+               class="inline-flex items-center gap-2 text-sm font-semibold
+                      text-slate-500 hover:text-blue-800 transition">
 
-                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                     viewBox="0 0 24 24">
-                    <path stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M15 19l-7-7 7-7"/>
-                </svg>
+                <span class="w-8 h-8 rounded-lg bg-white border border-slate-200
+                             flex items-center justify-center shadow-sm">
+
+                    <svg class="w-4 h-4"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M15 19l-7-7 7-7"/>
+
+                    </svg>
+
+                </span>
 
                 Back to Appointments
             </a>
@@ -24,138 +36,197 @@
                 SUCCESS MESSAGE
             ========================================================== --}}
             @if (session('status'))
-                <div class="mt-5 flex items-start gap-3 bg-emerald-50
-                            border border-emerald-200 text-emerald-700
+
+                <div class="mt-5 flex items-start gap-3
+                            bg-emerald-50 border border-emerald-200
                             rounded-2xl px-5 py-4">
 
-                    <svg class="w-5 h-5 mt-0.5 shrink-0" fill="none"
-                         stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-100
+                                flex items-center justify-center shrink-0">
 
-                        <path stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M5 13l4 4L19 7"/>
-                    </svg>
+                        <svg class="w-4 h-4 text-emerald-600"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
 
-                    <p class="text-sm font-semibold">
-                        {{ session('status') }}
-                    </p>
+                            <path stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M5 13l4 4L19 7"/>
+
+                        </svg>
+
+                    </div>
+
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wider
+                                  text-emerald-600">
+                            Success
+                        </p>
+
+                        <p class="text-sm font-semibold text-emerald-800 mt-0.5">
+                            {{ session('status') }}
+                        </p>
+                    </div>
 
                 </div>
+
             @endif
 
 
             {{-- =========================================================
-                PAGE HEADER
+                MAIN HEADER
             ========================================================== --}}
             <div class="mt-6 bg-white rounded-3xl border border-slate-200
                         shadow-sm overflow-hidden">
 
-                <div class="p-6 sm:p-8">
+                {{-- Blue Header --}}
+                <div class="relative overflow-hidden
+                            bg-gradient-to-br from-blue-950
+                            via-blue-900 to-indigo-900">
 
-                    <div class="flex flex-col lg:flex-row
-                                lg:items-center lg:justify-between gap-6">
+                    {{-- Decorative circles --}}
+                    <div class="absolute -right-16 -top-20
+                                w-64 h-64 rounded-full
+                                bg-yellow-400/10"></div>
 
-                        {{-- Student --}}
-                        <div class="flex items-center gap-4">
+                    <div class="absolute right-24 -bottom-24
+                                w-48 h-48 rounded-full
+                                bg-white/5"></div>
 
-                            <div class="w-16 h-16 rounded-2xl bg-blue-100
-                                        text-blue-800 flex items-center
-                                        justify-center text-xl font-extrabold
-                                        shrink-0">
+                    <div class="relative p-6 sm:p-8">
 
-                                {{ strtoupper(substr($appointment->user->name, 0, 1)) }}
+                        <div class="flex flex-col lg:flex-row
+                                    lg:items-center lg:justify-between gap-6">
 
-                            </div>
+                            {{-- Student --}}
+                            <div class="flex items-center gap-4">
 
-                            <div>
+                                <div class="relative">
 
-                                <div class="flex flex-wrap items-center gap-2">
+                                    <div class="w-16 h-16 rounded-2xl
+                                                bg-white/10
+                                                border border-white/20
+                                                text-white
+                                                flex items-center justify-center
+                                                text-xl font-extrabold">
 
-                                    <h1 class="text-2xl font-extrabold text-slate-900">
-                                        {{ $appointment->user->name }}
-                                    </h1>
+                                        {{ strtoupper(substr($appointment->user->name, 0, 1)) }}
 
-                                    <span class="inline-flex px-2.5 py-1
-                                                 rounded-lg bg-slate-100
-                                                 text-[10px] font-bold
-                                                 uppercase tracking-wider
-                                                 text-slate-500">
+                                    </div>
 
-                                        {{ $appointment->reference_code }}
-
+                                    {{-- Active indicator --}}
+                                    <span class="absolute -right-1 -bottom-1
+                                                 w-4 h-4 rounded-full
+                                                 bg-emerald-400
+                                                 border-2 border-blue-900">
                                     </span>
 
                                 </div>
 
-                                <p class="text-sm text-slate-500 mt-1">
-                                    Student Appointment
+
+                                <div>
+
+                                    <div class="flex flex-wrap items-center gap-2">
+
+                                        <h1 class="text-2xl sm:text-3xl
+                                                   font-extrabold text-white">
+
+                                            {{ $appointment->user->name }}
+
+                                        </h1>
+
+                                    </div>
+
+
+                                    <div class="flex flex-wrap items-center gap-2 mt-2">
+
+                                        <span class="px-2.5 py-1 rounded-lg
+                                                     bg-white/10
+                                                     border border-white/10
+                                                     text-[10px] font-bold
+                                                     tracking-wider text-blue-100">
+
+                                            {{ $appointment->reference_code }}
+
+                                        </span>
+
+                                        <span class="text-xs text-blue-200">
+                                            Student Appointment
+                                        </span>
+
+                                    </div>
+
+
+                                    <p class="text-xs text-blue-200 mt-2">
+                                        {{ $appointment->user->email }}
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- STATUS --}}
+                            <div class="lg:text-right">
+
+                                <p class="text-[10px] font-bold uppercase
+                                          tracking-[0.18em] text-blue-200 mb-2">
+
+                                    Appointment Status
+
                                 </p>
 
-                                <p class="text-xs text-slate-400 mt-1">
-                                    {{ $appointment->user->email }}
-                                </p>
+
+                                <span class="inline-flex items-center gap-2
+                                             px-4 py-2 rounded-full
+                                             text-xs font-bold shadow-sm
+
+                                    @if ($appointment->status === 'confirmed')
+                                        bg-emerald-400 text-emerald-950
+
+                                    @elseif ($appointment->status === 'checked_in')
+                                        bg-cyan-400 text-cyan-950
+
+                                    @elseif ($appointment->status === 'rescheduled')
+                                        bg-indigo-300 text-indigo-950
+
+                                    @elseif ($appointment->status === 'for_reschedule')
+                                        bg-orange-300 text-orange-950
+
+                                    @elseif ($appointment->status === 'completed')
+                                        bg-blue-300 text-blue-950
+
+                                    @elseif ($appointment->status === 'cancelled')
+                                        bg-red-300 text-red-950
+
+                                    @elseif ($appointment->status === 'no_show')
+                                        bg-slate-300 text-slate-800
+
+                                    @else
+                                        bg-yellow-300 text-yellow-950
+                                    @endif
+                                ">
+
+                                    <span class="w-2 h-2 rounded-full bg-current"></span>
+
+                                    {{ \App\Enums\AppointmentStatus::tryFrom($appointment->status)?->label() ?? ucfirst($appointment->status) }}
+
+                                </span>
 
                             </div>
 
                         </div>
 
-
-                        {{-- Status --}}
-                        <div>
-
-                            <p class="text-[10px] font-bold uppercase
-                                      tracking-widest text-slate-400 mb-2 lg:text-right">
-                                Appointment Status
-                            </p>
-
-                            <span class="inline-flex items-center gap-2
-                                         px-4 py-2 rounded-full text-xs font-bold
-
-                                @if ($appointment->status === 'confirmed')
-                                    bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
-
-                                @elseif ($appointment->status === 'checked_in')
-                                    bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200
-
-                                @elseif ($appointment->status === 'rescheduled')
-                                    bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200
-
-                                @elseif ($appointment->status === 'for_reschedule')
-                                    bg-orange-50 text-orange-700 ring-1 ring-orange-200
-
-                                @elseif ($appointment->status === 'completed')
-                                    bg-blue-50 text-blue-700 ring-1 ring-blue-200
-
-                                @elseif ($appointment->status === 'cancelled')
-                                    bg-red-50 text-red-600 ring-1 ring-red-200
-
-                                @elseif ($appointment->status === 'no_show')
-                                    bg-slate-100 text-slate-500 ring-1 ring-slate-200
-
-                                @else
-                                    bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200
-                                @endif
-                            ">
-
-                                <span class="w-2 h-2 rounded-full bg-current"></span>
-
-                                {{ \App\Enums\AppointmentStatus::tryFrom($appointment->status)?->label() ?? ucfirst($appointment->status) }}
-
-                            </span>
-
-                        </div>
-
                     </div>
-
                 </div>
 
 
                 {{-- =====================================================
                     ACTION BAR
                 ====================================================== --}}
-                <div class="px-6 sm:px-8 py-4 bg-slate-50
-                            border-t border-slate-200">
+                <div class="px-6 sm:px-8 py-4 bg-white
+                            border-t border-slate-100">
 
                     <div class="flex flex-wrap items-center gap-2">
 
@@ -174,12 +245,14 @@
                                 <button type="submit"
                                         class="inline-flex items-center gap-2
                                                px-4 py-2.5 rounded-xl
-                                               bg-emerald-600 text-white
+                                               bg-blue-800 text-white
                                                text-xs font-bold
-                                               hover:bg-emerald-700
-                                               transition shadow-sm">
+                                               hover:bg-blue-900
+                                               shadow-sm hover:shadow-md
+                                               transition">
 
-                                    <svg class="w-4 h-4" fill="none"
+                                    <svg class="w-4 h-4"
+                                         fill="none"
                                          stroke="currentColor"
                                          viewBox="0 0 24 24">
 
@@ -218,18 +291,22 @@
 
                                 class="inline-flex items-center gap-2
                                        px-4 py-2.5 rounded-xl
-                                       bg-indigo-50 border border-indigo-200
-                                       text-indigo-700 text-xs font-bold
-                                       hover:bg-indigo-100 transition">
+                                       bg-indigo-50
+                                       border border-indigo-200
+                                       text-indigo-700
+                                       text-xs font-bold
+                                       hover:bg-indigo-100
+                                       transition">
 
-                                <svg class="w-4 h-4" fill="none"
+                                <svg class="w-4 h-4"
+                                     fill="none"
                                      stroke="currentColor"
                                      viewBox="0 0 24 24">
 
                                     <path stroke-linecap="round"
                                           stroke-linejoin="round"
                                           stroke-width="2"
-                                          d="M8 7V3m8 4V3m-9 4h10M5 21h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2z"/>
+                                          d="M8 7V3m8 4V3m-9 4h10M5 21h14a2 2 0 002-2V8a2 2 0 00-2-2v11a2 2 0 002 2z"/>
 
                                     <path stroke-linecap="round"
                                           stroke-linejoin="round"
@@ -259,10 +336,13 @@
                                         class="inline-flex items-center gap-2
                                                px-4 py-2.5 rounded-xl
                                                bg-white border border-red-200
-                                               text-red-600 text-xs font-bold
-                                               hover:bg-red-50 transition">
+                                               text-red-600
+                                               text-xs font-bold
+                                               hover:bg-red-50
+                                               transition">
 
-                                    <svg class="w-4 h-4" fill="none"
+                                    <svg class="w-4 h-4"
+                                         fill="none"
                                          stroke="currentColor"
                                          viewBox="0 0 24 24">
 
@@ -289,13 +369,13 @@
 
 
             {{-- =========================================================
-                MAIN CONTENT
+                CONTENT GRID
             ========================================================== --}}
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
 
 
                 {{-- =====================================================
-                    LEFT / MAIN
+                    LEFT
                 ====================================================== --}}
                 <div class="lg:col-span-2 space-y-6">
 
@@ -304,25 +384,31 @@
                         CURRENT SCHEDULE
                     ================================================== --}}
                     <div class="relative overflow-hidden
-                                bg-gradient-to-br from-blue-900
-                                via-blue-800 to-indigo-900
-                                rounded-3xl shadow-lg">
+                                rounded-3xl shadow-lg
+                                bg-gradient-to-br from-blue-950
+                                via-blue-900 to-indigo-900">
 
+                        {{-- Yellow decorative accent --}}
                         <div class="absolute -right-16 -top-16
-                                    w-48 h-48 rounded-full bg-white/5"></div>
+                                    w-48 h-48 rounded-full
+                                    bg-yellow-400/10"></div>
 
-                        <div class="absolute -right-10 -bottom-20
-                                    w-56 h-56 rounded-full bg-white/5"></div>
+                        <div class="absolute right-20 -bottom-20
+                                    w-56 h-56 rounded-full
+                                    bg-white/5"></div>
 
 
                         <div class="relative p-7">
 
-                            <div class="flex items-center gap-2 mb-6">
+                            <div class="flex items-center gap-3 mb-7">
 
-                                <div class="w-9 h-9 rounded-xl bg-white/10
-                                            flex items-center justify-center">
+                                <div class="w-10 h-10 rounded-xl
+                                            bg-yellow-400
+                                            text-blue-950
+                                            flex items-center justify-center
+                                            shadow-lg">
 
-                                    <svg class="w-5 h-5 text-white"
+                                    <svg class="w-5 h-5"
                                          fill="none"
                                          stroke="currentColor"
                                          viewBox="0 0 24 24">
@@ -336,24 +422,38 @@
 
                                 </div>
 
-                                <p class="text-xs font-bold uppercase
-                                          tracking-widest text-blue-100">
-                                    Current Schedule
-                                </p>
+                                <div>
+
+                                    <p class="text-[11px] font-bold uppercase
+                                              tracking-[0.18em] text-blue-200">
+
+                                        Current Schedule
+
+                                    </p>
+
+                                    <p class="text-xs text-blue-100 mt-0.5">
+                                        Confirmed appointment information
+                                    </p>
+
+                                </div>
 
                             </div>
 
 
-                            <div class="grid sm:grid-cols-2 gap-6">
+                            <div class="grid sm:grid-cols-2 gap-5">
 
-                                <div>
+                                {{-- Date --}}
+                                <div class="rounded-2xl
+                                            bg-white/10
+                                            border border-white/10
+                                            p-5">
 
                                     <p class="text-xs text-blue-200">
                                         Appointment Date
                                     </p>
 
-                                    <p class="text-2xl font-extrabold
-                                              text-white mt-1">
+                                    <p class="text-xl sm:text-2xl
+                                              font-extrabold text-white mt-2">
 
                                         {{ $appointment->date->format('F j, Y') }}
 
@@ -362,14 +462,18 @@
                                 </div>
 
 
-                                <div>
+                                {{-- Time --}}
+                                <div class="rounded-2xl
+                                            bg-white/10
+                                            border border-white/10
+                                            p-5">
 
                                     <p class="text-xs text-blue-200">
                                         Time Slot
                                     </p>
 
-                                    <p class="text-2xl font-extrabold
-                                              text-white mt-1">
+                                    <p class="text-xl sm:text-2xl
+                                              font-extrabold text-white mt-2">
 
                                         {{ $appointment->time_slot }}
 
@@ -380,10 +484,10 @@
                             </div>
 
 
-                            <div class="grid sm:grid-cols-2 gap-6 mt-6
-                                        pt-5 border-t border-white/10">
+                            <div class="grid sm:grid-cols-2 gap-5 mt-5">
 
-                                <div>
+                                {{-- Office --}}
+                                <div class="pt-5 border-t border-white/10">
 
                                     <p class="text-xs text-blue-200">
                                         Office
@@ -395,15 +499,20 @@
 
                                 </div>
 
-                                <div>
+
+                                {{-- Capacity --}}
+                                <div class="pt-5 border-t border-white/10">
 
                                     <p class="text-xs text-blue-200">
-                                        Capacity
+                                        Slot Capacity
                                     </p>
 
                                     <p class="text-sm font-bold text-white mt-1">
+
                                         {{ \App\Models\Appointment::SLOT_LIMITS[$appointment->office] ?? 6 }}
+
                                         students per slot
+
                                     </p>
 
                                 </div>
@@ -425,7 +534,8 @@
 
                             <div class="flex items-center gap-3">
 
-                                <div class="w-10 h-10 rounded-xl bg-blue-50
+                                <div class="w-10 h-10 rounded-xl
+                                            bg-blue-50
                                             flex items-center justify-center">
 
                                     <svg class="w-5 h-5 text-blue-700"
@@ -461,51 +571,52 @@
 
                         <div class="p-6">
 
-                            <dl class="grid sm:grid-cols-2 gap-x-8 gap-y-6">
+                            <dl class="grid sm:grid-cols-2 gap-x-8 gap-y-7">
 
                                 <div>
-                                    <dt class="text-[11px] font-bold uppercase
-                                              tracking-wider text-slate-400">
+                                    <dt class="text-[10px] font-bold uppercase
+                                              tracking-[0.15em] text-slate-400">
                                         Student ID
                                     </dt>
 
-                                    <dd class="mt-1 text-sm font-semibold text-slate-800">
+                                    <dd class="mt-1.5 text-sm font-semibold text-slate-800">
                                         {{ $appointment->user->studentProfile?->student_id ?? '—' }}
                                     </dd>
                                 </div>
 
 
                                 <div>
-                                    <dt class="text-[11px] font-bold uppercase
-                                              tracking-wider text-slate-400">
+                                    <dt class="text-[10px] font-bold uppercase
+                                              tracking-[0.15em] text-slate-400">
                                         Email Address
                                     </dt>
 
-                                    <dd class="mt-1 text-sm font-semibold text-slate-800 break-all">
+                                    <dd class="mt-1.5 text-sm font-semibold
+                                              text-slate-800 break-all">
                                         {{ $appointment->user->email }}
                                     </dd>
                                 </div>
 
 
                                 <div>
-                                    <dt class="text-[11px] font-bold uppercase
-                                              tracking-wider text-slate-400">
+                                    <dt class="text-[10px] font-bold uppercase
+                                              tracking-[0.15em] text-slate-400">
                                         Target Office
                                     </dt>
 
-                                    <dd class="mt-1 text-sm font-semibold text-slate-800">
+                                    <dd class="mt-1.5 text-sm font-semibold text-slate-800">
                                         {{ $appointment->office }}
                                     </dd>
                                 </div>
 
 
                                 <div>
-                                    <dt class="text-[11px] font-bold uppercase
-                                              tracking-wider text-slate-400">
+                                    <dt class="text-[10px] font-bold uppercase
+                                              tracking-[0.15em] text-slate-400">
                                         Purpose
                                     </dt>
 
-                                    <dd class="mt-1 text-sm font-semibold text-slate-800">
+                                    <dd class="mt-1.5 text-sm font-semibold text-slate-800">
                                         {{ $appointment->purpose }}
                                     </dd>
                                 </div>
@@ -515,15 +626,22 @@
 
                                     <div class="sm:col-span-2">
 
-                                        <dt class="text-[11px] font-bold uppercase
-                                                  tracking-wider text-slate-400">
+                                        <dt class="text-[10px] font-bold uppercase
+                                                  tracking-[0.15em] text-slate-400">
+
                                             Student Notes
+
                                         </dt>
 
-                                        <dd class="mt-2 p-4 bg-slate-50
-                                                   rounded-xl text-sm
-                                                   text-slate-600 leading-relaxed">
+                                        <dd class="mt-2 p-4
+                                                   bg-slate-50
+                                                   border border-slate-100
+                                                   rounded-2xl
+                                                   text-sm text-slate-600
+                                                   leading-relaxed">
+
                                             {{ $appointment->notes }}
+
                                         </dd>
 
                                     </div>
@@ -542,16 +660,20 @@
                     ================================================== --}}
                     @if ($appointment->rescheduled_at)
 
-                        <div class="bg-white rounded-3xl border border-indigo-100
+                        <div class="bg-white rounded-3xl
+                                    border border-indigo-100
                                     shadow-sm overflow-hidden">
 
-                            <div class="px-6 py-5 bg-indigo-50
+                            <div class="px-6 py-5
+                                        bg-indigo-50
                                         border-b border-indigo-100">
 
                                 <div class="flex items-center gap-3">
 
-                                    <div class="w-10 h-10 rounded-xl bg-white
-                                                flex items-center justify-center">
+                                    <div class="w-10 h-10 rounded-xl
+                                                bg-white
+                                                flex items-center justify-center
+                                                shadow-sm">
 
                                         <svg class="w-5 h-5 text-indigo-700"
                                              fill="none"
@@ -591,54 +713,74 @@
 
                             <div class="p-6">
 
-                                <div class="relative pl-7">
+                                <div class="relative pl-8">
 
                                     <div class="absolute left-2 top-1 bottom-1
                                                 w-px bg-indigo-200"></div>
 
                                     <div class="absolute left-0 top-1
                                                 w-5 h-5 rounded-full
-                                                bg-indigo-100 border-4
-                                                border-white ring-1
-                                                ring-indigo-200"></div>
+                                                bg-indigo-100
+                                                border-4 border-white
+                                                ring-1 ring-indigo-200">
+                                    </div>
 
 
-                                    <p class="text-xs font-bold uppercase
-                                              tracking-wider text-slate-400">
+                                    <p class="text-[10px] font-bold uppercase
+                                              tracking-[0.15em] text-slate-400">
+
                                         Rescheduled
+
                                     </p>
+
 
                                     <p class="text-sm text-slate-700 mt-2 leading-relaxed">
 
                                         Moved from
 
                                         <strong class="text-slate-900">
+
                                             {{ $appointment->original_date?->format('F j, Y') }}
+
                                             ·
+
                                             {{ $appointment->original_time_slot ?? '—' }}
+
                                         </strong>
 
                                         to
 
                                         <strong class="text-indigo-700">
+
                                             {{ $appointment->date->format('F j, Y') }}
+
                                             ·
+
                                             {{ $appointment->time_slot }}
+
                                         </strong>
 
                                     </p>
 
+
                                     <p class="text-xs text-slate-400 mt-2">
+
                                         {{ $appointment->rescheduled_at->format('M j, Y g:i A') }}
+
                                     </p>
+
 
                                     @if ($appointment->reschedule_reason)
 
-                                        <div class="mt-4 p-4 rounded-xl bg-indigo-50">
+                                        <div class="mt-4 p-4 rounded-2xl
+                                                    bg-indigo-50
+                                                    border border-indigo-100">
 
-                                            <p class="text-[11px] font-bold uppercase
+                                            <p class="text-[10px] font-bold uppercase
                                                       tracking-wider text-indigo-500">
+
                                                 Reason
+
                                             </p>
 
                                             <p class="text-sm text-indigo-800 mt-1">
@@ -667,68 +809,125 @@
 
 
                     {{-- Appointment Summary --}}
-                    <div class="bg-white rounded-3xl border border-slate-200
+                    <div class="bg-white rounded-3xl
+                                border border-slate-200
                                 shadow-sm overflow-hidden">
 
-                        <div class="px-5 py-4 border-b border-slate-100">
+                        <div class="px-5 py-4
+                                    bg-blue-950">
 
-                            <p class="text-xs font-bold uppercase
-                                      tracking-wider text-slate-400">
-                                Appointment Summary
-                            </p>
+                            <div class="flex items-center gap-2">
+
+                                <div class="w-8 h-8 rounded-lg
+                                            bg-yellow-400
+                                            flex items-center justify-center">
+
+                                    <svg class="w-4 h-4 text-blue-950"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+
+                                        <path stroke-linecap="round"
+                                              stroke-linejoin="round"
+                                              stroke-width="2"
+                                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h6l5 5v11a2 2 0 01-2 2z"/>
+
+                                    </svg>
+
+                                </div>
+
+                                <p class="text-xs font-bold uppercase
+                                          tracking-wider text-white">
+
+                                    Appointment Summary
+
+                                </p>
+
+                            </div>
 
                         </div>
 
-                        <div class="p-5 space-y-4">
+
+                        <div class="p-5 space-y-5">
 
                             <div>
-                                <p class="text-xs text-slate-400">
+
+                                <p class="text-[10px] font-bold uppercase
+                                          tracking-wider text-slate-400">
+
                                     Reference Number
+
                                 </p>
 
                                 <p class="text-sm font-bold text-slate-800 mt-1">
+
                                     {{ $appointment->reference_code }}
+
                                 </p>
+
                             </div>
 
 
                             <div>
-                                <p class="text-xs text-slate-400">
+
+                                <p class="text-[10px] font-bold uppercase
+                                          tracking-wider text-slate-400">
+
                                     Office
+
                                 </p>
 
                                 <p class="text-sm font-bold text-slate-800 mt-1">
+
                                     {{ $appointment->office }}
+
                                 </p>
+
                             </div>
 
 
                             <div>
-                                <p class="text-xs text-slate-400">
+
+                                <p class="text-[10px] font-bold uppercase
+                                          tracking-wider text-slate-400">
+
                                     Purpose
+
                                 </p>
 
                                 <p class="text-sm font-bold text-slate-800 mt-1">
+
                                     {{ $appointment->purpose }}
+
                                 </p>
+
                             </div>
 
 
                             <div class="pt-4 border-t border-slate-100">
 
-                                <p class="text-xs text-slate-400">
-                                    Slot Capacity
-                                </p>
+                                <div class="flex items-center justify-between">
 
-                                <div class="flex items-center justify-between mt-2">
+                                    <div>
 
-                                    <span class="text-sm font-bold text-slate-800">
-                                        Maximum
-                                    </span>
+                                        <p class="text-[10px] font-bold uppercase
+                                                  tracking-wider text-slate-400">
 
-                                    <span class="px-2.5 py-1 rounded-lg
-                                                 bg-blue-50 text-blue-700
-                                                 text-xs font-bold">
+                                            Slot Capacity
+
+                                        </p>
+
+                                        <p class="text-xs text-slate-400 mt-1">
+                                            Maximum students
+                                        </p>
+
+                                    </div>
+
+
+                                    <span class="px-3 py-1.5 rounded-xl
+                                                 bg-blue-50
+                                                 text-blue-800
+                                                 text-sm font-extrabold">
 
                                         {{ \App\Models\Appointment::SLOT_LIMITS[$appointment->office] ?? 6 }}
 
@@ -743,13 +942,24 @@
                     </div>
 
 
-                    {{-- Email Notification --}}
-                    <div class="bg-blue-50 rounded-3xl border border-blue-100 p-5">
+                    {{-- Student Notification --}}
+                    <div class="relative overflow-hidden
+                                bg-gradient-to-br
+                                from-blue-50 to-indigo-50
+                                rounded-3xl
+                                border border-blue-100 p-5">
 
-                        <div class="flex gap-3">
+                        <div class="absolute -right-8 -top-8
+                                    w-24 h-24 rounded-full
+                                    bg-blue-200/30"></div>
 
-                            <div class="w-10 h-10 rounded-xl bg-white
-                                        flex items-center justify-center shrink-0">
+                        <div class="relative flex gap-3">
+
+                            <div class="w-10 h-10 rounded-xl
+                                        bg-white
+                                        border border-blue-100
+                                        flex items-center justify-center
+                                        shrink-0 shadow-sm">
 
                                 <svg class="w-5 h-5 text-blue-700"
                                      fill="none"
@@ -765,17 +975,87 @@
 
                             </div>
 
+
                             <div>
 
-                                <p class="text-sm font-bold text-blue-900">
+                                <p class="text-sm font-bold text-blue-950">
                                     Student Notifications
                                 </p>
 
                                 <p class="text-xs text-blue-700 mt-1 leading-relaxed">
+
                                     The student will receive an email when the
                                     appointment is approved, rescheduled,
                                     or cancelled.
+
                                 </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- ISUFSTPASS Verification --}}
+                    <div class="bg-white rounded-3xl
+                                border border-slate-200
+                                shadow-sm p-5">
+
+                        <div class="flex items-center gap-3">
+
+                            <div class="w-10 h-10 rounded-xl
+                                        bg-yellow-50
+                                        flex items-center justify-center">
+
+                                <svg class="w-5 h-5 text-yellow-600"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+
+                                    <path stroke-linecap="round"
+                                          stroke-linejoin="round"
+                                          stroke-width="2"
+                                          d="M9 12l2 2 4-4m5.618-4.016A11.955
+                                             11.955 0 0112 2.944a11.955
+                                             11.955 0 01-8.618 3.04A12.02
+                                             12.02 0 003 9c0 5.591 3.824
+                                             10.29 9 11.622 5.176-1.332
+                                             9-6.03 9-11.622 0-1.042-.133
+                                             -2.052-.382-3.016z"/>
+
+                                </svg>
+
+                            </div>
+
+
+                            <div>
+
+                                <p class="text-sm font-bold text-slate-900">
+                                    ISUFSTPASS Verified
+                                </p>
+
+                                <p class="text-xs text-slate-400 mt-0.5">
+                                    Secure university transaction
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                        <div class="mt-4 pt-4 border-t border-slate-100">
+
+                            <div class="flex items-center gap-2">
+
+                                <span class="w-2 h-2 rounded-full
+                                             bg-emerald-500"></span>
+
+                                <span class="text-xs font-semibold
+                                             text-slate-600">
+
+                                    Appointment record is securely stored
+
+                                </span>
 
                             </div>
 
@@ -793,23 +1073,28 @@
             ========================================================== --}}
             @if (session('error'))
 
-                <div class="mt-6 flex items-start gap-3 bg-red-50
-                            border border-red-200 text-red-700
-                            rounded-2xl px-5 py-4">
+                <div class="mt-6 flex items-start gap-3
+                            bg-red-50 border border-red-200
+                            text-red-700 rounded-2xl px-5 py-4">
 
-                    <svg class="w-5 h-5 mt-0.5 shrink-0"
-                         fill="none"
-                         stroke="currentColor"
-                         viewBox="0 0 24 24">
+                    <div class="w-8 h-8 rounded-lg bg-red-100
+                                flex items-center justify-center shrink-0">
 
-                        <path stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M12 9v2m0 4h.01M10.29 3.86l-7.82 14a1 1 0 00.87 1.5h17.32a1 1 0 00.87-1.5l-7.82-14a1 1 0 00-1.74 0z"/>
+                        <svg class="w-4 h-4"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
 
-                    </svg>
+                            <path stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M12 9v2m0 4h.01M10.29 3.86l-7.82 14a1 1 0 00.87 1.5h17.32a1 1 0 00.87-1.5l-7.82-14-1.74 0z"/>
 
-                    <p class="text-sm font-semibold">
+                        </svg>
+
+                    </div>
+
+                    <p class="text-sm font-semibold mt-1">
                         {{ session('error') }}
                     </p>
 
@@ -820,6 +1105,8 @@
         </div>
     </div>
 
+
+    {{-- Existing Reschedule Modal --}}
     @include('registrar.appointments.partials.reschedule-modal')
 
 </x-app-layout>

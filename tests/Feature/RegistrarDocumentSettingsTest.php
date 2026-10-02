@@ -44,8 +44,8 @@ class RegistrarDocumentSettingsTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->get('/registrar/documents')
             ->assertOk()
-            ->assertSee('Document Fees & Services')
-            ->assertSee('Manage document pricing and fees');
+            ->assertSee('Document Fees & Services', false)
+            ->assertSee('Manage document pricing and services');
     }
 
     public function test_registrar_can_add_and_update_document_fee(): void

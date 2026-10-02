@@ -167,7 +167,7 @@ class QrScanTest extends TestCase
         $this->actingAs(User::factory()->create(['role' => 'registrar']))
             ->get(route('registrar.qr.index'))
             ->assertOk()
-            ->assertSee('Scan with Camera')
+            ->assertSee('Scan QR Code with Camera')
             ->assertSee('html5-qrcode');
     }
 
