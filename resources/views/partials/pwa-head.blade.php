@@ -3,8 +3,8 @@
 
     Every standalone <head> in the app includes this partial, so the favicon,
     manifest link and theme colour can never drift from page to page. The icon
-    files themselves are derived from img/isufstpass-logo.png by a one-off GD
-    script (see public/img/icons/) — regenerate rather than hand-edit them.
+    files are derived from img/isufstpass-logo.png — run `php artisan
+    icons:generate` after changing the logo rather than hand-editing them.
 
     theme-color matches the sidebar and mobile top bar (#12347d) so the browser
     chrome blends with the app chrome. status-bar-style is "default" rather than
