@@ -493,23 +493,12 @@
 
 
         /* =========================================
-           TEXT FOOTER
+           FOOTER STRIP
         ========================================= */
 
         .doc-footer {
             margin-top: 16px;
             text-align: center;
-        }
-
-        .doc-footer p {
-            margin: 3px 0;
-            font-size: 11px;
-            letter-spacing: 1px;
-        }
-
-        .doc-footer-motto {
-            font-style: italic;
-            font-weight: bold;
         }
 
         .doc-footer-strip {
@@ -1627,17 +1616,17 @@
         </div>
 
 
-        {{-- =====================================
-            TEXT FOOTER
-        ====================================== --}}
+        {{--
+            The strip already carries the rule and the motto beneath it, so
+            repeating the line above the logos printed it twice - and put it
+            ahead of the rule, where it does not belong. One strip, once.
+        --}}
 
         <div class="doc-footer">
 
-            <p class="doc-footer-motto">Integrity &bull; Social Justice &bull; Discipline &bull; Academic Excellence</p>
-
             <img
                 src="{{ asset('images/requisition-footer-strip.jpeg') }}"
-                alt="ISUFST Footer"
+                alt="ISUFST logos and motto: Integrity, Social Justice, Discipline, Academic Excellence"
                 class="doc-footer-strip"
             >
 
