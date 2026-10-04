@@ -17,6 +17,10 @@ class OsasController extends Controller
     {
         return view('Offices.OSAS.appointments', [
             'office' => 'OSAS',
+            'appointments' => \App\Models\Appointment::with('user')
+                ->where('office', 'OSAS')
+                ->latest()
+                ->paginate(12),
         ]);
     }
 
@@ -24,6 +28,7 @@ class OsasController extends Controller
     {
         return view('Offices.OSAS.availability', [
             'office' => 'OSAS',
+            'timeSlots' => \App\Models\Appointment::TIME_SLOTS,
         ]);
     }
 

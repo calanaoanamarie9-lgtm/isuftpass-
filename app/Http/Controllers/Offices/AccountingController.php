@@ -17,6 +17,10 @@ class AccountingController extends Controller
     {
         return view('Offices.Accounting.appointments', [
             'office' => 'Accounting',
+            'appointments' => \App\Models\Appointment::with('user')
+                ->where('office', 'Accounting')
+                ->latest()
+                ->paginate(12),
         ]);
     }
 
@@ -24,6 +28,7 @@ class AccountingController extends Controller
     {
         return view('Offices.Accounting.availability', [
             'office' => 'Accounting',
+            'timeSlots' => \App\Models\Appointment::TIME_SLOTS,
         ]);
     }
 

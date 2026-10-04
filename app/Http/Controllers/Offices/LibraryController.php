@@ -17,6 +17,10 @@ class LibraryController extends Controller
     {
         return view('Offices.Library.appointments', [
             'office' => 'Library',
+            'appointments' => \App\Models\Appointment::with('user')
+                ->where('office', 'Library')
+                ->latest()
+                ->paginate(12),
         ]);
     }
 
@@ -24,6 +28,7 @@ class LibraryController extends Controller
     {
         return view('Offices.Library.availability', [
             'office' => 'Library',
+            'timeSlots' => \App\Models\Appointment::TIME_SLOTS,
         ]);
     }
 

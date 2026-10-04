@@ -121,7 +121,7 @@ class AvailabilityController extends Controller
         );
 
         return response()->json([
-            'message' => 'Registrar availability has been updated.',
+            'message' => $office->name . ' availability has been updated.',
             'schedule' => $this->buildSchedule(),
         ]);
     }

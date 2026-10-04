@@ -17,6 +17,10 @@ class GuidanceController extends Controller
     {
         return view('Offices.Guidance.appointments', [
             'office' => 'Guidance',
+            'appointments' => \App\Models\Appointment::with('user')
+                ->where('office', 'Guidance')
+                ->latest()
+                ->paginate(12),
         ]);
     }
 
@@ -24,6 +28,7 @@ class GuidanceController extends Controller
     {
         return view('Offices.Guidance.availability', [
             'office' => 'Guidance',
+            'timeSlots' => \App\Models\Appointment::TIME_SLOTS,
         ]);
     }
 

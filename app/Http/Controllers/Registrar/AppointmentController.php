@@ -12,6 +12,7 @@ use App\Support\AuditLogger;
 use App\Support\SafeMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -57,6 +58,15 @@ class AppointmentController extends Controller
             'ignore_id' => ['nullable', 'integer'],
         ]);
 
+        // Every workspace now reaches this endpoint, so it no longer suffices
+        // that the caller is staff: only the registrar reads across offices.
+        // A department or office account may read capacity for its own office.
+        abort_unless(
+            auth()->user()?->role === 'registrar'
+                || $data['office'] === auth()->user()->officeScope(),
+            403
+        );
+
         return response()->json(Appointment::availableSlots($data['office'], $data['date'], $data['ignore_id'] ?? null));
     }
 
@@ -74,6 +84,15 @@ class AppointmentController extends Controller
 
     public function updateReschedule(Request $request, Appointment $appointment): RedirectResponse
     {
+        // Rescheduling someone else's office is the registrar's call. Workspace
+        // accounts reach this route too, so pin them to their own office — the
+        // appointment list they came from is already scoped that way.
+        abort_unless(
+            auth()->user()?->role === 'registrar'
+                || $appointment->office === auth()->user()->officeScope(),
+            403
+        );
+
         abort_if(
             in_array($appointment->status, [
                 AppointmentStatus::COMPLETED->value,
@@ -118,15 +137,25 @@ class AppointmentController extends Controller
 
         AuditLogger::log('appointment.rescheduled', 'Rescheduled appointment ' . $appointment->reference_code . ' to ' . $data['date'] . ' (' . $data['time_slot'] . ').');
 
+        // The registrar works from the appointment record itself; each of the
+        // eight workspaces has its own appointment list instead. Sending a
+        // workspace to registrar.appointments.show would land it on a page its
+        // role cannot open — it would 403 one screen after succeeding — so go to
+        // whichever index actually exists for this account.
+        $workspaceIndex = strtolower(auth()->user()->officeScope()) . '.appointments';
+        $redirect = Route::has($workspaceIndex)
+            ? route($workspaceIndex)
+            : route('registrar.appointments.show', $appointment);
+
         if ($request->wantsJson()) {
             return response()->json([
-                'redirect' => route('registrar.appointments.show', $appointment),
+                'redirect' => $redirect,
                 'message' => 'Appointment rescheduled. The student has been notified.',
             ]);
         }
 
         return redirect()
-            ->route('registrar.appointments.show', $appointment)
+            ->to($redirect)
             ->with('status', 'Appointment rescheduled. The student has been notified by email and in the system.');
     }
 

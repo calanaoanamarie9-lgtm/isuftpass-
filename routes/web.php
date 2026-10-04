@@ -419,7 +419,43 @@ Route::middleware(['auth', 'role:cashier'])->prefix('cashier')->name('cashier.')
     Route::get('/ledger/{user}', [LedgerController::class, 'show'])->name('ledger.show');
 });
 
-Route::middleware(['auth', 'role:department'])->prefix('cici')->name('cici.')->group(function () {
+/*
+|--------------------------------------------------------------------------
+| Workspace endpoints, shared by all eight offices and departments
+|--------------------------------------------------------------------------
+| These handlers resolve everything from auth()->user()->officeScope(): the
+| office being written to, the appointments in scope, the slots being read.
+| So one implementation serves every workspace, registered once here and then
+| declared inside each group below — which is what makes it work.
+|
+| The registrar owns the originals, but they sit behind role:registrar,department,
+| and an OSAS or Accounting account is neither, so borrowing them would 403 a
+| workspace out of its own page. Letting each group declare them also means each
+| group's own role middleware guards them.
+|
+| AvailabilityController and Registrar\AppointmentController additionally pin
+| the office to officeScope() unless the caller is the registrar, so exposing
+| them here cannot turn one workspace into another workspace's data.
+*/
+$workspaceRoutes = function (): void {
+    Route::post('/availability/save', [\App\Http\Controllers\Registrar\AvailabilityController::class, 'save'])
+        ->name('availability.save');
+
+    Route::get('/availability/schedule', [\App\Http\Controllers\Registrar\AvailabilityController::class, 'schedule'])
+        ->name('availability.schedule');
+
+    Route::get('/availability/settings/{date}', [\App\Http\Controllers\Registrar\AvailabilityController::class, 'settings'])
+        ->where('date', '[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        ->name('availability.settings');
+
+    Route::get('/appointments/slots', [\App\Http\Controllers\Registrar\AppointmentController::class, 'slots'])
+        ->name('appointments.slots');
+
+    Route::put('/appointments/{appointment}/reschedule', [\App\Http\Controllers\Registrar\AppointmentController::class, 'updateReschedule'])
+        ->name('appointments.reschedule.update');
+};
+
+Route::middleware(['auth', 'role:department'])->prefix('cici')->name('cici.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Department\CiciController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Department\CiciController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Department\CiciController::class, 'availability'])->name('availability');
@@ -427,9 +463,11 @@ Route::middleware(['auth', 'role:department'])->prefix('cici')->name('cici.')->g
     Route::get('/consultations', [\App\Http\Controllers\Department\CiciController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [\App\Http\Controllers\Department\CiciController::class, 'profile'])->name('profile');
     Route::get('/help', [\App\Http\Controllers\Department\CiciController::class, 'help'])->name('help');
+
+    $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department'])->prefix('cbmsd')->name('cbmsd.')->group(function () {
+Route::middleware(['auth', 'role:department'])->prefix('cbmsd')->name('cbmsd.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Department\CbmsdController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Department\CbmsdController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Department\CbmsdController::class, 'availability'])->name('availability');
@@ -437,9 +475,11 @@ Route::middleware(['auth', 'role:department'])->prefix('cbmsd')->name('cbmsd.')-
     Route::get('/consultations', [\App\Http\Controllers\Department\CbmsdController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [\App\Http\Controllers\Department\CbmsdController::class, 'profile'])->name('profile');
     Route::get('/help', [\App\Http\Controllers\Department\CbmsdController::class, 'help'])->name('help');
+
+    $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department'])->prefix('coag')->name('coag.')->group(function () {
+Route::middleware(['auth', 'role:department'])->prefix('coag')->name('coag.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Department\CoagController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Department\CoagController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Department\CoagController::class, 'availability'])->name('availability');
@@ -447,9 +487,11 @@ Route::middleware(['auth', 'role:department'])->prefix('coag')->name('coag.')->g
     Route::get('/consultations', [\App\Http\Controllers\Department\CoagController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [\App\Http\Controllers\Department\CoagController::class, 'profile'])->name('profile');
     Route::get('/help', [\App\Http\Controllers\Department\CoagController::class, 'help'])->name('help');
+
+    $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department'])->prefix('coed')->name('coed.')->group(function () {
+Route::middleware(['auth', 'role:department'])->prefix('coed')->name('coed.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Department\CoedController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Department\CoedController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Department\CoedController::class, 'availability'])->name('availability');
@@ -457,9 +499,11 @@ Route::middleware(['auth', 'role:department'])->prefix('coed')->name('coed.')->g
     Route::get('/consultations', [\App\Http\Controllers\Department\CoedController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [\App\Http\Controllers\Department\CoedController::class, 'profile'])->name('profile');
     Route::get('/help', [\App\Http\Controllers\Department\CoedController::class, 'help'])->name('help');
+
+    $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department,osas'])->prefix('osas')->name('osas.')->group(function () {
+Route::middleware(['auth', 'role:department,osas'])->prefix('osas')->name('osas.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Offices\OsasController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Offices\OsasController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Offices\OsasController::class, 'availability'])->name('availability');
@@ -467,9 +511,11 @@ Route::middleware(['auth', 'role:department,osas'])->prefix('osas')->name('osas.
     Route::get('/consultations', [\App\Http\Controllers\Offices\OsasController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [\App\Http\Controllers\Offices\OsasController::class, 'profile'])->name('profile');
     Route::get('/help', [\App\Http\Controllers\Offices\OsasController::class, 'help'])->name('help');
+
+    $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department,accounting'])->prefix('accounting')->name('accounting.')->group(function () {
+Route::middleware(['auth', 'role:department,accounting'])->prefix('accounting')->name('accounting.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Offices\AccountingController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Offices\AccountingController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Offices\AccountingController::class, 'availability'])->name('availability');
@@ -477,9 +523,11 @@ Route::middleware(['auth', 'role:department,accounting'])->prefix('accounting')-
     Route::get('/consultations', [\App\Http\Controllers\Offices\AccountingController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [\App\Http\Controllers\Offices\AccountingController::class, 'profile'])->name('profile');
     Route::get('/help', [\App\Http\Controllers\Offices\AccountingController::class, 'help'])->name('help');
+
+    $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department,library'])->prefix('library')->name('library.')->group(function () {
+Route::middleware(['auth', 'role:department,library'])->prefix('library')->name('library.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Offices\LibraryController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Offices\LibraryController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Offices\LibraryController::class, 'availability'])->name('availability');
@@ -487,9 +535,11 @@ Route::middleware(['auth', 'role:department,library'])->prefix('library')->name(
     Route::get('/consultations', [\App\Http\Controllers\Offices\LibraryController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [\App\Http\Controllers\Offices\LibraryController::class, 'profile'])->name('profile');
     Route::get('/help', [\App\Http\Controllers\Offices\LibraryController::class, 'help'])->name('help');
+
+    $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department,guidance'])->prefix('guidance')->name('guidance.')->group(function () {
+Route::middleware(['auth', 'role:department,guidance'])->prefix('guidance')->name('guidance.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Offices\GuidanceController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Offices\GuidanceController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Offices\GuidanceController::class, 'availability'])->name('availability');
@@ -497,6 +547,8 @@ Route::middleware(['auth', 'role:department,guidance'])->prefix('guidance')->nam
     Route::get('/consultations', [\App\Http\Controllers\Offices\GuidanceController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [\App\Http\Controllers\Offices\GuidanceController::class, 'profile'])->name('profile');
     Route::get('/help', [\App\Http\Controllers\Offices\GuidanceController::class, 'help'])->name('help');
+
+    $workspaceRoutes();
 });
 
 // Consultation services — every office / department manages only its own rows.
