@@ -303,7 +303,6 @@
 
                             </a>
 
-
                             <button
                                 type="button"
                                 onclick="openQRFullscreen()"
@@ -319,6 +318,20 @@
 
                             </button>
 
+                        </div>
+
+                        {{-- The button above serves PNG, which a phone can
+                             actually open. Keep vector reachable for print
+                             and for scaling without loss. --}}
+                        <div class="w-full max-w-md mt-2">
+                            <a href="{{ route('student.documents.qr.download', ['documentRequest' => $documentRequest, 'format' => 'svg']) }}"
+                               class="inline-flex items-center gap-1.5
+                                      text-[11px] font-semibold text-gray-400
+                                      hover:text-gray-600 transition">
+
+                                Vector version (SVG) for printing
+
+                            </a>
                         </div>
 
                     </div>

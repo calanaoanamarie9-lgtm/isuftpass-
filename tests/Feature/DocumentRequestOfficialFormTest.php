@@ -247,18 +247,56 @@ class DocumentRequestOfficialFormTest extends TestCase
         $request = $user->documentRequests()->first();
 
         $response = $this->actingAs($user)
-            ->get(route('student.documents.qr.download', $request));
+            ->get(route('student.documents.qr.download', ['documentRequest' => $request, 'format' => 'svg']));
 
         $response->assertOk();
 
         $svg = $response->getContent();
 
         $this->assertStringContainsString('attachment', $response->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('.svg"', $response->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('image/svg+xml', $response->headers->get('Content-Type'));
         $this->assertStringContainsString('ISUFSTPASS', $svg);
         $this->assertStringContainsString('DOCUMENT REQUEST QR', $svg);
         $this->assertStringContainsString($request->request_number, $svg);
         $this->assertStringContainsString($user->name, $svg);
         $this->assertStringContainsString('ISUFSTPASS VERIFIED', $svg);
+    }
+
+    /**
+     * The bare download — the URL the "Download QR Code" button points at —
+     * must be a PNG, since a phone cannot open the SVG this used to serve
+     * and reports "Couldn't open file".
+     */
+    public function test_document_qr_download_defaults_to_png_a_phone_can_open(): void
+    {
+        $documents = $this->makeDocuments();
+        $user = $this->createStudent();
+
+        $this->actingAs($user)
+            ->post('/student/document-requests', $this->validPayload([
+                'document_ids' => [$documents[0]->id],
+            ]))
+            ->assertRedirect();
+
+        $request = $user->documentRequests()->first();
+
+        $response = $this->actingAs($user)
+            ->get(route('student.documents.qr.download', $request));
+
+        $response->assertOk();
+
+        $png = $response->getContent();
+
+        $this->assertSame('image/png', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('.png"', $response->headers->get('Content-Disposition'));
+        $this->assertSame("\x89PNG\r\n\x1a\n", substr($png, 0, 8));
+        $this->assertSame((string) strlen($png), $response->headers->get('Content-Length'));
+
+        $image = @imagecreatefromstring($png);
+        $this->assertNotFalse($image, 'The download must decode as an image.');
+        $this->assertSame(640, imagesx($image));
+        $this->assertSame(1010, imagesy($image));
     }
 
     public function test_student_can_open_printable_requisition_form(): void

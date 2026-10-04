@@ -144,7 +144,7 @@ class AppointmentQrTest extends TestCase
         $appointment = $this->appointment($student);
 
         $response = $this->actingAs($student)
-            ->get(route('student.appointments.qr.download', $appointment));
+            ->get(route('student.appointments.qr.download', ['appointment' => $appointment, 'format' => 'svg']));
 
         $response->assertOk();
 
@@ -152,6 +152,8 @@ class AppointmentQrTest extends TestCase
         $disposition = $response->headers->get('Content-Disposition');
 
         $this->assertStringContainsString('attachment', $disposition);
+        $this->assertStringContainsString('.svg"', $disposition);
+        $this->assertStringContainsString('image/svg+xml', $response->headers->get('Content-Type'));
         // The whole card must be included, not just the bare QR code.
         $this->assertStringContainsString('ISUFSTPASS', $svg);
         $this->assertStringContainsString('DIGITAL STUDENT ID', $svg);
@@ -162,6 +164,43 @@ class AppointmentQrTest extends TestCase
         $this->assertStringContainsString('APPOINTMENT QR', $svg);
         $this->assertStringContainsString($appointment->reference_code, $svg);
         $this->assertStringContainsString('ISUFSTPASS VERIFIED', $svg);
+    }
+
+    /**
+     * The bare download — the URL every button in the UI points at — must be
+     * a PNG, because a phone cannot open the SVG this used to serve.
+     * Android downloads image/svg+xml, finds nothing that claims it, and
+     * reports "Couldn't open file".
+     */
+    public function test_appointment_qr_download_defaults_to_png_a_phone_can_open(): void
+    {
+        $student = $this->student();
+        $student->studentProfile()->create([
+            'student_id' => 'ISUFST-2024-0001',
+            'course' => 'BS Information Technology',
+            'year_level' => '3rd Year',
+        ]);
+        $appointment = $this->appointment($student);
+
+        $response = $this->actingAs($student)
+            ->get(route('student.appointments.qr.download', $appointment));
+
+        $response->assertOk();
+
+        $png = $response->getContent();
+
+        $this->assertSame('image/png', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('.png"', $response->headers->get('Content-Disposition'));
+
+        // Real PNG magic bytes — the header a phone's gallery reads to
+        // decide it can open the file at all.
+        $this->assertSame("\x89PNG\r\n\x1a\n", substr($png, 0, 8));
+        $this->assertSame((string) strlen($png), $response->headers->get('Content-Length'));
+
+        $image = @imagecreatefromstring($png);
+        $this->assertNotFalse($image, 'The download must decode as an image.');
+        $this->assertSame(640, imagesx($image));
+        $this->assertSame(1010, imagesy($image));
     }
 
     private function student(): User

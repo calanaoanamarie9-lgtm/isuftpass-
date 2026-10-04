@@ -69,16 +69,23 @@ class AppointmentController extends Controller
     }
 
     /**
-     * Download a complete pass-card SVG for this appointment.
+     * Download the complete pass card for this appointment.
+     *
+     * PNG is what this serves by default. A phone cannot open an .svg —
+     * no gallery or viewer claims image/svg+xml, so Android downloads the
+     * file and then refuses it with "Couldn't open file". PNG opens in
+     * every phone's photo viewer, which is where the QR is actually shown.
+     *
+     * ?format=svg still returns the vector original for print and scaling.
      */
-    public function downloadQr(Appointment $appointment): \Symfony\Component\HttpFoundation\Response
+    public function downloadQr(Request $request, Appointment $appointment): \Symfony\Component\HttpFoundation\Response
     {
         Gate::authorize('view', $appointment);
 
         $user = Auth::user();
         $profile = $user->studentProfile;
 
-        $svg = \App\Support\QrPassCard::svg([
+        $options = [
             'sectionLabel' => 'Appointment QR',
             'refCode' => $appointment->reference_code,
             'caption' => 'Present this QR code to authorized personnel.',
@@ -87,11 +94,20 @@ class AppointmentController extends Controller
             'course' => $profile?->course ?? '',
             'yearLevel' => $profile?->year_level ?? '',
             'qrPayload' => \App\Support\QrUrl::to('/verify/appointment/' . $appointment->qr_token),
-        ]);
+        ];
 
-        return response($svg)
-            ->header('Content-Type', 'image/svg+xml')
-            ->header('Content-Disposition', 'attachment; filename="isufstpass-appointment-' . $appointment->reference_code . '.svg"');
+        if ($request->query('format') === 'svg') {
+            return response(\App\Support\QrPassCard::svg($options))
+                ->header('Content-Type', 'image/svg+xml')
+                ->header('Content-Disposition', 'attachment; filename="isufstpass-appointment-' . $appointment->reference_code . '.svg"');
+        }
+
+        $png = \App\Support\QrPassCard::png($options);
+
+        return response($png)
+            ->header('Content-Type', 'image/png')
+            ->header('Content-Length', (string) strlen($png))
+            ->header('Content-Disposition', 'attachment; filename="isufstpass-appointment-' . $appointment->reference_code . '.png"');
     }
 
     public function create(Request $request): View

@@ -220,17 +220,22 @@ class DocumentRequestController extends Controller
     }
 
     /**
-     * Download a complete pass-card SVG — branding, student identity,
+     * Download the complete pass card — branding, student identity,
      * the transaction QR, reference number and verified footer.
+     *
+     * PNG by default: a phone cannot open an .svg, so the Android download
+     * lands as an unusable "Couldn't open file". PNG opens in any gallery.
+     *
+     * ?format=svg still returns the vector original for print and scaling.
      */
-    public function downloadQr(DocumentRequest $documentRequest): \Symfony\Component\HttpFoundation\Response
+    public function downloadQr(Request $request, DocumentRequest $documentRequest): \Symfony\Component\HttpFoundation\Response
     {
         Gate::authorize('view', $documentRequest);
 
         $user = Auth::user();
         $profile = $user->studentProfile;
 
-        $svg = \App\Support\QrPassCard::svg([
+        $options = [
             'sectionLabel' => 'Document Request QR',
             'refCode' => $documentRequest->request_number,
             'caption' => 'Present this QR code to authorized personnel.',
@@ -239,11 +244,20 @@ class DocumentRequestController extends Controller
             'course' => $profile?->course ?? '',
             'yearLevel' => $profile?->year_level ?? '',
             'qrPayload' => \App\Support\QrUrl::to('/verify/document/' . $documentRequest->claim_token),
-        ]);
+        ];
 
-        return response($svg)
-            ->header('Content-Type', 'image/svg+xml')
-            ->header('Content-Disposition', 'attachment; filename="isufstpass-document-' . $documentRequest->request_number . '.svg"');
+        if ($request->query('format') === 'svg') {
+            return response(\App\Support\QrPassCard::svg($options))
+                ->header('Content-Type', 'image/svg+xml')
+                ->header('Content-Disposition', 'attachment; filename="isufstpass-document-' . $documentRequest->request_number . '.svg"');
+        }
+
+        $png = \App\Support\QrPassCard::png($options);
+
+        return response($png)
+            ->header('Content-Type', 'image/png')
+            ->header('Content-Length', (string) strlen($png))
+            ->header('Content-Disposition', 'attachment; filename="isufstpass-document-' . $documentRequest->request_number . '.png"');
     }
 
     /**
