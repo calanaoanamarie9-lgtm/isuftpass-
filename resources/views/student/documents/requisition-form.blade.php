@@ -741,31 +741,6 @@
         "
     >
 
-        {{--
-            The one thing the student actually has to do with this page -
-            printed before showing up at the counter. Kept outside the
-            document so the sheet itself stays a clean form.
-        --}}
-
-        <p
-            style="
-                margin:0 0 16px;
-                padding:12px 20px;
-                background:#eef2ff;
-                border:1px solid #c7d2fe;
-                border-radius:8px;
-                color:#1e3a8a;
-                font-size:15px;
-                font-weight:700;
-            "
-        >
-
-            Please print the requisition form before going to the
-            registrar to submit it.
-
-        </p>
-
-
         <a
             href="{{ auth()->user()?->isStudent()
                 ? route('student.documents.show', $request)

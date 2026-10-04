@@ -500,7 +500,7 @@
 
                         title: '{{ session('swal') }}',
 
-                        text: 'Track its progress under My Requests & Status. A payment notice was sent to your email.',
+                        text: 'Please print the requisition form before going to the registrar to submit it. Track its progress under My Requests & Status. A payment notice was sent to your email.',
 
                         icon: 'success',
 

@@ -110,6 +110,24 @@ class DocumentRequestOfficialFormTest extends TestCase
             ->assertSee('Proceed to the Cashier to settle your payment');
     }
 
+    public function test_submission_popup_asks_the_student_to_print_the_form(): void
+    {
+        $documents = $this->makeDocuments();
+        $user = $this->createStudent();
+
+        $this->actingAs($user)
+            ->post('/student/document-requests', $this->validPayload([
+                'document_ids' => [$documents[0]->id],
+            ]))
+            ->assertRedirect(route('student.documents.index'));
+
+        // The success popup on the page the submit lands on.
+        $this->actingAs($user)
+            ->get(route('student.documents.index'))
+            ->assertOk()
+            ->assertSee('Please print the requisition form before going to the registrar to submit it');
+    }
+
     public function test_others_requires_specification(): void
     {
         $documents = $this->makeDocuments();
