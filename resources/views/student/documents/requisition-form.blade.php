@@ -783,11 +783,33 @@
         </button>
 
 
+        <button
+            type="button"
+            id="download-pdf"
+            style="
+                background:#0f766e;
+                color:white;
+                border:none;
+                margin-left:10px;
+                padding:12px 25px;
+                border-radius:8px;
+                cursor:pointer;
+                font-weight:bold;
+                font-size:14px;
+            "
+        >
+
+            Download PDF
+
+        </button>
+
+
         {{--
-            The date, page title and URL along the top and bottom of a print
-            come from Chrome itself, not from this document, so the only way
-            to keep them off the sheet is to switch them off in the dialog.
-            Hints at that here; .no-print keeps the advice off the paper.
+            Chrome writes the date, page title and URL across the top and
+            bottom of anything it prints itself, and window.print() has no
+            switch for it. The PDF path sidesteps that entirely because the
+            document is drawn here rather than printed by the browser, so it
+            leads the advice. .no-print keeps both off the paper.
         --}}
 
         <p
@@ -799,9 +821,9 @@
             "
         >
 
-            Before printing, turn off
-            <strong>Headers and footers</strong>
-            in the print dialog so the sheet comes out clean.
+            <strong>Download PDF</strong> gives a clean sheet with no browser
+            header. If you print straight from the browser instead, turn off
+            <strong>Headers and footers</strong> in the print dialog first.
 
         </p>
 
@@ -1623,6 +1645,124 @@
 
 
     </div>
+
+
+    {{--
+        PDF EXPORT
+
+        Chrome stamps a date, title and URL bar across anything it prints
+        itself, and window.print() exposes no switch for it. So instead of
+        printing, the sheet is drawn here and laid onto a single long bond
+        page by jsPDF. The whole image is scaled to the printable box, which
+        means the result is always exactly one sheet no matter how the rows
+        reflow.
+    --}}
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"
+    ></script>
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"
+    ></script>
+
+    <script>
+
+        (function () {
+
+            /* Long bond, with the same margins the printed page uses. */
+
+            var SHEET_W = 215.9;
+            var SHEET_H = 330.2;
+            var MARGIN  = { top: 10, right: 12, bottom: 10, left: 12 };
+
+
+            window.buildRequisitionPdf = async function () {
+
+                var page = document.querySelector('.document-page');
+                var rect = page.getBoundingClientRect();
+
+                var previousScroll = window.scrollY;
+                window.scrollTo(0, 0);
+
+                try {
+
+                    var canvas = await html2canvas(page, {
+                        scale: 2,
+                        backgroundColor: '#ffffff',
+                        useCORS: true,
+                        logging: false,
+                        width: Math.ceil(rect.width),
+                        height: Math.ceil(rect.height),
+                        windowWidth: document.documentElement.scrollWidth,
+                        windowHeight: document.documentElement.scrollHeight
+                    });
+
+                    /* CSS pixels to millimetres - jsPDF works in mm. */
+
+                    var boxW = rect.width  * 25.4 / 96;
+                    var boxH = rect.height * 25.4 / 96;
+
+                    var maxW = SHEET_W - MARGIN.left - MARGIN.right;
+                    var maxH = SHEET_H - MARGIN.top  - MARGIN.bottom;
+
+                    var fit   = Math.min(maxW / boxW, maxH / boxH);
+                    var drawW = boxW * fit;
+                    var drawH = boxH * fit;
+
+                    var pdf = new jspdf.jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: [SHEET_W, SHEET_H]
+                    });
+
+                    pdf.addImage(
+                        canvas.toDataURL('image/jpeg', 0.95),
+                        'JPEG',
+                        MARGIN.left + (maxW - drawW) / 2,
+                        MARGIN.top  + (maxH - drawH) / 2,
+                        drawW,
+                        drawH
+                    );
+
+                    return pdf;
+
+                } finally {
+                    window.scrollTo(0, previousScroll);
+                }
+            };
+
+
+            var button = document.getElementById('download-pdf');
+
+            if (!button) return;
+
+            var idle = button.innerHTML;
+
+            button.addEventListener('click', async function () {
+
+                button.disabled = true;
+                button.style.opacity = '0.7';
+                button.textContent = 'Preparing PDF...';
+
+                try {
+                    var pdf = await window.buildRequisitionPdf();
+                    pdf.save('Requisition-{{ $request->request_number }}.pdf');
+                } catch (error) {
+                    window.alert(
+                        'The PDF could not be created here. ' +
+                        'Use "Print Requisition Form" instead.'
+                    );
+                } finally {
+                    button.disabled = false;
+                    button.style.opacity = '';
+                    button.innerHTML = idle;
+                }
+            });
+
+        })();
+
+    </script>
 
 
 </body>
