@@ -30,8 +30,11 @@ return [
     | your mailers below. You may also add additional mailers if needed.
     |
     | Supported: "smtp", "sendmail", "mailgun", "ses", "ses-v2",
-    |            "postmark", "resend", "log", "array",
+    |            "postmark", "resend", "brevo", "log", "array",
     |            "failover", "roundrobin"
+    |
+    | "brevo" is not shipped with Laravel; AppServiceProvider registers it
+    | against App\Transport\BrevoTransport.
     |
     */
 
@@ -63,6 +66,10 @@ return [
 
         'resend' => [
             'transport' => 'resend',
+        ],
+
+        'brevo' => [
+            'transport' => 'brevo',
         ],
 
         'sendmail' => [

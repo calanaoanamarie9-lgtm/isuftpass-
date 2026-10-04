@@ -54,22 +54,33 @@ services:
       # --- Mail -------------------------------------------------------------
       # Render's FREE tier blocks outbound SMTP (ports 25/465/587) since
       # 2025-09-26, so plain SMTP can never work here. Mail therefore goes
-      # over Resend's HTTPS API, which the free tier does not block.
+      # over an HTTPS API, which the free tier does not block.
       #
-      # Set in the Render dashboard (sync: false, never committed):
-      #   RESEND_API_KEY  <- https://resend.com -> API Keys
-      #                    free: 3,000 emails/month, 100/day, no card
+      # ACTIVE TRANSPORT: Brevo - 300 emails/day, 9,000/month, no card.
+      # BREVO_API_KEY is set in the Render dashboard (sync: false, never
+      # committed): https://app.brevo.com -> Settings -> SMTP & API.
+      # It must exist *before* this file is pushed, or mail is dropped
+      # (silently: SafeMailer logs it and nothing 500s) until it is added.
       #
-      # MAIL_FROM_ADDRESS is Resend's trial sender and needs no domain
-      # verification. Once you verify your own domain in Resend, change it
-      # here to a real address such as no-reply@isufst.edu.ph.
+      # MAIL_FROM_ADDRESS must be a sender already verified in Brevo
+      # (Settings -> Senders). gmail.com cannot be domain-authenticated, so
+      # Brevo rewrites the visible from address for delivery. Mail arrives;
+      # only the sender string changes. This is the bridge until school IT
+      # adds DNS for isufst.edu.ph.
+      #
+      # RESEND_API_KEY is deliberately left configured. Switching back is a
+      # two-line change in this file (MAIL_MAILER: resend, and
+      # MAIL_FROM_ADDRESS: no-reply@isufst.edu.ph) once Resend verifies the
+      # school domain - no code change, no new secret.
       # ----------------------------------------------------------------------
       - key: MAIL_MAILER
-        value: resend
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       - key: MAIL_FROM_ADDRESS
-        value: onboarding@resend.dev
+        value: isufstpass@gmail.com
       - key: MAIL_FROM_NAME
         value: ISUFSTPASS
       - key: SUPABASE_PROJECT_REF
