@@ -49,6 +49,27 @@
             margin: 20px auto;
             background: #ffffff;
             padding: 10mm 12mm;
+
+            /* Scaling is anchored here, not at the centre, so a shrunken
+               sheet still starts at the left edge of its viewport. */
+            transform-origin: top left;
+        }
+
+
+        /* =========================================
+           SHEET VIEWPORT
+           215.9mm is 816px, wider than a phone. The sheet keeps that
+           fixed width so it always describes the paper; on a narrower
+           screen fitSheet() scales it down as one block instead of
+           letting it reflow, because reflowing would rewrap the rows and
+           the preview would stop matching what comes out of the printer.
+           overflow:hidden is what stops the unscaled sheet from pushing
+           the body sideways before the script has run.
+        ========================================= */
+
+        .sheet-viewport {
+            width: 100%;
+            overflow: hidden;
         }
 
 
@@ -536,12 +557,22 @@
             | ~0.91 the form spills onto a second page.
             */
 
+            /* The on-screen fit must never reach the paper: the viewport
+               keeps the height fitSheet() measured, and the inline scale
+               has to be beaten with !important. */
+            .sheet-viewport {
+                width: auto;
+                height: auto !important;
+                overflow: visible;
+            }
+
             .document-page {
                 width: auto;
                 min-height: auto;
                 margin: 0 auto;
                 padding: 0;
                 zoom: 0.87;
+                transform: none !important;
                 box-shadow: none;
             }
 
@@ -820,8 +851,13 @@
 
 
     {{-- =========================================
-        A4 DOCUMENT
+        LONG BOND DOCUMENT
+
+        .sheet-viewport wraps the sheet so it can be scaled to a narrow
+        screen without changing the sheet itself.
     ========================================= --}}
+
+    <div class="sheet-viewport">
 
     <div class="document-page">
 
@@ -1633,7 +1669,9 @@
         </div>
 
 
-    </div>
+    </div>{{-- /.document-page --}}
+
+    </div>{{-- /.sheet-viewport --}}
 
 
     {{--
@@ -1666,10 +1704,74 @@
             var MARGIN  = { top: 10, right: 12, bottom: 10, left: 12 };
 
 
+            /* =========================================
+               SCREEN FIT
+               Scale the whole sheet to the viewport on screens too
+               narrow to show 816px. transform is used rather than zoom
+               or a fluid width because neither changes the sheet's own
+               layout, so every row keeps exactly the wrapping it will
+               have on paper. A transform also leaves layout alone, which
+               is why the viewport has to be handed the scaled height -
+               otherwise the space the unscaled sheet used stays behind
+               as a long blank run.
+            ========================================= */
+
+            var viewport = document.querySelector('.sheet-viewport');
+            var sheet    = document.querySelector('.document-page');
+
+            function fitSheet() {
+
+                if (!viewport || !sheet) return;
+
+                /* Read the sheet unscaled, so the ratio is always against
+                   its true 816px width rather than a previous fit. */
+
+                sheet.style.transform = 'none';
+
+                var natural = sheet.getBoundingClientRect();
+                var fit     = Math.min(1, viewport.clientWidth / natural.width);
+
+                if (fit >= 1) {
+
+                    sheet.style.transform = '';
+                    viewport.style.height = '';
+
+                    return;
+                }
+
+                sheet.style.transform = 'scale(' + fit + ')';
+
+                var visual = sheet.getBoundingClientRect();
+                var origin = viewport.getBoundingClientRect();
+
+                viewport.style.height =
+                    Math.ceil(visual.bottom - origin.top) + 'px';
+            }
+
+
+            fitSheet();
+            window.addEventListener('resize', fitSheet);
+
+
             window.buildRequisitionPdf = async function () {
 
                 var page = document.querySelector('.document-page');
                 var rect = page.getBoundingClientRect();
+
+                /*
+                | The sheet is scaled down on screens narrower than 816px,
+                | so capturing at a flat 2x would hand the PDF whatever the
+                | phone happens to be showing - about 104 DPI at 390px,
+                | visibly soft on paper. Capture against the sheet's true
+                | width instead (215.9mm is 816px at 96dpi) so the export
+                | lands at ~218 DPI no matter what screen built it.
+                */
+
+                var NATURAL_W = 816;
+                var captureScale = Math.min(
+                    8,
+                    Math.max(2, 2 * NATURAL_W / rect.width)
+                );
 
                 var previousScroll = window.scrollY;
                 window.scrollTo(0, 0);
@@ -1677,7 +1779,7 @@
                 try {
 
                     var canvas = await html2canvas(page, {
-                        scale: 2,
+                        scale: captureScale,
                         backgroundColor: '#ffffff',
                         useCORS: true,
                         logging: false,
