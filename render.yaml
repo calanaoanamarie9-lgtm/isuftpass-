@@ -40,6 +40,13 @@ services:
         value: database
       - key: QUEUE_CONNECTION
         value: sync
+      # Laravel's default log channel is `stack` -> `single`, which writes to
+      # storage/logs/laravel.log *inside the container*. Render never shows
+      # that file, so reported exceptions (report($e)) look like nothing
+      # happened. Pointing the default channel at stderr makes every error,
+      # including mail failures, appear in Dashboard -> Logs.
+      - key: LOG_CHANNEL
+        value: stderr
       - key: TRUSTED_PROXIES
         value: "*"
       - key: CRON_SECRET
