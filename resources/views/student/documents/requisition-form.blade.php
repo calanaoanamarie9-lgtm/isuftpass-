@@ -19,12 +19,12 @@
     <style>
 
         /* =========================================
-           PRINT PAGE
+           PRINT PAGE - long bond paper: 8.5in x 13in
         ========================================= */
 
         @page {
-            size: A4;
-            margin: 12mm;
+            size: 8.5in 13in;
+            margin: 10mm 12mm;
         }
 
         * {
@@ -44,11 +44,11 @@
         ========================================= */
 
         .document-page {
-            width: 210mm;
-            min-height: 297mm;
+            width: 215.9mm;
+            min-height: 330.2mm;
             margin: 20px auto;
             background: #ffffff;
-            padding: 12mm 14mm;
+            padding: 10mm 12mm;
         }
 
 
@@ -62,7 +62,7 @@
 
         .document-header {
             width: 100%;
-            padding: 10px 0 8px;
+            padding: 6px 0 5px;
             box-sizing: border-box;
             color: #1f2f46;
             font-family: Arial, sans-serif;
@@ -96,8 +96,8 @@
 
         .header-logo img {
             width: auto;
-            height: 85px;
-            max-width: 130px;
+            height: 64px;
+            max-width: 100px;
             object-fit: contain;
         }
 
@@ -133,7 +133,7 @@
 
         .office-section {
             text-align: center;
-            margin-top: 6px;
+            margin-top: 4px;
         }
 
         .office-name {
@@ -159,7 +159,7 @@
             width: 100%;
             height: 2px;
             background: #244a73;
-            margin-top: 8px;
+            margin-top: 5px;
         }
 
 
@@ -168,9 +168,9 @@
         ========================================= */
 
         .form-title {
-            margin: 0 0 10mm;
+            margin: 0 0 6mm;
             text-align: center;
-            font-size: 22px;
+            font-size: 21px;
             font-weight: 800;
             letter-spacing: 1px;
             color: #1f2937;
@@ -185,7 +185,7 @@
             display: flex;
             align-items: center;
             width: 100%;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
 
         .label {
@@ -212,7 +212,7 @@
         ========================================= */
 
         .section-space {
-            margin-top: 18px;
+            margin-top: 10px;
         }
 
 
@@ -221,15 +221,15 @@
         ========================================= */
 
         .request-section {
-            margin-top: 10px;
+            margin-top: 6px;
             margin-left: 55px;
         }
 
         .request-item {
             display: flex;
             align-items: center;
-            min-height: 23px;
-            margin: 3px 0;
+            min-height: 20px;
+            margin: 2px 0;
             font-size: 14px;
         }
 
@@ -262,8 +262,8 @@
         .purpose-row {
             display: flex;
             align-items: center;
-            min-height: 25px;
-            margin-bottom: 6px;
+            min-height: 21px;
+            margin-bottom: 4px;
             font-size: 14px;
         }
 
@@ -301,11 +301,11 @@
             display: flex;
             align-items: flex-end;
             gap: 15px;
-            margin-top: 22px;
+            margin-top: 14px;
         }
 
         .student-name-label {
-            padding-bottom: 20px;
+            padding-bottom: 14px;
             font-size: 14px;
             white-space: nowrap;
         }
@@ -316,7 +316,7 @@
         }
 
         .name-line {
-            min-height: 22px;
+            min-height: 19px;
             border-bottom: 1px solid #374151;
             font-size: 13px;
         }
@@ -334,11 +334,11 @@
         .student-signature {
             width: 280px;
             margin-left: auto;
-            margin-top: 22px;
+            margin-top: 14px;
         }
 
         .signature-line {
-            height: 25px;
+            height: 21px;
             border-bottom: 1px solid #374151;
             max-width: 200px;
             margin: 0 auto;
@@ -356,11 +356,11 @@
         ========================================= */
 
         .claim-section {
-            margin-top: 25px;
+            margin-top: 16px;
         }
 
         .claim-option {
-            margin: 8px 0;
+            margin: 5px 0;
             font-size: 14px;
         }
 
@@ -390,21 +390,21 @@
         ========================================= */
 
         .action-section {
-            margin-top: 22px;
-            padding-top: 6px;
+            margin-top: 14px;
+            padding-top: 4px;
             border-top: 1px solid #374151;
         }
 
         .action-title {
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             font-size: 14px;
         }
 
         .action-row {
             display: flex;
             align-items: center;
-            min-height: 24px;
-            margin: 3px 0;
+            min-height: 21px;
+            margin: 2px 0;
             font-size: 14px;
         }
 
@@ -430,8 +430,8 @@
         ========================================= */
 
         .certification {
-            margin-top: 15px;
-            padding-top: 12px;
+            margin-top: 8px;
+            padding-top: 8px;
             text-align: center;
             border-top: 1px dashed #374151;
             font-size: 13px;
@@ -447,9 +447,9 @@
             display: flex;
             justify-content: space-between;
             gap: 45px;
-            margin-top: 28px;
+            margin-top: 16px;
             border-bottom: 1px solid #374151;
-            padding-bottom: 8px;
+            padding-bottom: 6px;
         }
 
         .signature-box {
@@ -472,17 +472,17 @@
         ========================================= */
 
         .approval-section {
-            margin-top: 25px;
+            margin-top: 16px;
             text-align: center;
         }
 
         .approval-section p {
-            margin: 5px 0;
+            margin: 4px 0;
             font-size: 14px;
         }
 
         .approval-name {
-            margin-top: 25px !important;
+            margin-top: 14px !important;
             font-weight: bold;
         }
 
@@ -492,7 +492,7 @@
         ========================================= */
 
         .doc-footer {
-            margin-top: 30px;
+            margin-top: 16px;
             text-align: center;
         }
 
@@ -511,7 +511,8 @@
             display: block;
             width: 100%;
             max-width: 100%;
-            height: auto;
+            height: 64px;
+            object-fit: contain;
             margin: 6px auto 0;
         }
 
@@ -523,19 +524,30 @@
         @media print {
 
             @page {
-                size: A4;
-                margin: 12mm;
+                size: 8.5in 13in;
+                margin: 10mm 12mm;
             }
 
             body {
                 background: #ffffff;
             }
 
+            /*
+            | Long bond printable area = 191.9mm x 310.2mm (the 8.5in x 13in
+            | sheet less the 10mm 12mm page margins). The form's natural height
+            | is ~341mm, so it is scaled as one block until it lands on exactly
+            | one sheet. 0.87 prints at ~297mm, leaving ~13mm of slack for rows
+            | that wrap (long "Others" specs, transfer school, double names).
+            | Raise it only if the natural height also comes down - above
+            | ~0.91 the form spills onto a second page.
+            */
+
             .document-page {
                 width: auto;
                 min-height: auto;
-                margin: 0;
+                margin: 0 auto;
                 padding: 0;
+                zoom: 0.87;
                 box-shadow: none;
             }
 
