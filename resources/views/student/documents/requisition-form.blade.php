@@ -782,6 +782,29 @@
 
         </button>
 
+
+        {{--
+            The date, page title and URL along the top and bottom of a print
+            come from Chrome itself, not from this document, so the only way
+            to keep them off the sheet is to switch them off in the dialog.
+            Hints at that here; .no-print keeps the advice off the paper.
+        --}}
+
+        <p
+            style="
+                margin:16px 0 0;
+                font-size:13px;
+                line-height:1.5;
+                color:#6b7280;
+            "
+        >
+
+            Before printing, turn off
+            <strong>Headers and footers</strong>
+            in the print dialog so the sheet comes out clean.
+
+        </p>
+
     </div>
 
 
