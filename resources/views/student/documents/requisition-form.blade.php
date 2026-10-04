@@ -69,11 +69,13 @@
         }
 
 
-        /* MAIN HEADER ROW */
+        /* MAIN HEADER ROW
+           Logo columns are 100px - the marks are only ~82px and ~69px wide -
+           so the university name gets the widest column it can. */
 
         .header-main {
             display: grid;
-            grid-template-columns: 150px 1fr 150px;
+            grid-template-columns: 100px 1fr 100px;
             align-items: center;
             width: 100%;
         }
@@ -115,8 +117,11 @@
             font-weight: 400;
         }
 
+        /* Sized so the full university name stays on one line inside the
+           centre column (525px on a 215.9mm sheet; needs ~501px at 14px). */
+
         .university-name {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 700;
             letter-spacing: 0.3px;
             line-height: 1.15;
