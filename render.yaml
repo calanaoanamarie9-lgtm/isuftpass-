@@ -68,16 +68,14 @@ services:
       # only the sender string changes. This is the bridge until school IT
       # adds DNS for isufst.edu.ph.
       #
-      # RESEND_API_KEY is deliberately left configured. Switching back is a
-      # two-line change in this file (MAIL_MAILER: resend, and
-      # MAIL_FROM_ADDRESS: no-reply@isufst.edu.ph) once Resend verifies the
-      # school domain - no code change, no new secret.
+      # Once school IT publishes DNS for isufst.edu.ph, that domain is
+      # verified in Brevo as well (Settings -> Senders, Domains, IPs ->
+      # Domains) and MAIL_FROM_ADDRESS below becomes no-reply@isufst.edu.ph.
+      # One line, no new provider, no new secret.
       # ----------------------------------------------------------------------
       - key: MAIL_MAILER
         value: brevo
       - key: BREVO_API_KEY
-        sync: false
-      - key: RESEND_API_KEY
         sync: false
       - key: MAIL_FROM_ADDRESS
         value: isufstpass@gmail.com
