@@ -39,4 +39,10 @@ RUN cp .env.example .env \
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "php artisan config:cache && php artisan view:cache && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
+# Migrations run here, not in a Render preDeploy step: this service was
+# created by hand, so render.yaml - where preDeployCommand lives - is not
+# applied to it, and nothing else in the image touches the schema. Running
+# them before serve means the code that starts is the code that matches the
+# database; a migration that fails stops the container instead of shipping a
+# half-updated schema (the failure shows up in Render -> Logs).
+CMD ["sh", "-c", "php artisan config:cache && php artisan view:cache && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
