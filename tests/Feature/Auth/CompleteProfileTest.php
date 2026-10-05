@@ -20,7 +20,7 @@ class CompleteProfileTest extends TestCase
             'user_type' => 'student',
         ]);
 
-        return auth()->user();
+        return $this->verified(auth()->user());
     }
 
     private function registerOther(string $registrationType): User
@@ -34,7 +34,19 @@ class CompleteProfileTest extends TestCase
             'registration_type' => $registrationType,
         ]);
 
-        return auth()->user();
+        return $this->verified(auth()->user());
+    }
+
+    /**
+     * A fresh signup is turned away from this form until the emailed link is
+     * clicked - that gate has its own cases in EmailVerificationTest. These
+     * cases are about validation, so step past it the way the link would.
+     */
+    private function verified(User $user): User
+    {
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        return $user;
     }
 
     public function test_student_can_complete_personal_details(): void

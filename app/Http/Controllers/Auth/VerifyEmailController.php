@@ -37,6 +37,29 @@ class VerifyEmailController extends Controller
             event(new Verified($user));
         }
 
-        return view('auth.email-verified');
+        // Where they were headed wins: `EnsureEmailIsVerified` stores the URL
+        // it bounced them from, which is complete-profile for a fresh signup
+        // and a dashboard for everyone else. Without that (the link was opened
+        // on another device), send whoever has not filled in their personal
+        // details to the form - otherwise verifying would skip the very step
+        // this gate protects - and everyone else on to the dashboard.
+        $destination = session()->pull('url.intended')
+            ?: ($this->hasPersonalDetails($user) ? route('dashboard') : route('complete-profile'));
+
+        return view('auth.email-verified', [
+            'destination' => $destination,
+            'label' => $destination === route('complete-profile')
+                ? 'Complete Your Profile'
+                : 'Continue to Dashboard',
+        ]);
+    }
+
+    /**
+     * Students keep their contact number on the profile row; alumni, guests
+     * and parents fill it on the user itself.
+     */
+    private function hasPersonalDetails(User $user): bool
+    {
+        return (bool) ($user->contact_number || $user->studentProfile?->contact_number);
     }
 }

@@ -256,9 +256,9 @@ Route::get('/dashboard', function () {
     }
 
     return view($view);
-})->middleware('auth')->name('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::middleware(['auth', 'role:student'])->prefix('student')->name('student.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:student'])->prefix('student')->name('student.')->group(function () {
 
     // 0. New Request Hub
     Route::get('/requests/new', [RequestController::class, 'newRequest'])->name('requests.new');
@@ -316,7 +316,7 @@ Route::middleware(['auth', 'role:student'])->prefix('student')->name('student.')
     Route::get('/help', [HelpController::class, 'index'])->name('help.index');
 });
 
-Route::middleware(['auth', 'role:registrar,department'])->prefix('registrar')->name('registrar.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:registrar,department'])->prefix('registrar')->name('registrar.')->group(function () {
 
     // Appointment slot availability (calendar colors consumed by student/reschedule pages)
     Route::get('/availability/month', [AvailabilityController::class, 'month'])->name('availability.month');
@@ -367,7 +367,7 @@ Route::middleware(['auth', 'role:registrar,department'])->prefix('registrar')->n
     Route::get('/help', [HelpController::class, 'index'])->name('help.index');
 });
 
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
 
     // User Management (accounts, roles, activation)
     Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
@@ -407,7 +407,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/help', [HelpController::class, 'index'])->name('help.index');
 });
 
-Route::middleware(['auth', 'role:cashier'])->prefix('cashier')->name('cashier.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:cashier'])->prefix('cashier')->name('cashier.')->group(function () {
 
     // Pending Payments & Payment History
     Route::get('/payments', [CashierPaymentController::class, 'pending'])->name('payments.pending');
@@ -455,7 +455,7 @@ $workspaceRoutes = function (): void {
         ->name('appointments.reschedule.update');
 };
 
-Route::middleware(['auth', 'role:department'])->prefix('cici')->name('cici.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department'])->prefix('cici')->name('cici.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Department\CiciController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Department\CiciController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Department\CiciController::class, 'availability'])->name('availability');
@@ -467,7 +467,7 @@ Route::middleware(['auth', 'role:department'])->prefix('cici')->name('cici.')->g
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department'])->prefix('cbmsd')->name('cbmsd.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department'])->prefix('cbmsd')->name('cbmsd.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Department\CbmsdController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Department\CbmsdController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Department\CbmsdController::class, 'availability'])->name('availability');
@@ -479,7 +479,7 @@ Route::middleware(['auth', 'role:department'])->prefix('cbmsd')->name('cbmsd.')-
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department'])->prefix('coag')->name('coag.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department'])->prefix('coag')->name('coag.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Department\CoagController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Department\CoagController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Department\CoagController::class, 'availability'])->name('availability');
@@ -491,7 +491,7 @@ Route::middleware(['auth', 'role:department'])->prefix('coag')->name('coag.')->g
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department'])->prefix('coed')->name('coed.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department'])->prefix('coed')->name('coed.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Department\CoedController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Department\CoedController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Department\CoedController::class, 'availability'])->name('availability');
@@ -503,7 +503,7 @@ Route::middleware(['auth', 'role:department'])->prefix('coed')->name('coed.')->g
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department,osas'])->prefix('osas')->name('osas.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department,osas'])->prefix('osas')->name('osas.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Offices\OsasController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Offices\OsasController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Offices\OsasController::class, 'availability'])->name('availability');
@@ -515,7 +515,7 @@ Route::middleware(['auth', 'role:department,osas'])->prefix('osas')->name('osas.
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department,accounting'])->prefix('accounting')->name('accounting.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department,accounting'])->prefix('accounting')->name('accounting.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Offices\AccountingController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Offices\AccountingController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Offices\AccountingController::class, 'availability'])->name('availability');
@@ -527,7 +527,7 @@ Route::middleware(['auth', 'role:department,accounting'])->prefix('accounting')-
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department,library'])->prefix('library')->name('library.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department,library'])->prefix('library')->name('library.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Offices\LibraryController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Offices\LibraryController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Offices\LibraryController::class, 'availability'])->name('availability');
@@ -539,7 +539,7 @@ Route::middleware(['auth', 'role:department,library'])->prefix('library')->name(
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'role:department,guidance'])->prefix('guidance')->name('guidance.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department,guidance'])->prefix('guidance')->name('guidance.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [\App\Http\Controllers\Offices\GuidanceController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [\App\Http\Controllers\Offices\GuidanceController::class, 'appointments'])->name('appointments');
     Route::get('/availability', [\App\Http\Controllers\Offices\GuidanceController::class, 'availability'])->name('availability');
@@ -564,7 +564,7 @@ foreach ([
     'library' => 'department,library',
     'guidance' => 'department,guidance',
 ] as $consultationPrefix => $consultationRoles) {
-    Route::middleware(['auth', 'role:' . $consultationRoles])
+    Route::middleware(['auth', 'verified', 'role:' . $consultationRoles])
         ->prefix($consultationPrefix)
         ->name($consultationPrefix . '.')
         ->group(function () {
@@ -584,7 +584,7 @@ foreach ([
 // Alumni Office — alumni have registration_type = 'alumni' but role stays 'student'
 // (mirrors the web.php dashboard dispatch at "/dashboard":61 which returns alumni.dashboard).
 // Alum slots here so `route('alumni.*')` resolves for the alumni sidebar branch + dashboard quick links.
-Route::middleware(['auth', 'role:student'])->prefix('alumni')->name('alumni.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:student'])->prefix('alumni')->name('alumni.')->group(function () {
 
     // Alumni Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\Offices\AlumniController::class, 'dashboard'])->name('dashboard');
@@ -612,7 +612,7 @@ Route::middleware(['auth', 'role:student'])->prefix('alumni')->name('alumni.')->
     Route::get('/help', [\App\Http\Controllers\Offices\AlumniController::class, 'help'])->name('help');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

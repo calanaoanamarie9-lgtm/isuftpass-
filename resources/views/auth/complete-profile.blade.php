@@ -963,7 +963,7 @@
                                 />
                             </svg>
 
-                            Save & Continue to Email Verification
+                            Save &amp; Continue to Dashboard
 
                         </button>
 

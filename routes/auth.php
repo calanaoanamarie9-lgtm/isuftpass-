@@ -45,10 +45,18 @@ Route::middleware(['guest', 'throttle:auth'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    // Registration lands here, so `verified` is the gate that sits between
+    // "Create Account" and the personal-details form: an unverified signup is
+    // bounced to verification.notice and stays there until the signed link is
+    // clicked. Only these two routes are gated - logout, confirm-password and
+    // password.update must stay reachable, and the verification routes below
+    // must never carry `verified` or the redirect would loop.
     Route::get('complete-profile', [CompleteProfileController::class, 'create'])
+        ->middleware('verified')
         ->name('complete-profile');
 
-    Route::post('complete-profile', [CompleteProfileController::class, 'store']);
+    Route::post('complete-profile', [CompleteProfileController::class, 'store'])
+        ->middleware('verified');
 
     Route::get('confirm-password', [ConfirmablePasswordController::class, 'show'])
         ->name('password.confirm');
@@ -77,10 +85,15 @@ Route::middleware('auth')->group(function () {
         ->name('verification.send');
 });
 
-// NOTE: nothing enforces this yet. No route group in routes/web.php carries
-// the `verified` middleware, so an unverified account walks the app exactly
-// as before — by design, because the mail provider cannot currently deliver
-// to arbitrary student addresses. Turning it on is one edit per group:
-// change ['auth', 'role:x'] to ['auth', 'verified', 'role:x'] once mail is
-// proven, and run `php artisan migrate` first so existing accounts (which
-// this database backfilled) are not locked out.
+// NOTE: this is enforced. Every authenticated group in routes/web.php carries
+// `verified`, and `complete-profile` carries it above, so a fresh signup can
+// neither finish nor use an account until the signed link has been clicked.
+// An unverified session may still reach login, logout, these verification
+// routes, confirm-password and password.update - never a dashboard.
+//
+// Delivery runs over Brevo (render.yaml: MAIL_MAILER=brevo), proven end to
+// end before this gate went in. The migration
+// 2026_10_06_000001_backfill_email_verification_before_enforcing_it marks the
+// accounts that already existed, so `php artisan migrate` - Render's
+// preDeployCommand - cannot lock one out; everyone registering after it must
+// verify.

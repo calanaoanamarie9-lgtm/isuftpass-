@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 successfully verified.
             </p>
         `,
-        confirmButtonText: 'Continue to Dashboard',
+        confirmButtonText: @js($label),
         confirmButtonColor: '#1d4ed8',
         allowOutsideClick: false,
         allowEscapeKey: false,
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
             confirmButton: 'rounded-xl px-6 py-3 font-bold'
         }
     }).then(() => {
-        window.location.href = "{{ route('dashboard') }}";
+        window.location.href = @js($destination);
     });
 });
 </script>

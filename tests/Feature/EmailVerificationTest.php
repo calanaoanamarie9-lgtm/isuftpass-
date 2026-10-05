@@ -230,4 +230,116 @@ class EmailVerificationTest extends TestCase
         $this->assertTrue(SafeMailer::verifyEmail($user));
         $this->assertTrue($user->sent);
     }
+
+    // --- The gate ------------------------------------------------------------
+    // Registration hands off to complete-profile. These cases are what makes
+    // that handoff a wall rather than a suggestion.
+
+    public function test_an_unverified_user_cannot_reach_complete_profile(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)
+            ->get('/complete-profile')
+            ->assertRedirect(route('verification.notice', absolute: false));
+
+        $this->actingAs($user)
+            ->post('/complete-profile', ['contact_number' => '09171234567'])
+            ->assertRedirect(route('verification.notice', absolute: false));
+
+        $this->assertNull($user->refresh()->contact_number, 'The form must not save behind the gate.');
+    }
+
+    public function test_an_unverified_user_cannot_reach_a_dashboard(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertRedirect(route('verification.notice', absolute: false));
+    }
+
+    public function test_a_fresh_signup_is_turned_away_from_the_profile_form(): void
+    {
+        Notification::fake();
+
+        $this->post('/register', [
+            'name' => 'Gated Student',
+            'email' => 'gated@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'user_type' => 'student',
+        ]);
+
+        $user = User::query()->where('email', 'gated@example.com')->firstOrFail();
+
+        $this->actingAs($user)
+            ->get('/complete-profile')
+            ->assertRedirect(route('verification.notice', absolute: false));
+
+        $this->actingAs($user)
+            ->get('/email/verify')
+            ->assertOk();
+    }
+
+    public function test_an_unverified_user_can_still_log_out(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)->post('/logout');
+
+        // The gate walls off dashboards, never the way out - otherwise a
+        // user with an unreachable inbox would be trapped in the session.
+        $this->assertGuest();
+    }
+
+    public function test_a_verified_user_walks_straight_through(): void
+    {
+        // role is NOT NULL DEFAULT 'student' in production, so this is the
+        // shape of every account that will ever reach these two routes.
+        $user = User::factory()->create(['role' => User::ROLE_STUDENT]);
+
+        $this->actingAs($user)->get('/complete-profile')->assertOk();
+        $this->actingAs($user)->get('/dashboard')->assertOk();
+    }
+
+    // --- Where verification leaves you ---------------------------------------
+
+    public function test_verifying_continues_to_the_profile_form_when_details_are_missing(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)
+            ->get($this->verificationUrlFor($user))
+            ->assertOk()
+            ->assertViewHas('destination', route('complete-profile'))
+            ->assertViewHas('label', 'Complete Your Profile');
+
+        $this->assertNotNull($user->refresh()->email_verified_at);
+    }
+
+    public function test_verifying_continues_to_the_dashboard_once_details_exist(): void
+    {
+        $user = User::factory()->unverified()->create(['contact_number' => '09170001111']);
+
+        $this->actingAs($user)
+            ->get($this->verificationUrlFor($user))
+            ->assertViewHas('destination', route('dashboard'))
+            ->assertViewHas('label', 'Continue to Dashboard');
+    }
+
+    public function test_verification_returns_to_where_the_gate_interrupted(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        // This is the bounce EnsureEmailIsVerified performs; the link click
+        // must land back on the interrupted URL, not on a default.
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertRedirect(route('verification.notice', absolute: false));
+
+        $this->actingAs($user->refresh())
+            ->get($this->verificationUrlFor($user))
+            ->assertViewHas('destination', route('dashboard'));
+    }
 }
