@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Notifications\VerifyEmailNotification;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -12,14 +13,18 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
     public const ROLE_ADMIN = 'admin';
+
     public const ROLE_REGISTRAR = 'registrar';
+
     public const ROLE_CASHIER = 'cashier';
+
     public const ROLE_STUDENT = 'student';
+
     public const ROLE_DEPARTMENT = 'department';
 
     /**
@@ -28,17 +33,27 @@ class User extends Authenticatable
      * seeded and admin-created accounts are never gated.
      */
     public const APPROVAL_PENDING = 'pending';
+
     public const APPROVAL_APPROVED = 'approved';
+
     public const APPROVAL_REJECTED = 'rejected';
 
     /**
      * The attributes that are mass assignable.
+     *
+     * email_verified_at is listed deliberately. The seeders and the admin
+     * panel both pass a timestamp to User::create(), and a guarded column is
+     * dropped without a word — which left every system-issued account
+     * unverified. Nothing request-supplied can reach it: the only fill() sink
+     * is ProfileUpdateRequest, whose rules allow name and email only, and the
+     * signup form builds its attributes by hand.
      *
      * @var list<string>
      */
     protected $fillable = [
         'name',
         'email',
+        'email_verified_at',
         'role',
         'office',
         'registration_type',
@@ -60,6 +75,19 @@ class User extends Authenticatable
         'approved_by',
         'rejection_reason',
     ];
+
+    /**
+     * Send the "please verify your address" mail.
+     *
+     * The trait would fall back to Laravel's stock template; ISUFSTPASS ships
+     * its own branded one, so point the notification at it instead. Callers
+     * must go through SafeMailer::verifyEmail() — the notification travels by
+     * notify() rather than Mail::to(), so nothing else guards it.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification);
+    }
 
     public function isAdmin(): bool
     {

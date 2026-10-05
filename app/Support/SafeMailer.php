@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Mail;
 
@@ -26,6 +27,38 @@ class SafeMailer
             return true;
         } catch (\Throwable $e) {
             report(self::describe($mailable, $recipient, $e));
+
+            return false;
+        }
+    }
+
+    /**
+     * Send the account's email verification link.
+     *
+     * Notifications leave through notify(), not Mail::to(), so they bypass
+     * the guard above. Registration and "I changed my email" both write their
+     * row first and must not turn a provider outage into a 500, so the link
+     * gets the same best-effort treatment here. The user can always press
+     * "Resend Verification Email" once the provider is back.
+     *
+     * @return bool true when the message was handed to the transport
+     */
+    public static function verifyEmail(MustVerifyEmail $user): bool
+    {
+        try {
+            $user->sendEmailVerificationNotification();
+
+            return true;
+        } catch (\Throwable $e) {
+            report(new \RuntimeException(
+                sprintf(
+                    'Verification link not delivered: %s (%s)',
+                    self::recipientLabel($user),
+                    $e->getMessage(),
+                ),
+                0,
+                $e,
+            ));
 
             return false;
         }

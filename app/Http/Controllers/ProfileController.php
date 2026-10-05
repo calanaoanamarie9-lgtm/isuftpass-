@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Support\SafeMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,11 +29,22 @@ class ProfileController extends Controller
     {
         $request->user()->fill($request->validated());
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = now();
+        // Measured after fill(): before it nothing is dirty, so the check
+        // would never fire and a changed address would keep its old stamp.
+        $changedEmail = $request->user()->isDirty('email');
+
+        if ($changedEmail) {
+            // A brand new address has never been clicked, so it starts over.
+            // Marking it verified here would make the verification flow
+            // decorative: the one moment it matters would skip it.
+            $request->user()->email_verified_at = null;
         }
 
         $request->user()->save();
+
+        if ($changedEmail) {
+            SafeMailer::verifyEmail($request->user());
+        }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
