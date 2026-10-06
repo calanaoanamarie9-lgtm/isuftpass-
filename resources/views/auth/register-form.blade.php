@@ -418,30 +418,17 @@
 
                                     </div>
 
-                                    <select
+                                    <input
+                                        type="text"
                                         id="office"
                                         name="office"
+                                        value="{{ old('office') }}"
                                         required
-                                        class="block w-full pl-12 pr-10 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none appearance-none"
+                                        maxlength="150"
+                                        autocomplete="organization"
+                                        placeholder="Type the name of your office"
+                                        class="block w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
                                     >
-                                        <option value="" disabled {{ old('office') ? '' : 'selected' }}>
-                                            Select your office
-                                        </option>
-
-                                        @foreach ($offices as $officeOption)
-
-                                            <option value="{{ $officeOption->value }}" {{ old('office') === $officeOption->value ? 'selected' : '' }}>
-                                                {{ $officeOption->label() }}
-                                            </option>
-
-                                        @endforeach
-                                    </select>
-
-                                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                        </svg>
-                                    </div>
 
                                 </div>
 

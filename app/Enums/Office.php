@@ -31,6 +31,31 @@ enum Office: string
         return array_keys(self::toSelect());
     }
 
+    /**
+     * Resolve an office name typed by an applicant to the office it names.
+     *
+     * The registration form no longer offers this list - the applicant types
+     * their own office, which may not exist here yet - so "library", "LIBRARY"
+     * and "University Library" all come back as Library. That matters because
+     * appointments, consultation services and availability are keyed by the
+     * value below: an account holding the label instead would be looking at an
+     * office with no records. A name that matches nothing is returned exactly
+     * as typed, with runs of spaces collapsed - a new office is allowed to
+     * apply before it has a case here.
+     */
+    public static function fromTyped(string $typed): string
+    {
+        $typed = trim((string) preg_replace('/\s+/u', ' ', $typed));
+
+        foreach (self::cases() as $office) {
+            if (strcasecmp($typed, $office->value) === 0 || strcasecmp($typed, $office->label()) === 0) {
+                return $office->value;
+            }
+        }
+
+        return $typed;
+    }
+
     public function label(): string
     {
         return match ($this) {

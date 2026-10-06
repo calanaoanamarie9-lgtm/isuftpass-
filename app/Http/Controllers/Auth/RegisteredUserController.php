@@ -37,7 +37,6 @@ class RegisteredUserController extends Controller
 
         return view('auth.register-form', [
             'userType' => $type,
-            'offices' => Office::cases(),
         ]);
     }
 
@@ -60,7 +59,10 @@ class RegisteredUserController extends Controller
         }
 
         if ($request->user_type === 'office') {
-            $rules['office'] = ['required', 'string', Rule::in(Office::toSelectKeys())];
+            // The applicant types their own office instead of choosing one:
+            // an office may apply before it exists in App\Enums\Office, and
+            // all the account needs is a name to show and to scope by.
+            $rules['office'] = ['required', 'string', 'max:150'];
             $rules['position'] = ['required', 'string', 'max:120'];
             $rules['contact_number'] = ['required', 'string', 'max:20'];
         }
@@ -102,7 +104,10 @@ class RegisteredUserController extends Controller
         if ($request->user_type === 'office') {
             $user->forceFill([
                 'role' => User::ROLE_DEPARTMENT,
-                'office' => $request->office,
+                // Typed, then resolved: "University Library" is stored as
+                // Library so the account sees that office's records, while a
+                // name that fits no office is kept exactly as typed.
+                'office' => Office::fromTyped($request->office),
                 'position' => $request->position,
                 'contact_number' => $request->contact_number,
                 'approval_status' => User::APPROVAL_PENDING,

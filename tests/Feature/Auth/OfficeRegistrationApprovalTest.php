@@ -39,7 +39,10 @@ class OfficeRegistrationApprovalTest extends TestCase
         $response->assertSee('Office / Staff');
         $response->assertSee('name="office"', false);
         $response->assertSee('name="position"', false);
-        $response->assertSee('Office of the Registrar');
+
+        // The office is typed, not picked from a list.
+        $response->assertSee('Type the name of your office', false);
+        $response->assertDontSee('Select your office');
     }
 
     public function test_office_registration_creates_a_pending_account(): void
@@ -84,20 +87,47 @@ class OfficeRegistrationApprovalTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'incomplete@isufst.edu.ph']);
     }
 
-    public function test_office_registration_rejects_an_unknown_office(): void
+    public function test_office_registration_takes_the_office_the_applicant_types(): void
     {
         $this->post('/register', [
-            'name' => 'Ghost Staff',
-            'email' => 'ghost@isufst.edu.ph',
+            'name' => 'Property Officer',
+            'email' => 'property@isufst.edu.ph',
             'password' => 'password',
             'password_confirmation' => 'password',
             'user_type' => 'office',
-            'office' => 'NotARealOffice',
-            'position' => 'Ghost',
+            'office' => 'Property Management Office',
+            'position' => 'Property Officer III',
             'contact_number' => '09171234567',
-        ])->assertSessionHasErrors('office');
+        ])->assertRedirect(route('register.pending', absolute: false));
 
-        $this->assertDatabaseMissing('users', ['email' => 'ghost@isufst.edu.ph']);
+        // No list to belong to: an office may apply before it exists in the
+        // enum, so the name is stored exactly as typed.
+        $this->assertDatabaseHas('users', [
+            'email' => 'property@isufst.edu.ph',
+            'office' => 'Property Management Office',
+            'approval_status' => User::APPROVAL_PENDING,
+        ]);
+    }
+
+    public function test_a_typed_name_of_an_existing_office_resolves_to_that_office(): void
+    {
+        $this->post('/register', [
+            'name' => 'Librarian Probe',
+            'email' => 'librarian2@isufst.edu.ph',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'user_type' => 'office',
+            'office' => 'University Library',
+            'position' => 'Librarian II',
+            'contact_number' => '09171234567',
+        ])->assertRedirect(route('register.pending', absolute: false));
+
+        // Appointments, consultation services and availability are keyed by
+        // that value, so the label has to become the office it names.
+        $this->assertDatabaseHas('users', [
+            'email' => 'librarian2@isufst.edu.ph',
+            'office' => 'Library',
+        ]);
     }
 
     public function test_pending_confirmation_page_is_public(): void

@@ -227,11 +227,14 @@ Route::get('/dashboard', function () {
     };
 
     if (in_array($user->role, ['department', 'osas', 'accounting', 'library', 'guidance'], true)) {
-        $dept = match ($user->office) {
+        // Office is typed at registration, not picked, so match it the way the
+        // sidebar already does - case must not decide which workspace a
+        // staff account lands in.
+        $dept = match (strtoupper($user->office ?? '')) {
             'OSAS' => 'osas',
-            'Accounting' => 'accounting',
-            'Library' => 'library',
-            'Guidance' => 'guidance',
+            'ACCOUNTING' => 'accounting',
+            'LIBRARY' => 'library',
+            'GUIDANCE' => 'guidance',
             'CBMSD' => 'cbmsd',
             'COAG' => 'coag',
             'COED' => 'coed',
