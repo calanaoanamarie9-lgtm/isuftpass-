@@ -212,13 +212,6 @@
                         <span>Document Requests</span>
                     </a>
 
-                    <a href="{{ route('registrar.document-requests.index', ['tab' => 'archived']) }}"
-                       @click="open = false"
-                       class="{{ $navClass }}">
-                        <span>📂</span>
-                        <span>Request History</span>
-                    </a>
-
                     <a href="{{ route('registrar.appointments.index') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
