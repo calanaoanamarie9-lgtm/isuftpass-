@@ -1293,6 +1293,69 @@
 
 
                     {{-- =================================================
+                        DELETE
+                    ================================================== --}}
+                    <div class="bg-white
+                                rounded-2xl
+                                border border-gray-200
+                                shadow-sm
+                                overflow-hidden">
+
+                        <div class="px-5 py-4
+                                    bg-[#f8fbff]
+                                    border-b border-gray-100">
+
+                            <h2 class="font-bold text-[#102d5b]">
+                                Delete Request
+                            </h2>
+
+                            <p class="mt-1
+                                      text-xs
+                                      text-gray-500">
+
+                                Removes this request from the registrar's list.
+
+                            </p>
+
+                        </div>
+
+
+                        <div class="p-5">
+
+                            <form method="POST"
+                                  action="{{ route('registrar.document-requests.destroy', $request) }}"
+                                  data-confirm="This permanently removes the request and its record. This cannot be undone."
+                                  data-confirm-title="Delete this document request?"
+                                  data-confirm-ok="Yes, delete it"
+                                  data-confirm-icon="warning">
+
+                                @csrf
+                                @method('DELETE')
+
+
+                                <button type="submit"
+                                        class="w-full
+                                               px-4 py-3
+                                               rounded-xl
+                                               bg-red-600
+                                               text-white
+                                               text-sm
+                                               font-bold
+                                               hover:bg-red-700
+                                               transition">
+
+                                    Delete Request
+
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- =================================================
                         INFORMATION
                     ================================================== --}}
                     <div class="rounded-2xl

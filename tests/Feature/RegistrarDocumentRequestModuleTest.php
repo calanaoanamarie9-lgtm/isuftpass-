@@ -85,6 +85,52 @@ class RegistrarDocumentRequestModuleTest extends TestCase
             ->assertSee($student->name);
     }
 
+    public function test_details_page_offers_a_delete_button(): void
+    {
+        [, $request] = $this->makeStudentWithRequest();
+
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/document-requests/' . $request->id)
+            ->assertOk()
+            ->assertSee('Delete Request')
+            ->assertSee(route('registrar.document-requests.destroy', $request), false);
+    }
+
+    public function test_registrar_can_delete_an_active_request(): void
+    {
+        [, $request] = $this->makeStudentWithRequest();
+
+        $this->actingAs($this->makeRegistrar())
+            ->delete('/registrar/document-requests/' . $request->id)
+            ->assertRedirect(route('registrar.document-requests.index'))
+            ->assertSessionHas('status');
+
+        $this->assertDatabaseMissing('document_requests', ['id' => $request->id]);
+        $this->assertDatabaseMissing('document_request_document', ['document_request_id' => $request->id]);
+    }
+
+    public function test_registrar_can_delete_a_finished_request(): void
+    {
+        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::CANCELLED->value);
+
+        $this->actingAs($this->makeRegistrar())
+            ->delete('/registrar/document-requests/' . $request->id)
+            ->assertRedirect(route('registrar.document-requests.index'));
+
+        $this->assertDatabaseMissing('document_requests', ['id' => $request->id]);
+    }
+
+    public function test_student_cannot_delete_through_the_registrar_route(): void
+    {
+        [$student, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::CANCELLED->value);
+
+        $this->actingAs($student)
+            ->delete('/registrar/document-requests/' . $request->id)
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('document_requests', ['id' => $request->id]);
+    }
+
     public function test_registrar_can_set_status_directly_and_student_is_notified(): void
     {
         Mail::fake();

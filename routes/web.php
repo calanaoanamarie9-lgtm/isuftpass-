@@ -347,6 +347,7 @@ Route::middleware(['auth', 'verified', 'role:registrar,department'])->prefix('re
     Route::post('/document-requests/{documentRequest}/next', [RegistrarDocumentRequestController::class, 'next'])->name('document-requests.next');
     Route::patch('/document-requests/{documentRequest}/status', [RegistrarDocumentRequestController::class, 'updateStatus'])->name('document-requests.status');
     Route::post('/document-requests/{documentRequest}/cancel', [RegistrarDocumentRequestController::class, 'cancel'])->name('document-requests.cancel');
+    Route::delete('/document-requests/{documentRequest}', [RegistrarDocumentRequestController::class, 'destroy'])->name('document-requests.destroy');
 
     // Student Record Lookup
     Route::get('/students', [StudentLookupController::class, 'index'])->name('students.index');

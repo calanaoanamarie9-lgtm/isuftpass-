@@ -267,4 +267,22 @@ class DocumentRequestController extends Controller
             ->back()
             ->with('status', 'Request rejected. The student has been notified by email and in the system.');
     }
+
+    /**
+     * Removing a request is the registrar's call — a duplicate, a test entry,
+     * or one the student already settled elsewhere. The pivot is released
+     * first so no link row is left stranded, and the removal is written to
+     * the audit trail because it leaves nothing else behind.
+     */
+    public function destroy(DocumentRequest $documentRequest): RedirectResponse
+    {
+        AuditLogger::log('request.deleted', 'Registrar deleted request ' . $documentRequest->request_number . '.');
+
+        $documentRequest->documents()->detach();
+        $documentRequest->delete();
+
+        return redirect()
+            ->route('registrar.document-requests.index')
+            ->with('status', 'Request deleted.');
+    }
 }
