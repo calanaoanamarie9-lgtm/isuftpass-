@@ -36,6 +36,7 @@ class GuidanceController extends Controller
     {
         return view('Offices.Guidance.qr', [
             'office' => 'Guidance',
+            'checkIns' => \App\Support\CheckInList::today('Guidance'),
         ]);
     }
 

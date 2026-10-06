@@ -49,6 +49,7 @@ class Appointment extends Model
         'status',
         'notes',
         'confirmed_at',
+        'checked_in_at',
         'rescheduled_at',
         'completed_at',
         'cancelled_at',
@@ -61,6 +62,7 @@ class Appointment extends Model
             'date' => 'date',
             'original_date' => 'date',
             'confirmed_at' => 'datetime',
+            'checked_in_at' => 'datetime',
             'rescheduled_at' => 'datetime',
             'completed_at' => 'datetime',
             'cancelled_at' => 'datetime',
@@ -94,6 +96,16 @@ class Appointment extends Model
     public function isUpcoming(): bool
     {
         return in_array($this->status, AppointmentStatus::schedulableValues(), true);
+    }
+
+    /**
+     * The status column spelled the way staff read it ("Checked In"), safe for
+     * a value the enum does not know rather than one that throws mid-page.
+     */
+    public function statusLabel(): string
+    {
+        return AppointmentStatus::tryFrom((string) $this->status)?->label()
+            ?? str_replace('_', ' ', ucfirst((string) $this->status));
     }
 
     public function isCancellable(): bool

@@ -36,6 +36,7 @@ class AccountingController extends Controller
     {
         return view('Offices.Accounting.qr', [
             'office' => 'Accounting',
+            'checkIns' => \App\Support\CheckInList::today('Accounting'),
         ]);
     }
 

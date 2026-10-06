@@ -52,6 +52,7 @@ class CiciController extends Controller
 
         return view('departments.CICI.qr', [
             'office' => $office,
+            'checkIns' => \App\Support\CheckInList::today($office),
         ]);
     }
 

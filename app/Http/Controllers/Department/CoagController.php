@@ -52,6 +52,7 @@ class CoagController extends Controller
 
         return view('departments.COAG.qr', [
             'office' => $office,
+            'checkIns' => \App\Support\CheckInList::today($office),
         ]);
     }
 

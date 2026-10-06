@@ -51,6 +51,7 @@ class CbmsdController extends Controller
 
         return view('departments.CBMSD.qr', [
             'office' => $office,
+            'checkIns' => \App\Support\CheckInList::today($office),
         ]);
     }
 

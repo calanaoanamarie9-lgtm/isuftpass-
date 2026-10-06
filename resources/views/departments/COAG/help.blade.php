@@ -10,7 +10,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                    <h2 class="font-bold text-gray-900 mb-3">ðŸ“· QR Scanner &amp; Check-in</h2>
+                    <h2 class="font-bold text-gray-900 mb-3">📷 QR Scanner &amp; Check-in</h2>
                     <ol class="text-sm text-gray-600 space-y-2 list-decimal list-inside">
                         <li>Navigate to <strong>QR Scanner &amp; Check-in</strong> from the sidebar.</li>
                         <li>Ask the student to present their QR pass.</li>
@@ -20,7 +20,7 @@
                 </div>
 
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                    <h2 class="font-bold text-gray-900 mb-3">ðŸ“… Manage Appointments</h2>
+                    <h2 class="font-bold text-gray-900 mb-3">📅 Manage Appointments</h2>
                     <ol class="text-sm text-gray-600 space-y-2 list-decimal list-inside">
                         <li>Go to <strong>Manage Appointments</strong> to view all {{ $office }} student visits.</li>
                         <li>Approve pending appointments or reschedule if needed.</li>
@@ -29,7 +29,7 @@
                 </div>
 
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                    <h2 class="font-bold text-gray-900 mb-3">ðŸ•’ Time Slot Settings</h2>
+                    <h2 class="font-bold text-gray-900 mb-3">🕒 Time Slot Settings</h2>
                     <ol class="text-sm text-gray-600 space-y-2 list-decimal list-inside">
                         <li>Go to <strong>Time Slot Settings</strong> to configure available dates.</li>
                         <li>Set a date to <strong>Open All Day</strong>, <strong>Closed</strong>, or select <strong>Specific Slots</strong>.</li>
@@ -39,7 +39,7 @@
                 </div>
 
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                    <h2 class="font-bold text-gray-900 mb-3">ðŸ“‹ Consultation Services</h2>
+                    <h2 class="font-bold text-gray-900 mb-3">📋 Consultation Services</h2>
                     <ol class="text-sm text-gray-600 space-y-2 list-decimal list-inside">
                         <li>View active appointment types configured for {{ $office }}.</li>
                         <li>Services include Capstone, OJT, Advising, Research, and General Inquiry.</li>

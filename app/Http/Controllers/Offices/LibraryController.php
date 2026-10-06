@@ -36,6 +36,7 @@ class LibraryController extends Controller
     {
         return view('Offices.Library.qr', [
             'office' => 'Library',
+            'checkIns' => \App\Support\CheckInList::today('Library'),
         ]);
     }
 

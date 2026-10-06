@@ -52,6 +52,7 @@ class CoedController extends Controller
 
         return view('departments.COED.qr', [
             'office' => $office,
+            'checkIns' => \App\Support\CheckInList::today($office),
         ]);
     }
 

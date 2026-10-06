@@ -36,6 +36,7 @@ class OsasController extends Controller
     {
         return view('Offices.OSAS.qr', [
             'office' => 'OSAS',
+            'checkIns' => \App\Support\CheckInList::today('OSAS'),
         ]);
     }
 

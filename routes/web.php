@@ -441,6 +441,12 @@ Route::middleware(['auth', 'verified', 'role:cashier'])->prefix('cashier')->name
 | them here cannot turn one workspace into another workspace's data.
 */
 $workspaceRoutes = function (): void {
+    // One handler serves all eight desks: it reads the office from
+    // officeScope(), so /cici/qr/check-in and /osas/qr/check-in are the same
+    // scan endpoint wearing each group's role middleware.
+    Route::post('/qr/check-in', [\App\Http\Controllers\Workspace\QrCheckInController::class, 'checkIn'])
+        ->name('qr.check-in');
+
     Route::post('/availability/save', [\App\Http\Controllers\Registrar\AvailabilityController::class, 'save'])
         ->name('availability.save');
 

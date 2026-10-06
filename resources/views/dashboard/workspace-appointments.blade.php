@@ -381,6 +381,8 @@
                                                     'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
                                                 'confirmed' =>
                                                     'bg-green-50 text-green-700 ring-1 ring-green-200',
+                                                'checked_in' =>
+                                                    'bg-teal-50 text-teal-700 ring-1 ring-teal-200',
                                                 'completed' =>
                                                     'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
                                                 'cancelled' =>
@@ -1079,6 +1081,9 @@
 
                         'bg-green-50 text-green-700 ring-1 ring-green-200':
                             status === 'confirmed',
+
+                        'bg-teal-50 text-teal-700 ring-1 ring-teal-200':
+                            status === 'checked_in',
 
                         'bg-blue-50 text-blue-700 ring-1 ring-blue-200':
                             status === 'completed',
