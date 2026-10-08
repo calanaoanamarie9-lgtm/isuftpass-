@@ -65,22 +65,24 @@ class DocumentRequestController extends Controller
     }
 
     /**
-     * Approval is gated on payment: a request cannot move forward until the
-     * cashier has recorded payment (paid_at is set). Rejecting deliberately
-     * stays available so an unpaid request is never left stuck in the
-     * pipeline with no way out.
+     * Everything past approval is gated on payment: the cashier has to have
+     * recorded it (paid_at) before a request can be released or completed.
+     * Approval itself deliberately is NOT gated — the registrar signs off
+     * first and the cashier collects afterwards. Rejecting stays available
+     * so an unpaid request is never left stuck with no way out.
      *
-     * @return RedirectResponse|null the redirect to send when still unpaid
+     * @return RedirectResponse|null the redirect to send while still unpaid
      */
-    private function paymentRequired(DocumentRequest $documentRequest): ?RedirectResponse
+    private function paymentGate(DocumentRequest $documentRequest, string $action): ?RedirectResponse
     {
         if ($documentRequest->isPaid()) {
             return null;
         }
 
         return back()->with('error', sprintf(
-            'Payment for %s has not been recorded yet, so this request cannot be approved. Ask the cashier to record the payment first.',
+            'Payment for %s has not been recorded yet, so this request cannot be %s. Ask the cashier to record the payment first.',
             $documentRequest->request_number,
+            $action,
         ));
     }
 
@@ -88,22 +90,23 @@ class DocumentRequestController extends Controller
     {
         abort_if(! $documentRequest->isActive(), 404);
 
-        if ($blocked = $this->paymentRequired($documentRequest)) {
-            return $blocked;
+        // Hand-off point: the registrar has approved, and moving it to "Paid"
+        // is the cashier's write. There is nothing left for the registrar to
+        // advance until that payment lands.
+        if ($documentRequest->status === DocumentRequestStatus::FOR_SIGNATURE->value) {
+            return back()->with('error', sprintf(
+                '%s is approved and waiting for the cashier to record the payment.',
+                $documentRequest->request_number,
+            ));
         }
 
         $next = match ($documentRequest->status) {
             DocumentRequestStatus::SUBMITTED->value => [
-                DocumentRequestStatus::PROCESSING->value,
-                'processing_at',
-                'is now being processed',
-            ],
-            DocumentRequestStatus::PROCESSING->value => [
                 DocumentRequestStatus::FOR_SIGNATURE->value,
                 'for_signature_at',
-                'is now for signature',
+                'has been approved',
             ],
-            DocumentRequestStatus::FOR_SIGNATURE->value => [
+            DocumentRequestStatus::PROCESSING->value => [
                 DocumentRequestStatus::READY_FOR_PICKUP->value,
                 'ready_at',
                 'is now ready for pick-up',
@@ -125,6 +128,10 @@ class DocumentRequestController extends Controller
         ];
 
         if ($status === DocumentRequestStatus::READY_FOR_PICKUP->value) {
+            if ($blocked = $this->paymentGate($documentRequest, 'released')) {
+                return $blocked;
+            }
+
             $data = $request->validate([
                 'release_date' => ['nullable', 'date'],
                 'release_time' => ['nullable', 'date_format:H:i'],
@@ -170,12 +177,6 @@ class DocumentRequestController extends Controller
     {
         abort_if(! $documentRequest->isActive(), 404);
 
-        // Same gate as next(): this endpoint is not linked from the UI, but
-        // it must not become a side door around the payment requirement.
-        if ($blocked = $this->paymentRequired($documentRequest)) {
-            return $blocked;
-        }
-
         $data = $request->validate([
             'status' => ['required', Rule::in([
                 DocumentRequestStatus::PROCESSING->value,
@@ -189,9 +190,18 @@ class DocumentRequestController extends Controller
 
         $target = DocumentRequestStatus::from($data['status']);
 
+        // This endpoint is not linked from the UI, but it must not become a
+        // side door around the payment requirement: everything past approval
+        // (paid, released, completed) needs the cashier's payment on file.
+        // Approving is the one step that is not gated.
+        if ($target !== DocumentRequestStatus::FOR_SIGNATURE
+            && ($blocked = $this->paymentGate($documentRequest, 'advanced'))) {
+            return $blocked;
+        }
+
         [$timestamp, $message] = match ($target) {
-            DocumentRequestStatus::PROCESSING => ['processing_at', 'is now being processed'],
-            DocumentRequestStatus::FOR_SIGNATURE => ['for_signature_at', 'is now for signature'],
+            DocumentRequestStatus::PROCESSING => ['processing_at', 'payment has been recorded'],
+            DocumentRequestStatus::FOR_SIGNATURE => ['for_signature_at', 'has been approved'],
             DocumentRequestStatus::READY_FOR_PICKUP => ['ready_at', 'is now ready for pick-up'],
             DocumentRequestStatus::COMPLETED => ['completed_at', 'has been completed'],
             default => [null, null],

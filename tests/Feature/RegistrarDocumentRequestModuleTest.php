@@ -156,31 +156,56 @@ class RegistrarDocumentRequestModuleTest extends TestCase
     public function test_advancing_status_moves_through_pipeline_and_notifies_student(): void
     {
         [$student, $request] = $this->makeStudentWithRequest();
+        $request->update(['paid_at' => null]);
+
+        // The registrar approves first, and that is not held up by payment.
+        $this->actingAs($this->makeRegistrar())
+            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->assertRedirect();
+
+        $request->refresh();
+        $this->assertEquals(DocumentRequestStatus::FOR_SIGNATURE->value, $request->status);
+        $this->assertNotNull($request->for_signature_at);
+
+        // At "Approved" there is nothing left to advance — the cashier has
+        // to record the payment first.
+        $this->actingAs($this->makeRegistrar())
+            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->assertSessionHas('error');
+
+        $this->assertEquals(
+            DocumentRequestStatus::FOR_SIGNATURE->value,
+            $request->fresh()->status,
+        );
+
+        // The cashier's payment is what carries it on to "Paid".
+        $this->actingAs(User::factory()->create(['role' => 'cashier']))
+            ->post('/cashier/payments/' . $request->id . '/record', ['or_number' => 'OR-PIPELINE-01'])
+            ->assertRedirect();
+
+        $this->assertEquals(
+            DocumentRequestStatus::PROCESSING->value,
+            $request->fresh()->status,
+        );
 
         $this->actingAs($this->makeRegistrar())
             ->post('/registrar/document-requests/' . $request->id . '/next')
             ->assertRedirect();
 
         $request->refresh();
-        $this->assertEquals(DocumentRequestStatus::PROCESSING->value, $request->status);
-        $this->assertNotNull($request->processing_at);
-
-        $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next');
-
-        $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next');
-
-        $request->refresh();
         $this->assertEquals(DocumentRequestStatus::READY_FOR_PICKUP->value, $request->status);
+        $this->assertNotNull($request->ready_at);
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next');
+            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->assertRedirect();
 
         $request->refresh();
         $this->assertEquals(DocumentRequestStatus::COMPLETED->value, $request->status);
         $this->assertNotNull($request->completed_at);
 
+        // Approve, the cashier's payment, release and claim — the blocked
+        // attempt notified nobody.
         $this->assertEquals(4, $student->notifications()->count());
         $this->assertEquals(DocumentRequestStatusNotification::class, $student->notifications()->first()->type);
     }
@@ -194,9 +219,26 @@ class RegistrarDocumentRequestModuleTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_registrar_cannot_approve_request_until_it_is_paid(): void
+    public function test_registrar_can_approve_a_request_that_has_not_been_paid(): void
     {
         [$student, $request] = $this->makeStudentWithRequest();
+        $request->update(['paid_at' => null]);
+
+        $this->actingAs($this->makeRegistrar())
+            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $request->refresh();
+
+        $this->assertEquals(DocumentRequestStatus::FOR_SIGNATURE->value, $request->status);
+        $this->assertNotNull($request->for_signature_at);
+        $this->assertEquals(1, $student->notifications()->count());
+    }
+
+    public function test_registrar_cannot_advance_past_approved_until_it_is_paid(): void
+    {
+        [$student, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::FOR_SIGNATURE->value);
         $request->update(['paid_at' => null]);
 
         $this->actingAs($this->makeRegistrar())
@@ -206,9 +248,24 @@ class RegistrarDocumentRequestModuleTest extends TestCase
 
         $request->refresh();
 
-        $this->assertEquals(DocumentRequestStatus::SUBMITTED->value, $request->status);
-        $this->assertNull($request->processing_at);
+        $this->assertEquals(DocumentRequestStatus::FOR_SIGNATURE->value, $request->status);
         $this->assertEquals(0, $student->notifications()->count());
+    }
+
+    public function test_registrar_cannot_release_a_request_that_has_not_been_paid(): void
+    {
+        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::PROCESSING->value);
+        $request->update(['paid_at' => null]);
+
+        $this->actingAs($this->makeRegistrar())
+            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertEquals(
+            DocumentRequestStatus::PROCESSING->value,
+            $request->fresh()->status,
+        );
     }
 
     public function test_registrar_cannot_set_status_directly_on_unpaid_request(): void
@@ -245,24 +302,22 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         );
     }
 
-    public function test_show_page_blocks_approval_until_paid(): void
+    public function test_show_page_hands_an_approved_request_over_to_the_cashier(): void
     {
-        [, $request] = $this->makeStudentWithRequest();
-        $request->update(['paid_at' => null]);
+        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::FOR_SIGNATURE->value);
 
         $this->actingAs($this->makeRegistrar())
             ->get('/registrar/document-requests/' . $request->id)
             ->assertOk()
-            ->assertSee('Approval blocked')
-            ->assertSee('Payment required first');
+            ->assertSee('Waiting for the cashier to record payment')
+            ->assertDontSee('Mark as');
     }
 
     public function test_action_button_shows_the_next_status_it_will_set(): void
     {
         $expectations = [
-            DocumentRequestStatus::SUBMITTED->value        => 'Mark as Paid',
-            DocumentRequestStatus::PROCESSING->value       => 'Mark as Approved',
-            DocumentRequestStatus::FOR_SIGNATURE->value    => 'Mark as For Release',
+            DocumentRequestStatus::SUBMITTED->value        => 'Mark as Approved',
+            DocumentRequestStatus::PROCESSING->value       => 'Mark as For Release',
             DocumentRequestStatus::READY_FOR_PICKUP->value => 'Mark as Claimed',
         ];
 
@@ -274,6 +329,15 @@ class RegistrarDocumentRequestModuleTest extends TestCase
                 ->assertOk()
                 ->assertSee($buttonLabel);
         }
+
+        // At "Approved" the pipeline is handed to the cashier, so there is
+        // no button left for the registrar to press.
+        [, $approved] = $this->makeStudentWithRequest(DocumentRequestStatus::FOR_SIGNATURE->value);
+
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/document-requests/' . $approved->id)
+            ->assertOk()
+            ->assertDontSee('Mark as');
     }
 
     public function test_registrar_can_cancel_request_and_notify_student(): void

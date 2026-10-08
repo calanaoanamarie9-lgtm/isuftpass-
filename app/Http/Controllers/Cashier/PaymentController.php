@@ -16,9 +16,12 @@ class PaymentController extends Controller
 {
     public function pending(Request $request): View
     {
+        // The queue is the approved-but-unpaid backlog. Payment comes after
+        // the registrar's approval, so a request still awaiting it never
+        // shows up here.
         $query = DocumentRequest::query()
             ->with(['user.studentProfile', 'documents'])
-            ->active()
+            ->where('status', DocumentRequestStatus::FOR_SIGNATURE->value)
             ->unpaid()
             ->latest();
 
@@ -44,6 +47,16 @@ class PaymentController extends Controller
             return back()->with('error', 'Payment for this request has already been recorded.');
         }
 
+        // Approval comes first: the registrar signs off before the cashier
+        // collects, so a request still waiting on that approval cannot be
+        // paid here.
+        if ($documentRequest->status !== DocumentRequestStatus::FOR_SIGNATURE->value) {
+            return back()->with('error', sprintf(
+                '%s has not been approved by the registrar yet, so payment cannot be recorded. Ask the registrar to approve it first.',
+                $documentRequest->request_number,
+            ));
+        }
+
         $validated = $request->validate([
             'or_number' => ['required', 'string', 'max:50', 'unique:document_requests,or_number'],
         ]);
@@ -51,20 +64,14 @@ class PaymentController extends Controller
         $attributes = [
             'paid_at' => now(),
             'or_number' => strtoupper($validated['or_number']),
-        ];
 
-        // Recording the payment IS the approval the pipeline used to wait
-        // for: the registrar's "Paid" step is simply `processing`, so the
-        // cashier moves the request there in the same write. Anything past
-        // that step (advanced by the registrar already) is left alone, and
-        // a cancelled request is never resurrected by a late payment.
-        if (in_array($documentRequest->status, [
-            DocumentRequestStatus::SUBMITTED->value,
-            DocumentRequestStatus::PROCESSING->value,
-        ], true)) {
-            $attributes['status'] = DocumentRequestStatus::PROCESSING->value;
-            $attributes['processing_at'] = $documentRequest->processing_at ?? now();
-        }
+            // The registrar approved first and the request is parked at
+            // "Approved": recording the payment is exactly what moves it on
+            // to "Paid". A cancelled request is never resurrected by a late
+            // payment — those never reach this queue.
+            'status' => DocumentRequestStatus::PROCESSING->value,
+            'processing_at' => $documentRequest->processing_at ?? now(),
+        ];
 
         $documentRequest->update($attributes);
 
@@ -80,12 +87,13 @@ class PaymentController extends Controller
         ));
 
         // The registrar cannot see the request move until someone tells them.
-        // This is the hand-off the whole pipeline waits on: payment landed,
-        // the request now reads Paid, and it is sitting in their queue.
+        // Approval already happened, so this is the hand-off back to them:
+        // payment landed, the request now reads Paid, and the release step
+        // in their queue is unlocked.
         RegistrarNotifier::alert(
             $documentRequest,
-            'Payment recorded — ready to process',
-            'Payment of ₱' . number_format($documentRequest->totalFee(), 2) . ' (OR No. ' . $documentRequest->or_number . ') has been recorded. The request is now Paid and waiting in your queue.'
+            'Payment recorded — ready to release',
+            'Payment of ₱' . number_format($documentRequest->totalFee(), 2) . ' (OR No. ' . $documentRequest->or_number . ') has been recorded. The request is now Paid and waiting in your queue to be released.'
         );
 
         return back()->with('status', 'Payment recorded for ' . $documentRequest->request_number . '. The registrar has been notified.');

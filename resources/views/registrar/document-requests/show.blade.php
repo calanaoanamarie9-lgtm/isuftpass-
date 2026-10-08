@@ -3,14 +3,18 @@
     @php
         $steps = [
             ['value' => 'submitted',        'label' => 'Submitted'],
-            ['value' => 'processing',       'label' => 'Paid'],
             ['value' => 'for_signature',    'label' => 'Approved'],
+            ['value' => 'processing',       'label' => 'Paid'],
             ['value' => 'ready_for_pickup', 'label' => 'For Release'],
             ['value' => 'completed',        'label' => 'Claimed'],
         ];
 
         $activeStep = collect($steps)->search(fn ($s) => $s['value'] === $request->status);
         $cancelled = $request->status === 'cancelled';
+
+        // At "Approved" the pipeline hands off to the cashier: the registrar
+        // has nothing left to advance until the payment has been recorded.
+        $awaitingPayment = $request->status === 'for_signature';
 
         $currentLabel = $cancelled
             ? 'Cancelled'
@@ -23,6 +27,9 @@
         $nextLabel = ($activeStep !== false && isset($steps[$activeStep + 1]))
             ? $steps[$activeStep + 1]['label']
             : null;
+
+        // Payment gates the release step only — approval is not held up by it.
+        $releaseBlocked = $nextLabel === 'For Release' && ! $request->isPaid();
     @endphp
 
 
@@ -1083,18 +1090,18 @@
                             <div class="p-5 space-y-5">
 
 
-                                {{-- PAYMENT GATE --}}
-                                @unless ($request->isPaid())
+                                {{-- HANDOFF: THE CASHIER PAYS NEXT --}}
+                                @if ($awaitingPayment)
 
                                     <div class="rounded-xl
-                                                border border-amber-200
-                                                bg-amber-50
+                                                border border-blue-200
+                                                bg-blue-50
                                                 px-4 py-3.5">
 
                                         <p class="flex items-center gap-2
                                                   text-xs
                                                   font-bold
-                                                  text-amber-800">
+                                                  text-blue-800">
 
                                             <svg class="h-4 w-4 shrink-0"
                                                  fill="none"
@@ -1103,10 +1110,10 @@
                                                  stroke="currentColor">
                                                 <path stroke-linecap="round"
                                                       stroke-linejoin="round"
-                                                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                                                      d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                             </svg>
 
-                                            Approval blocked — payment not yet recorded
+                                            Waiting for the cashier to record payment
 
                                         </p>
 
@@ -1114,17 +1121,17 @@
                                                   pl-6
                                                   text-[11px]
                                                   leading-relaxed
-                                                  text-amber-700">
+                                                  text-blue-700">
 
-                                            This request cannot be approved until the
-                                            cashier records the payment. You may still
-                                            reject it if needed.
+                                            This request has been approved. The cashier must
+                                            record the payment before it can be released.
+                                            You may still reject it if needed.
 
                                         </p>
 
                                     </div>
 
-                                @endunless
+                                @endif
 
 
                                 {{-- REJECT --}}
@@ -1186,6 +1193,10 @@
 
 
                                 {{-- APPROVE --}}
+                                {{-- At "Approved" there is nothing to advance — the
+                                     cashier has to record the payment first. --}}
+                                @unless ($awaitingPayment)
+
                                 <form method="POST"
                                       action="{{ route('registrar.document-requests.next', $request) }}"
                                       data-confirm="{{ $request->status === 'ready_for_pickup'
@@ -1200,7 +1211,7 @@
                                     @csrf
 
 
-                                    @if ($request->status === 'for_signature')
+                                    @if ($request->status === 'processing')
 
                                         <div class="grid grid-cols-2 gap-3 mb-4">
 
@@ -1263,7 +1274,7 @@
 
 
                                     <button type="submit"
-                                            @disabled(! $request->isPaid())
+                                            @disabled($releaseBlocked)
                                             class="w-full
                                                    px-4 py-3
                                                    rounded-xl
@@ -1271,11 +1282,11 @@
                                                    text-sm
                                                    font-bold
                                                    transition
-                                                   {{ $request->isPaid()
-                                                       ? 'bg-blue-700 hover:bg-blue-800'
-                                                       : 'bg-gray-300 cursor-not-allowed' }}">
+                                                   {{ $releaseBlocked
+                                                       ? 'bg-gray-300 cursor-not-allowed'
+                                                       : 'bg-blue-700 hover:bg-blue-800' }}">
 
-                                        @if (! $request->isPaid())
+                                        @if ($releaseBlocked)
                                             Payment required first
                                         @else
                                             Mark as {{ $nextLabel ?? 'Advance' }}
@@ -1284,6 +1295,8 @@
                                     </button>
 
                                 </form>
+
+                                @endunless
 
                             </div>
 
@@ -1394,9 +1407,10 @@
                                           leading-5
                                           text-blue-700">
 
-                                    Confirm payment and request information
+                                    Confirm the request information
                                     before advancing the transaction to the
-                                    next stage.
+                                    next stage. Payment is recorded by the
+                                    Cashier, not by this office.
 
                                 </p>
 

@@ -57,12 +57,12 @@ class DocumentRequestStatusEmailTest extends TestCase
             ->assertRedirect();
 
         $request->refresh();
-        $this->assertEquals(DocumentRequestStatus::PROCESSING->value, $request->status);
+        $this->assertEquals(DocumentRequestStatus::FOR_SIGNATURE->value, $request->status);
 
         Mail::assertSent(DocumentRequestStatusUpdate::class, function ($mail) use ($student, $request) {
             return $mail->hasTo($student->email)
                 && $mail->documentRequest->is($request)
-                && $request->status === DocumentRequestStatus::PROCESSING->value;
+                && $request->status === DocumentRequestStatus::FOR_SIGNATURE->value;
         });
     }
 
@@ -70,7 +70,9 @@ class DocumentRequestStatusEmailTest extends TestCase
     {
         Mail::fake();
 
-        [$student, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::FOR_SIGNATURE->value);
+        // Release starts from "Paid", which is where the cashier's payment
+        // leaves the request.
+        [$student, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::PROCESSING->value);
 
         $this->actingAs($this->makeRegistrar())
             ->post('/registrar/document-requests/' . $request->id . '/next')
@@ -113,7 +115,8 @@ class DocumentRequestStatusEmailTest extends TestCase
     {
         Mail::fake();
 
-        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::FOR_SIGNATURE->value);
+        // The registrar sets the release date on the way out of "Paid".
+        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::PROCESSING->value);
 
         $releaseDate = now()->addDays(3)->toDateString();
 

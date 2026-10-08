@@ -146,7 +146,8 @@ class DocumentRequestOfficialFormTest extends TestCase
             ->get(route('student.documents.index'))
             ->assertOk()
             ->assertSee('What should I do next?')
-            ->assertSee('Proceed to the Cashier to settle your payment');
+            // The registrar approves first — the cashier comes after.
+            ->assertSee('Wait for the Registrar\'s Office to review and approve your request.');
     }
 
     public function test_submission_popup_asks_the_student_to_print_the_form(): void

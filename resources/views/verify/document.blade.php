@@ -64,7 +64,7 @@
                 'bg-red-100 text-red-800 border-red-200',
             'paid', 'processing' =>
                 'bg-blue-100 text-blue-800 border-blue-200',
-            'approved' =>
+            'for_signature' =>
                 'bg-green-100 text-green-800 border-green-200',
             'ready_for_pickup' =>
                 'bg-indigo-100 text-indigo-800 border-indigo-200',
@@ -81,7 +81,7 @@
                 'bg-red-600',
             'paid', 'processing' =>
                 'bg-blue-600',
-            'approved' =>
+            'for_signature' =>
                 'bg-green-600',
             'ready_for_pickup' =>
                 'bg-indigo-600',
@@ -95,15 +95,15 @@
 
         $statusDescription = match ($documentRequest->status) {
             'submitted', 'pending' =>
-                'Your document request has been submitted and is waiting for processing.',
+                'Your document request has been submitted and is waiting for the Registrar\'s Office to approve it.',
             'payment_pending' =>
                 'Please complete the required payment for your document request.',
             'paid' =>
                 'Your payment has been recorded and your request is being processed.',
             'processing' =>
-                'Your documents are currently being processed by the office.',
-            'approved' =>
-                'Your document request has been approved.',
+                'Your payment has been recorded. The office is preparing your document for release.',
+            'for_signature' =>
+                'Your document request has been approved. Settle your payment at the Cashier to continue.',
             'ready_for_pickup' =>
                 'Your document is ready for pickup at the claiming office.',
             'completed' =>

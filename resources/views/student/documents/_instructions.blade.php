@@ -1,19 +1,20 @@
 @php
     $steps = match ($request->status) {
         'submitted' => [
-            'Proceed to the Cashier to settle your payment before going to the Registrar\'s Office.',
+            'Wait for the Registrar\'s Office to review and approve your request.',
+            'Once approved, proceed to the Cashier to settle your payment.',
             'Bring your Request Number (' . $request->request_number . ') together with your official receipt when claiming.',
-            'Wait for the Registrar\'s Office to process and sign your document(s).',
-            'You will be notified as your request progresses. Claim your document once the status becomes Ready for Pick-up.',
-        ],
-        'processing' => [
-            'Your request is now being processed by the concerned office.',
-            'No action is needed from you at the moment.',
-            'You will receive a notification once your document is ready for pick-up.',
+            'Claim your document once the status becomes Ready for Pick-up.',
         ],
         'for_signature' => [
-            'Your document is awaiting the required signatures.',
-            'You will be notified once it has been signed and is ready for pick-up.',
+            'Your request has been approved by the Registrar\'s Office.',
+            'Proceed to the Cashier to settle your payment for the requested document(s).',
+            'Bring your Request Number (' . $request->request_number . ') together with your official receipt when claiming.',
+        ],
+        'processing' => [
+            'Your payment has been recorded by the Cashier.',
+            'The Registrar\'s Office is now preparing your document(s) for release.',
+            'You will receive a notification once your document is ready for pick-up.',
         ],
         'ready_for_pickup' => [
             'Proceed to the Registrar\'s Office to claim your document(s).',

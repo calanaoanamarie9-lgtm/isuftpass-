@@ -53,7 +53,7 @@
             'processing' =>
                 'bg-blue-100 text-blue-800 border-blue-200',
 
-            'approved' =>
+            'for_signature' =>
                 'bg-green-100 text-green-800 border-green-200',
 
             'ready_for_pickup' =>
@@ -87,7 +87,7 @@
             'processing' =>
                 'bg-blue-600',
 
-            'approved' =>
+            'for_signature' =>
                 'bg-green-600',
 
             'ready_for_pickup' =>
@@ -114,7 +114,7 @@
 
             'submitted',
             'pending' =>
-                'Your document request has been submitted and is waiting for processing.',
+                'Your document request has been submitted and is waiting for the Registrar\'s Office to approve it.',
 
             'payment_pending' =>
                 'Please complete the required payment for your document request.',
@@ -123,10 +123,10 @@
                 'Your payment has been recorded and your request is being processed.',
 
             'processing' =>
-                'Your documents are currently being processed by the office.',
+                'Your payment has been recorded. The office is preparing your document for release.',
 
-            'approved' =>
-                'Your document request has been approved.',
+            'for_signature' =>
+                'Your document request has been approved. Settle your payment at the Cashier to continue.',
 
             'ready_for_pickup' =>
                 'Your document is ready for pickup at the claiming office.',

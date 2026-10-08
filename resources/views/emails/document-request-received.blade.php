@@ -30,8 +30,9 @@
         'title' => '#854d0e',
     ])
         Your request requires payment of <strong>₱{{ number_format($totalFee, 2) }}</strong>.<br>
-        Proceed to the <strong>University Cashier's Office (over-the-counter)</strong> to settle your payment first, before going to the Registrar's Office.<br>
-        Your request will proceed to processing once your payment has been made and verified.
+        Your request goes first to the <strong>Registrar's Office</strong> for approval. Once it is approved,
+        settle your payment at the <strong>University Cashier's Office (over-the-counter)</strong>.<br>
+        Your request moves on to release once your payment has been made and verified.
     @endcomponent
 
     @component('emails.partials.notice', [

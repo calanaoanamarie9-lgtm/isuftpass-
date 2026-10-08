@@ -20,7 +20,11 @@ class CashierPaymentModuleTest extends TestCase
         return User::factory()->create(['role' => 'cashier']);
     }
 
-    private function makeStudentWithRequest(string $status = DocumentRequestStatus::SUBMITTED->value): array
+    /**
+     * The cashier only ever meets a request the registrar has already
+     * approved, so that is the state this module starts from.
+     */
+    private function makeStudentWithRequest(string $status = DocumentRequestStatus::FOR_SIGNATURE->value): array
     {
         $student = User::factory()->create(['role' => 'student']);
         $document = Document::create(['name' => 'Transcript of Records', 'description' => 'TOR', 'fee' => 100.00]);
@@ -147,7 +151,7 @@ class CashierPaymentModuleTest extends TestCase
     public function test_recording_payment_marks_the_request_paid_for_the_registrar(): void
     {
         [$student, $request] = $this->makeStudentWithRequest();
-        $this->assertSame(DocumentRequestStatus::SUBMITTED->value, $request->status);
+        $this->assertSame(DocumentRequestStatus::FOR_SIGNATURE->value, $request->status);
 
         $this->actingAs($this->makeCashier())
             ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2025-00123'])
@@ -156,22 +160,36 @@ class CashierPaymentModuleTest extends TestCase
         $fresh = $request->fresh();
 
         // The registrar's "Paid" step is the `processing` status, so the
-        // cashier's payment has to land the request there in one write —
-        // no separate approval click to make it read Paid.
+        // cashier's payment has to land the request there in one write.
         $this->assertNotNull($fresh->paid_at);
         $this->assertEquals(DocumentRequestStatus::PROCESSING->value, $fresh->status);
         $this->assertNotNull($fresh->processing_at);
     }
 
+    public function test_cashier_cannot_record_payment_before_the_registrar_approves(): void
+    {
+        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::SUBMITTED->value);
+
+        $this->actingAs($this->makeCashier())
+            ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2025-00999'])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertNull($request->fresh()->paid_at);
+        $this->assertEquals(DocumentRequestStatus::SUBMITTED->value, $request->fresh()->status);
+    }
+
     public function test_payment_does_not_regress_a_request_the_registrar_already_advanced(): void
     {
-        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::FOR_SIGNATURE->value);
+        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::READY_FOR_PICKUP->value);
 
         $this->actingAs($this->makeCashier())
             ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2025-00124'])
             ->assertRedirect();
 
-        $this->assertEquals(DocumentRequestStatus::FOR_SIGNATURE->value, $request->fresh()->status);
+        // The payment queue only ever holds approved requests, so one the
+        // registrar has already released is never pulled back to Paid.
+        $this->assertEquals(DocumentRequestStatus::READY_FOR_PICKUP->value, $request->fresh()->status);
     }
 
     public function test_payment_does_not_resurrect_a_cancelled_request(): void
@@ -185,22 +203,27 @@ class CashierPaymentModuleTest extends TestCase
         $this->assertEquals(DocumentRequestStatus::CANCELLED->value, $request->fresh()->status);
     }
 
-    public function test_registrar_approval_after_payment_moves_to_approved_not_paid(): void
+    public function test_the_registrar_approves_before_the_cashier_records_payment(): void
     {
-        [, $request] = $this->makeStudentWithRequest();
+        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::SUBMITTED->value);
 
-        $this->actingAs($this->makeCashier())
-            ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2025-00126']);
-
-        // Cashier alone brings it to Paid; the registrar's first click is
-        // then the approval the pipeline labels "Approved".
-        $this->assertEquals(DocumentRequestStatus::PROCESSING->value, $request->fresh()->status);
-
+        // Approval comes first, and it does not need the payment on file.
         $this->actingAs(User::factory()->create(['role' => 'registrar']))
             ->post('/registrar/document-requests/' . $request->id . '/next')
             ->assertRedirect();
 
         $this->assertEquals(DocumentRequestStatus::FOR_SIGNATURE->value, $request->fresh()->status);
+        $this->assertNull($request->fresh()->paid_at);
+
+        // Only now does the cashier's payment carry it on to Paid.
+        $this->actingAs($this->makeCashier())
+            ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2025-00126'])
+            ->assertRedirect();
+
+        $fresh = $request->fresh();
+
+        $this->assertNotNull($fresh->paid_at);
+        $this->assertEquals(DocumentRequestStatus::PROCESSING->value, $fresh->status);
     }
 
     public function test_duplicate_or_number_is_rejected(): void

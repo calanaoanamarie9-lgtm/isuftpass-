@@ -168,7 +168,7 @@
                 </div>
 
 
-                {{-- Processing --}}
+                {{-- Paid --}}
                 <div class="bg-white rounded-2xl border border-slate-200
                             shadow-sm p-5">
 
@@ -178,7 +178,7 @@
 
                             <p class="text-xs font-bold uppercase
                                       tracking-wider text-slate-400">
-                                Processing
+                                Paid
                             </p>
 
                             <p class="text-2xl font-extrabold text-cyan-600 mt-2">
