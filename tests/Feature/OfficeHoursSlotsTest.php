@@ -62,7 +62,8 @@ class OfficeHoursSlotsTest extends TestCase
             ->assertSee('Office Hours')
             ->assertSee('value="08:00"', false)
             ->assertSee('value="17:00"', false)
-            ->assertSee('9 slots per day');
+            ->assertDontSee('Daily Slots')
+            ->assertDontSee('slots per day');
     }
 
     public function test_saving_later_hours_grows_the_slot_list_everywhere(): void
@@ -126,7 +127,8 @@ class OfficeHoursSlotsTest extends TestCase
             ->get('/registrar/availability')
             ->assertOk()
             ->assertSee('Office Hours')
-            ->assertSee('13 slots per day')
+            ->assertDontSee('Daily Slots')
+            ->assertDontSee('slots per day')
             ->assertSee('07:00 PM - 08:00 PM');
     }
 
