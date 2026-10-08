@@ -224,7 +224,9 @@ class DocumentRequestOfficialFormTest extends TestCase
             ->get('/student/document-requests/' . $request->id)
             ->assertOk()
             ->assertSee($request->request_number)
-            ->assertSee('Present this QR code to authorized staff for verification.');
+            // The sentence wraps across two source lines in the view, so
+            // assert on the fragment that stays on one line.
+            ->assertSee('Present this QR code to authorized staff');
 
         $this->assertNotNull($request->claim_token);
         $this->assertNotEquals($request->claim_token, $request->request_number);
@@ -246,7 +248,7 @@ class DocumentRequestOfficialFormTest extends TestCase
         $this->actingAs($user)
             ->get('/student/document-requests/' . $request->id)
             ->assertOk()
-            ->assertSee('Present this QR code to authorized staff for verification.')
+            ->assertSee('Present this QR code to authorized staff')
             ->assertSee('data:image/svg+xml')
             ->assertSee('Download QR');
     }

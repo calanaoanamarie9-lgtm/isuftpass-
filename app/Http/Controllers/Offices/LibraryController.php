@@ -28,7 +28,7 @@ class LibraryController extends Controller
     {
         return view('Offices.Library.availability', [
             'office' => 'Library',
-            'timeSlots' => \App\Models\Appointment::TIME_SLOTS,
+            'timeSlots' => \App\Support\TimeSlots::forOffice('Library'),
         ]);
     }
 

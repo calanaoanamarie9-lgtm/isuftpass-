@@ -37,7 +37,7 @@ class CoagController extends Controller
         $user = auth()->user();
         $office = $user->officeScope();
 
-        $timeSlots = \App\Models\Appointment::TIME_SLOTS;
+        $timeSlots = \App\Support\TimeSlots::forOffice($office);
 
         return view('departments.COAG.availability', [
             'office' => $office,

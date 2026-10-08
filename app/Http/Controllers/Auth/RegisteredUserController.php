@@ -103,7 +103,7 @@ class RegisteredUserController extends Controller
         // off the account, so don't hand them a session.
         if ($request->user_type === 'office') {
             $user->forceFill([
-                'role' => User::ROLE_DEPARTMENT,
+                'role' => User::ROLE_OFFICE,
                 // Typed, then resolved: "University Library" is stored as
                 // Library so the account sees that office's records, while a
                 // name that fits no office is kept exactly as typed.

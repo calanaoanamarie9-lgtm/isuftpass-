@@ -10,6 +10,7 @@ use App\Models\Appointment;
 use App\Notifications\AppointmentRescheduledNotification;
 use App\Support\AuditLogger;
 use App\Support\SafeMailer;
+use App\Support\TimeSlots;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -105,7 +106,7 @@ class AppointmentController extends Controller
 
         $data = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today'],
-            'time_slot' => ['required', Rule::in(Appointment::TIME_SLOTS)],
+            'time_slot' => ['required', Rule::in(TimeSlots::forOffice($appointment->office))],
             'reschedule_reason' => ['required', 'string', 'max:500'],
         ]);
 
@@ -164,6 +165,14 @@ class AppointmentController extends Controller
      */
     public function confirm(Request $request, Appointment $appointment): RedirectResponse
     {
+        // Workspace accounts reach this route too — pin them to their own
+        // office; only the registrar confirms across offices.
+        abort_unless(
+            auth()->user()?->role === 'registrar'
+                || $appointment->office === auth()->user()->officeScope(),
+            403
+        );
+
         abort_if(
             ! in_array($appointment->status, [
                 AppointmentStatus::PENDING->value,

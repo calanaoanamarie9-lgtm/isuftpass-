@@ -9,7 +9,7 @@
       $kind     - "Office" or "Department", passed by each thin view
 --}}
 @php
-    $prefix = strtolower($office);
+    $prefix = $workspacePrefix ?? strtolower($office);
 @endphp
 
 <div class="py-10">

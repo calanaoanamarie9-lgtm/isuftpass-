@@ -6,7 +6,6 @@
     <div class="py-10">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="mb-8">
-                <p class="text-xs font-semibold uppercase tracking-widest text-blue-600">Alumni Office</p>
                 <h1 class="mt-1 text-2xl sm:text-3xl font-extrabold text-gray-900">Help &amp; FAQs</h1>
             </div>
 

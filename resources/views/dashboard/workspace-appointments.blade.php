@@ -15,6 +15,8 @@
             'student_email' => $a->user->email,
         ])->values();
 
+        $wsPrefix = $workspacePrefix ?? strtolower($office);
+
         $totalAppointments = $appointments->total();
         $pendingCount = $appointments->where('status', 'pending')->count();
         $confirmedCount = $appointments->where('status', 'confirmed')->count();
@@ -100,6 +102,23 @@
                 </div>
 
             </div>
+
+
+            @if (session('status'))
+
+                <div class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+                    {{ session('status') }}
+                </div>
+
+            @endif
+
+            @if (session('error'))
+
+                <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+                    {{ session('error') }}
+                </div>
+
+            @endif
 
 
             {{-- ================================================= --}}
@@ -762,6 +781,42 @@
                         <div class="mt-7 flex flex-col gap-3 sm:flex-row">
 
 
+                            {{-- APPROVE --}}
+                            <form
+                                x-show="selected.status === 'pending' || selected.status === 'for_reschedule'"
+                                method="POST"
+                                :action="'{{ url($wsPrefix) }}/appointments/' + selected.id + '/confirm'"
+                                class="flex-1"
+                            >
+
+                                @csrf
+
+                                <button
+                                    type="submit"
+                                    class="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-green-700"
+                                >
+
+                                    <svg
+                                        class="h-5 w-5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M5 13l4 4L19 7"
+                                        />
+                                    </svg>
+
+                                    Approve
+
+                                </button>
+
+                            </form>
+
+
                             {{-- RESCHEDULE --}}
                             <button
                                 x-show="selected.status === 'pending' || selected.status === 'confirmed'"
@@ -1010,7 +1065,7 @@
 
                     try {
                         const res = await fetch(
-                            '{{ route(strtolower($office) . ".appointments.slots") }}?office=' +
+                            '{{ route($wsPrefix . ".appointments.slots") }}?office=' +
                             encodeURIComponent(this.selected.office || '{{ auth()->user()->officeScope() }}') +
                             '&date=' + this.rescheduleDate +
                             '&ignore_id=' + this.selected.id,
@@ -1038,7 +1093,7 @@
                     this.rescheduleError = '';
 
                     try {
-                        const res = await fetch('{{ url(strtolower($office)) }}/appointments/' + this.selected.id + '/reschedule', {
+                        const res = await fetch('{{ url($wsPrefix) }}/appointments/' + this.selected.id + '/reschedule', {
                             method: 'PUT',
                             headers: {
                                 'Content-Type': 'application/json',

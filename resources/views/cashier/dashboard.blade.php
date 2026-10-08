@@ -26,6 +26,11 @@
                     <p class="mt-1 text-xs text-gray-400">{{ $todayPayments }} payment{{ $todayPayments === 1 ? '' : 's' }} recorded</p>
                 </div>
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <p class="text-xs font-bold uppercase tracking-wide text-gray-400">This Month's Collections</p>
+                    <p class="mt-1 text-2xl font-extrabold text-blue-700">₱{{ number_format($monthCollections, 2) }}</p>
+                    <p class="mt-1 text-xs text-gray-400">{{ $monthPayments }} payment{{ $monthPayments === 1 ? '' : 's' }} this month</p>
+                </div>
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Pending Payments</p>
                     <p class="mt-1 text-2xl font-extrabold text-yellow-600">{{ $pendingPayments }}</p>
                     <p class="mt-1 text-xs text-gray-400">Awaiting cashier recording</p>
@@ -35,15 +40,10 @@
                     <p class="mt-1 text-2xl font-extrabold text-blue-800">{{ $readyForPickup }}</p>
                     <p class="mt-1 text-xs text-gray-400">Documents awaiting claiming</p>
                 </div>
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                    <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Active Document Services</p>
-                    <p class="mt-1 text-2xl font-extrabold text-gray-900">{{ $activeServices }}</p>
-                    <p class="mt-1 text-xs text-gray-400">Fees managed in settings</p>
-                </div>
             </div>
 
             {{-- Quick Actions --}}
-            <div class="mt-8 grid sm:grid-cols-3 gap-4">
+            <div class="mt-8 grid sm:grid-cols-4 gap-4">
                 <a href="{{ route('cashier.payments.pending') }}"
                    class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-blue-300 hover:shadow-md transition">
                     <p class="text-lg">💳</p>
@@ -62,7 +62,14 @@
                     <p class="mt-2 font-bold text-gray-900 text-sm">Student Ledger</p>
                     <p class="mt-1 text-xs text-gray-400">Search financial records</p>
                 </a>
+                <a href="{{ route('profile.edit') }}"
+                   class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-blue-300 hover:shadow-md transition">
+                    <p class="text-lg">⚙️</p>
+                    <p class="mt-2 font-bold text-gray-900 text-sm">Profile Settings</p>
+                    <p class="mt-1 text-xs text-gray-400">Update your account info</p>
+                </a>
             </div>
+
 
         </div>
     </div>

@@ -18,17 +18,59 @@ enum Office: string
 
     /**
      * Options formatted for HTML select inputs.
+     *
+     * The enum's built-in offices come first; any self-registered office
+     * whose account was approved by an admin is merged in after them, so a
+     * new office becomes bookable the moment it is accepted — no deploy
+     * needed. Validation rules built from toSelectKeys() accept them too.
      */
     public static function toSelect(): array
     {
-        return collect(self::cases())
-            ->mapWithKeys(fn (self $office) => [$office->value => $office->value])
-            ->all();
+        $options = collect(self::cases())
+            ->mapWithKeys(fn (self $office) => [$office->value => $office->value]);
+
+        foreach (self::registeredOffices() as $name) {
+            $options->put($name, $name);
+        }
+
+        return $options->all();
     }
 
     public static function toSelectKeys(): array
     {
         return array_keys(self::toSelect());
+    }
+
+    /**
+     * Names of self-registered offices with an approved, active account.
+     * Resolved once per request; falls back to the enum alone when the
+     * database is not reachable (migrations, early console boot).
+     *
+     * @return list<string>
+     */
+    private static function registeredOffices(): array
+    {
+        static $cache = null;
+
+        if ($cache !== null) {
+            return $cache;
+        }
+
+        try {
+            $cache = \App\Models\User::query()
+                ->where('role', \App\Models\User::ROLE_OFFICE)
+                ->where('approval_status', \App\Models\User::APPROVAL_APPROVED)
+                ->where('is_active', true)
+                ->whereNotNull('office')
+                ->distinct()
+                ->orderBy('office')
+                ->pluck('office')
+                ->all();
+        } catch (\Throwable) {
+            $cache = [];
+        }
+
+        return $cache;
     }
 
     /**

@@ -28,7 +28,7 @@ class OsasController extends Controller
     {
         return view('Offices.OSAS.availability', [
             'office' => 'OSAS',
-            'timeSlots' => \App\Models\Appointment::TIME_SLOTS,
+            'timeSlots' => \App\Support\TimeSlots::forOffice('OSAS'),
         ]);
     }
 

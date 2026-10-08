@@ -115,6 +115,12 @@
 
 
             {{-- =====================================================
+                OFFICE HOURS (drives the slot list below)
+            =====================================================
+            --}}
+            <x-office-hours />
+
+            {{-- =====================================================
                 MAIN GRID
             ====================================================== --}}
             <div class="grid grid-cols-1
@@ -501,7 +507,7 @@
                                     min="0"
                                     max="{{ count($timeSlots) }}"
                                     x-model.number="slotCount"
-                                    @change="applySlotCount()"
+                                    @input="applySlotCount()"
                                     class="w-16
                                            h-9
                                            rounded-lg
@@ -523,6 +529,18 @@
 
                                 </span>
 
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-1.5 mb-4">
+                                <span class="text-[10px] uppercase font-bold text-gray-400 mr-1">Quick:</span>
+                                <button type="button" @click="slotCount = 4; applySlotCount()"
+                                        class="px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700">4 slots</button>
+                                <button type="button" @click="slotCount = 6; applySlotCount()"
+                                        class="px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700">6 slots</button>
+                                <button type="button" @click="slotCount = 8; applySlotCount()"
+                                        class="px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700">8 slots</button>
+                                <button type="button" @click="slotCount = timeSlots.length; applySlotCount()"
+                                        class="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100">All (<span x-text="timeSlots.length"></span> slots)</button>
                             </div>
 
 
@@ -1176,11 +1194,11 @@
 
                 date: '',
 
-                availabilityType: 'closed',
+                availabilityType: 'open',
 
-                selectedSlots: [],
+                selectedSlots: [...@json($timeSlots)],
 
-                slotCount: 8,
+                slotCount: {{ count($timeSlots) }},
 
                 schedule: @json($schedule),
 

@@ -28,7 +28,7 @@ class AccountingController extends Controller
     {
         return view('Offices.Accounting.availability', [
             'office' => 'Accounting',
-            'timeSlots' => \App\Models\Appointment::TIME_SLOTS,
+            'timeSlots' => \App\Support\TimeSlots::forOffice('Accounting'),
         ]);
     }
 

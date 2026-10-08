@@ -501,7 +501,7 @@
             {{-- =========================================================
                 ACTIONS
             ========================================================== --}}
-            @if ($appointment->isUpcoming())
+            @if ($appointment->isModifiableByStudent())
 
                 <div class="mt-6 flex flex-col sm:flex-row gap-3">
 
@@ -528,7 +528,7 @@
                     </a>
 
 
-                    @if ($appointment->isCancellable())
+                    @if ($appointment->isModifiableByStudent())
 
                         <form method="POST"
                               action="{{ route('student.appointments.cancel', $appointment) }}">

@@ -7,6 +7,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,6 +25,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Generated links (verification emails, notifications) must use the
+        // configured app.url instead of whatever host the browser happened
+        // to use — a "127.0.0.1" link opened on a phone points at the phone
+        // itself, not this server.
+        URL::forceRootUrl(config('app.url'));
+
         RateLimiter::for('auth', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
 
         $this->registerBrevoTransport();

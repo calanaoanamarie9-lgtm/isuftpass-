@@ -27,6 +27,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public const ROLE_DEPARTMENT = 'department';
 
+    public const ROLE_OFFICE = 'office';
+
     /**
      * Approval states for accounts created through the office / staff
      * self-registration form. Everything else defaults to APPROVED so the

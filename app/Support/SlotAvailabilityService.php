@@ -154,7 +154,7 @@ class SlotAvailabilityService
      */
     public function availableSlots(string $office, Carbon|string $date, ?int $ignoreId = null): array
     {
-        return collect(Appointment::TIME_SLOTS)->map(function (string $slot) use ($office, $date, $ignoreId) {
+        return collect(TimeSlots::forOffice($office))->map(function (string $slot) use ($office, $date, $ignoreId) {
             $check = $this->checkForOffice($office, $date, $slot, $ignoreId);
 
             return [
@@ -225,7 +225,7 @@ class SlotAvailabilityService
             $open = 0;
             $blocked = false;
 
-            foreach (Appointment::TIME_SLOTS as $slot) {
+            foreach (TimeSlots::forOffice($office) as $slot) {
                 $rule = ($rules->get($dateStr) ?? collect())->firstWhere('time_slot', $slot)
                     ?? ($rules->get('__default__') ?? collect())->firstWhere('time_slot', $slot);
 

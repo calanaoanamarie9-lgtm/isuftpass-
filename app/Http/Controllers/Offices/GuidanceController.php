@@ -28,7 +28,7 @@ class GuidanceController extends Controller
     {
         return view('Offices.Guidance.availability', [
             'office' => 'Guidance',
-            'timeSlots' => \App\Models\Appointment::TIME_SLOTS,
+            'timeSlots' => \App\Support\TimeSlots::forOffice('Guidance'),
         ]);
     }
 

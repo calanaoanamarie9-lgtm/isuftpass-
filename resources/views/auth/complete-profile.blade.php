@@ -69,7 +69,7 @@
                             </p>
 
                             <p class="text-blue-200 text-sm">
-                                Iloilo State University
+                                Iloilo State University of Fisheries Science and Technology
                             </p>
                         </div>
 

@@ -17,20 +17,6 @@ use Illuminate\View\View;
  */
 class ConsultationServiceController extends Controller
 {
-    /**
-     * The offices / departments that own a consultation service list.
-     */
-    private const MANAGED = [
-        'CICI',
-        'CBMSD',
-        'COAG',
-        'COED',
-        'OSAS',
-        'Accounting',
-        'Library',
-        'Guidance',
-    ];
-
     public function create(): View
     {
         return view('consultations.form', [
@@ -99,29 +85,32 @@ class ConsultationServiceController extends Controller
 
     private function office(): string
     {
-        $office = auth()->user()->officeScope();
-
-        abort_unless(
-            in_array($office, self::MANAGED, true),
-            403,
-            'This account does not manage consultation services.',
-        );
-
-        return $office;
+        // Any staff account manages its own office's services — including
+        // self-registered offices, whose names have no enum case and no
+        // place in a hardcoded whitelist. Ownership checks below keep one
+        // office out of another office's rows.
+        return auth()->user()->officeScope();
     }
 
     /**
-     * Route name prefix shared with the office / department route groups.
+     * Route name prefix of the group the request came in on — derived from
+     * the route name, not the office name, because a self-registered office
+     * (e.g. "Clinic") has no route group of its own and works from the
+     * shared 'workspace.' group instead.
      */
     private function prefix(): string
     {
-        return strtolower($this->office());
+        return (string) preg_replace(
+            '/\.consultations(\..*)?$/',
+            '',
+            (string) request()->route()?->getName()
+        );
     }
 
     private function authorizeOwnership(ConsultationService $consultationService): void
     {
         abort_unless(
-            $consultationService->office?->value === $this->office(),
+            $consultationService->office === $this->office(),
             403,
             'This consultation service belongs to another office.',
         );

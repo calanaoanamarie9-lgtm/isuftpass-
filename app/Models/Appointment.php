@@ -12,11 +12,17 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Appointment extends Model
 {
+    /**
+     * The default day, used only when an office has no hours saved yet.
+     * Live slot lists come from App\Support\TimeSlots::forOffice(), which
+     * builds hourly slots from the office's own opening and closing time.
+     */
     public const TIME_SLOTS = [
         '08:00 AM - 09:00 AM',
         '09:00 AM - 10:00 AM',
         '10:00 AM - 11:00 AM',
         '11:00 AM - 12:00 PM',
+        '12:00 PM - 01:00 PM',
         '01:00 PM - 02:00 PM',
         '02:00 PM - 03:00 PM',
         '03:00 PM - 04:00 PM',
@@ -116,6 +122,18 @@ class Appointment extends Model
     public function isReschedulable(): bool
     {
         return $this->isUpcoming() && $this->date > Carbon::today();
+    }
+
+    /**
+     * True while the office has not approved the appointment yet — the
+     * student may still edit or cancel it on their own.
+     */
+    public function isModifiableByStudent(): bool
+    {
+        return in_array($this->status, [
+            AppointmentStatus::PENDING->value,
+            AppointmentStatus::FOR_RESCHEDULE->value,
+        ], true);
     }
 
     public function scopeUpcoming(Builder $query): Builder

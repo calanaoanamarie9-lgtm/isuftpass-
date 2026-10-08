@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Appointment;
 use App\Models\Office;
 use App\Models\SlotAvailability;
 use App\Support\AuditLogger;
 use App\Support\SlotAvailabilityService;
+use App\Support\TimeSlots;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -28,7 +28,7 @@ class SlotCapacityController extends Controller
         if ($office) {
             $withOffice = true;
 
-            foreach (Appointment::TIME_SLOTS as $slot) {
+            foreach (TimeSlots::forOffice($office->name) as $slot) {
                 $check = $service->checkForOffice($office->name, $date, $slot);
 
                 $rows[] = [
@@ -50,7 +50,7 @@ class SlotCapacityController extends Controller
             'date' => $date,
             'rows' => $rows,
             'withOffice' => $withOffice,
-            'timeSlots' => Appointment::TIME_SLOTS,
+            'timeSlots' => TimeSlots::forOffice($office?->name),
         ]);
     }
 
@@ -59,10 +59,15 @@ class SlotCapacityController extends Controller
      */
     public function store(Request $request, SlotAvailabilityService $service): RedirectResponse
     {
-        $data = $request->validate([
+        // The office decides which slots exist, so it has to be resolved
+        // before a time slot can be checked against anything.
+        $office = Office::findOrFail($request->validate([
             'office_id' => ['required', 'exists:offices,id'],
+        ])['office_id']);
+
+        $data = $request->validate([
             'date' => ['nullable', 'date'],
-            'time_slot' => ['required', Rule::in(Appointment::TIME_SLOTS)],
+            'time_slot' => ['required', Rule::in(TimeSlots::forOffice($office->name))],
             'max_capacity' => ['required', 'integer', 'min:0', 'max:999'],
             'status' => ['required', Rule::in([
                 SlotAvailability::STATUS_AVAILABLE,
@@ -70,7 +75,6 @@ class SlotCapacityController extends Controller
             ])],
         ]);
 
-        $office = Office::findOrFail($data['office_id']);
         $date = $request->boolean('apply_to_all_dates') ? null : ($data['date'] ?: null);
 
         $rule = SlotAvailability::updateOrCreate(

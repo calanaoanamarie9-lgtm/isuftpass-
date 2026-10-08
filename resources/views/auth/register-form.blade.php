@@ -60,7 +60,7 @@
                             </p>
 
                             <p class="text-blue-200 text-sm">
-                                Iloilo State University
+                                Iloilo State University of Fisheries Science and Technology
                             </p>
                         </div>
 
@@ -799,6 +799,7 @@
 
                                 <button
                                     type="button"
+                                    data-no-confirm
                                     id="toggle-password"
                                     onclick="togglePassword('toggle-password', 'password')"
                                     aria-label="Show or hide password"
@@ -870,6 +871,7 @@
 
                                 <button
                                     type="button"
+                                    data-no-confirm
                                     id="toggle-password-confirm"
                                     onclick="togglePassword('toggle-password-confirm', 'password_confirmation')"
                                     aria-label="Show or hide password"

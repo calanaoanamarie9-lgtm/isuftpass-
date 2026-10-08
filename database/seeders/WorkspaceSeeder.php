@@ -105,7 +105,6 @@ class WorkspaceSeeder extends Seeder
             'Schedule adjustment',
         ];
 
-        $slots = Appointment::TIME_SLOTS;
         $created = 0;
         $studentIndex = 0;
 
@@ -115,6 +114,9 @@ class WorkspaceSeeder extends Seeder
             if ($shortfall <= 0) {
                 continue;
             }
+
+            // Demo bookings must land in slots that office actually offers.
+            $slots = \App\Support\TimeSlots::forOffice($office);
 
             for ($i = 0; $i < $shortfall; $i++) {
                 $student = $students[$studentIndex++ % $students->count()];

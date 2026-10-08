@@ -226,19 +226,27 @@ Route::get('/dashboard', function () {
         default => 'student.dashboard',
     };
 
+    // Self-registered offices (role 'office') get their own generic
+    // workspace — appointments only, no document requests.
+    if ($user->role === 'office') {
+        return redirect()->route('workspace.dashboard');
+    }
+
     if (in_array($user->role, ['department', 'osas', 'accounting', 'library', 'guidance'], true)) {
         // Office is typed at registration, not picked, so match it the way the
         // sidebar already does - case must not decide which workspace a
-        // staff account lands in.
+        // staff account lands in. A legacy department account whose office is
+        // none of the eight built-ins falls through to the generic workspace.
         $dept = match (strtoupper($user->office ?? '')) {
             'OSAS' => 'osas',
             'ACCOUNTING' => 'accounting',
             'LIBRARY' => 'library',
             'GUIDANCE' => 'guidance',
+            'CICI' => 'cici',
             'CBMSD' => 'cbmsd',
             'COAG' => 'coag',
             'COED' => 'coed',
-            default => 'cici',
+            default => 'workspace',
         };
         return redirect()->route($dept . '.dashboard');
     }
@@ -250,11 +258,19 @@ Route::get('/dashboard', function () {
                 ->get()
                 ->sum(fn (DocumentRequest $d) => $d->documents->sum('fee')),
             'todayPayments' => DocumentRequest::query()->whereDate('paid_at', today())->count(),
+            'monthCollections' => (float) DocumentRequest::query()
+                ->whereMonth('paid_at', now()->month)
+                ->whereYear('paid_at', now()->year)
+                ->get()
+                ->sum(fn (DocumentRequest $d) => $d->documents->sum('fee')),
+            'monthPayments' => DocumentRequest::query()
+                ->whereMonth('paid_at', now()->month)
+                ->whereYear('paid_at', now()->year)
+                ->count(),
             'pendingPayments' => DocumentRequest::query()->active()->unpaid()->count(),
             'readyForPickup' => DocumentRequest::query()
                 ->where('status', 'ready_for_pickup')
                 ->count(),
-            'activeServices' => \App\Models\Document::query()->active()->count(),
         ]);
     }
 
@@ -329,6 +345,7 @@ Route::middleware(['auth', 'verified', 'role:registrar,department'])->prefix('re
     Route::get('/availability/settings/{date}', [AvailabilityController::class, 'settings'])
         ->where('date', '[0-9]{4}-[0-9]{2}-[0-9]{2}')->name('availability.settings');
     Route::post('/availability/save', [AvailabilityController::class, 'save'])->name('availability.save');
+    Route::post('/availability/hours', [AvailabilityController::class, 'saveHours'])->name('availability.hours');
     Route::get('/availability', [AvailabilityController::class, 'index'])->name('availability.index');
 
     // Appointments Management (slot availability checker + rescheduling)
@@ -451,6 +468,11 @@ $workspaceRoutes = function (): void {
     Route::post('/availability/save', [\App\Http\Controllers\Registrar\AvailabilityController::class, 'save'])
         ->name('availability.save');
 
+    // The office's own opening and closing time — the slot list of the whole
+    // system is built from these two values.
+    Route::post('/availability/hours', [\App\Http\Controllers\Registrar\AvailabilityController::class, 'saveHours'])
+        ->name('availability.hours');
+
     Route::get('/availability/schedule', [\App\Http\Controllers\Registrar\AvailabilityController::class, 'schedule'])
         ->name('availability.schedule');
 
@@ -463,6 +485,10 @@ $workspaceRoutes = function (): void {
 
     Route::put('/appointments/{appointment}/reschedule', [\App\Http\Controllers\Registrar\AppointmentController::class, 'updateReschedule'])
         ->name('appointments.reschedule.update');
+
+    // Approve (confirm) a pending / for-reschedule appointment of this office.
+    Route::post('/appointments/{appointment}/confirm', [\App\Http\Controllers\Registrar\AppointmentController::class, 'confirm'])
+        ->name('appointments.confirm');
 };
 
 Route::middleware(['auth', 'verified', 'role:department'])->prefix('cici')->name('cici.')->group(function () use ($workspaceRoutes) {
@@ -561,6 +587,28 @@ Route::middleware(['auth', 'verified', 'role:department,guidance'])->prefix('gui
     $workspaceRoutes();
 });
 
+/*
+|--------------------------------------------------------------------------
+| Generic office workspace (self-registered offices)
+|--------------------------------------------------------------------------
+| An office account whose typed office name is none of the eight built-in
+| workspaces lands here after admin approval + email verification: the same
+| dashboard, appointments, availability, QR check-in and consultation
+| tooling the named offices get — appointments only, no document requests.
+| Everything is scoped server-side to auth()->user()->officeScope().
+*/
+Route::middleware(['auth', 'verified', 'role:department,office'])->prefix('workspace')->name('workspace.')->group(function () use ($workspaceRoutes) {
+    Route::get('/', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'dashboard'])->name('dashboard');
+    Route::get('/appointments', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'appointments'])->name('appointments');
+    Route::get('/availability', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'availability'])->name('availability');
+    Route::get('/qr', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'qrScanner'])->name('qr.index');
+    Route::get('/consultations', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'consultations'])->name('consultations');
+    Route::get('/profile', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'profile'])->name('profile');
+    Route::get('/help', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'help'])->name('help');
+
+    $workspaceRoutes();
+});
+
 // Consultation services — every office / department manages only its own rows.
 // Ownership is resolved server-side from auth()->user()->office, never from the
 // URL, so the route prefix is just a namespace here.
@@ -573,6 +621,7 @@ foreach ([
     'accounting' => 'department,accounting',
     'library' => 'department,library',
     'guidance' => 'department,guidance',
+    'workspace' => 'department,office',
 ] as $consultationPrefix => $consultationRoles) {
     Route::middleware(['auth', 'verified', 'role:' . $consultationRoles])
         ->prefix($consultationPrefix)

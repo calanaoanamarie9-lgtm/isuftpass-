@@ -74,7 +74,7 @@
                                 </p>
 
                                 <p class="text-blue-200 text-sm mt-0.5">
-                                    Iloilo State University
+                                    Iloilo State University of Fisheries Science and Technology
                                 </p>
 
                                 <div class="flex items-center gap-2 mt-2">

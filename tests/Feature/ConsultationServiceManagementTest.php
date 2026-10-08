@@ -51,7 +51,7 @@ class ConsultationServiceManagementTest extends TestCase
         $service = ConsultationService::firstWhere('name', 'Career Coaching');
 
         $this->assertNotNull($service);
-        $this->assertSame('Guidance', $service->office->value);
+        $this->assertSame('Guidance', $service->office);
         $this->assertTrue($service->is_active);
     }
 
@@ -66,7 +66,7 @@ class ConsultationServiceManagementTest extends TestCase
         $service = ConsultationService::firstWhere('name', 'Capstone Advising');
 
         $this->assertNotNull($service);
-        $this->assertSame('CBMSD', $service->office->value);
+        $this->assertSame('CBMSD', $service->office);
     }
 
     public function test_staff_can_update_their_own_service(): void

@@ -20,7 +20,7 @@ class ConsultationCatalogController extends Controller
             ->active()
             ->ordered()
             ->get()
-            ->groupBy(fn (ConsultationService $service) => $service->office?->value)
+            ->groupBy(fn (ConsultationService $service) => $service->office)
             ->filter()
             ->sortKeys();
 

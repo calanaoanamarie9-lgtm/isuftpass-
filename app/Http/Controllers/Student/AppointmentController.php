@@ -11,6 +11,7 @@ use App\Notifications\AppointmentBookedNotification;
 use App\Notifications\AppointmentCancelledNotification;
 use App\Support\SafeMailer;
 use App\Support\SlotAvailabilityService;
+use App\Support\TimeSlots;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -114,7 +115,6 @@ class AppointmentController extends Controller
     {
         return view('student.appointments.create', [
             'offices' => Office::toSelect(),
-            'timeSlots' => Appointment::TIME_SLOTS,
             'slotLimits' => Appointment::SLOT_LIMITS,
 
             // Pre-filled when the student arrived from the consultation
@@ -156,7 +156,7 @@ class AppointmentController extends Controller
             'office' => ['required', 'in:' . implode(',', Office::toSelectKeys())],
             'purpose' => ['required', 'string', 'max:255'],
             'date' => ['required', 'date', 'after_or_equal:today'],
-            'time_slot' => ['required', 'in:' . implode(',', Appointment::TIME_SLOTS)],
+            'time_slot' => ['required', 'in:' . implode(',', TimeSlots::forOffice($request->input('office')))],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -200,8 +200,8 @@ class AppointmentController extends Controller
     {
         Gate::authorize('update', $appointment);
 
-        if (! $appointment->isCancellable()) {
-            return back()->with('error', 'This appointment can no longer be cancelled.');
+        if (! $appointment->isModifiableByStudent()) {
+            return back()->with('error', 'This appointment can no longer be cancelled once the office has approved it.');
         }
 
         $appointment->update([
@@ -227,7 +227,7 @@ class AppointmentController extends Controller
 
         $data = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today'],
-            'time_slot' => ['required', 'in:' . implode(',', Appointment::TIME_SLOTS)],
+            'time_slot' => ['required', 'in:' . implode(',', TimeSlots::forOffice($appointment->office))],
         ]);
 
         $this->ensureSlotAvailable($appointment->office, $data['date'], $data['time_slot'], $appointment->id);
@@ -256,14 +256,13 @@ class AppointmentController extends Controller
     {
         Gate::authorize('update', $appointment);
 
-        if (! $appointment->isUpcoming()) {
-            abort(403, 'Only upcoming appointments can be edited.');
+        if (! $appointment->isModifiableByStudent()) {
+            abort(403, 'This appointment can no longer be edited once the office has approved it.');
         }
 
         return view('student.appointments.create', [
             'appointment' => $appointment,
             'offices' => Office::toSelect(),
-            'timeSlots' => Appointment::TIME_SLOTS,
             'slotLimits' => Appointment::SLOT_LIMITS,
         ]);
     }
@@ -275,15 +274,15 @@ class AppointmentController extends Controller
     {
         Gate::authorize('update', $appointment);
 
-        if (! $appointment->isUpcoming()) {
-            return back()->with('error', 'This appointment can no longer be edited.');
+        if (! $appointment->isModifiableByStudent()) {
+            return back()->with('error', 'This appointment can no longer be edited once the office has approved it.');
         }
 
         $data = $request->validate([
             'office' => ['required', 'in:' . implode(',', Office::toSelectKeys())],
             'purpose' => ['required', 'string', 'max:255'],
             'date' => ['required', 'date', 'after_or_equal:today'],
-            'time_slot' => ['required', 'in:' . implode(',', Appointment::TIME_SLOTS)],
+            'time_slot' => ['required', 'in:' . implode(',', TimeSlots::forOffice($request->input('office')))],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 

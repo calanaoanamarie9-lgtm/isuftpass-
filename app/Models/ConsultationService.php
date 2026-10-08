@@ -25,7 +25,8 @@ class ConsultationService extends Model
     protected function casts(): array
     {
         return [
-            'office' => Office::class,
+            // 'office' stays a plain string: self-registered offices exist
+            // as user-typed names that have no App\Enums\Office case yet.
             'is_active' => 'boolean',
             'sort_order' => 'integer',
         ];
@@ -56,6 +57,6 @@ class ConsultationService extends Model
      */
     public function summary(): string
     {
-        return $this->description ?: 'Consultation with the ' . $this->office?->value . ' office.';
+        return $this->description ?: 'Consultation with the ' . $this->office . ' office.';
     }
 }

@@ -101,14 +101,12 @@
 
             @endif
 
-
             {{-- ================= INSTRUCTIONAL BANNER ================= --}}
             @if (session('instructions') && ($instructionsRequest = \App\Models\DocumentRequest::find(session('instructions'))))
 
                 @include('student.documents._instructions', ['request' => $instructionsRequest])
 
             @endif
-
 
             {{-- ================= TABS ================= --}}
             <div class="bg-white border border-gray-200
@@ -130,6 +128,13 @@
                         {{ $label }}
 
                     </a>
+
+                                    
+                                    
+
+
+                                    
+                                    
 
                 @endforeach
 
@@ -204,6 +209,8 @@
 
                                             @endif
 
+                                            
+
                                         </h2>
 
 
@@ -233,6 +240,13 @@
                                     </div>
 
                                 </a>
+
+                                    
+                                    
+
+
+                                    
+                                    
 
 
                                 {{-- ================= ACTIONS ================= --}}
@@ -311,36 +325,6 @@
 
                                     @endif
 
-
-                                    {{-- REQUISITION --}}
-                                    <a href="{{ route('student.documents.requisition', $request) }}"
-                                       class="inline-flex items-center gap-2
-                                              px-3.5 py-2
-                                              rounded-lg
-                                              border border-blue-200
-                                              bg-white
-                                              text-blue-800
-                                              text-xs font-bold
-                                              hover:bg-blue-50
-                                              transition">
-
-                                        <svg class="w-4 h-4"
-                                             fill="none"
-                                             stroke="currentColor"
-                                             viewBox="0 0 24 24">
-
-                                            <path stroke-linecap="round"
-                                                  stroke-linejoin="round"
-                                                  stroke-width="2"
-                                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A2 2 0 0119 6.707V19a2 2 0 01-2 2z"/>
-
-                                        </svg>
-
-                                        Requisition Form
-
-                                    </a>
-
-
                                     {{-- VIEW DETAILS --}}
                                     <a href="{{ route('student.documents.show', $request) }}"
                                        class="inline-flex items-center gap-1
@@ -365,6 +349,34 @@
                                                   d="M9 5l7 7-7 7"/>
 
                                         </svg>
+
+                                    </a>
+
+                                    {{-- REQUISITION FORM --}}
+                                    <a href="{{ route('student.documents.requisition', $request) }}"
+                                       class="inline-flex items-center gap-2
+                                              px-3.5 py-2
+                                              rounded-lg
+                                              border border-blue-200
+                                              bg-white
+                                              text-blue-800
+                                              text-xs font-bold
+                                              hover:bg-blue-50
+                                              transition">
+
+                                        <svg class="w-4 h-4"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             viewBox="0 0 24 24">
+
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  stroke-width="2"
+                                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A2 2 0 0119 6.707V19a2 2 0 01-2 2z"/>
+
+                                        </svg>
+
+                                        Requisition Form
 
                                     </a>
 
@@ -444,6 +456,13 @@
 
                         </a>
 
+                                    
+                                    
+
+
+                                    
+                                    
+
                     </div>
 
                 @endforelse
@@ -459,7 +478,6 @@
                 </div>
 
             @endif
-
 
             {{-- ================= FOOTER NOTE ================= --}}
             <div class="mt-6 flex items-center justify-center gap-2">

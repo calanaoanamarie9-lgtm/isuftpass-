@@ -65,7 +65,9 @@ class OfficeRegistrationApprovalTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'email' => 'librarian@isufst.edu.ph',
-            'role' => User::ROLE_DEPARTMENT,
+            // Self-registered offices get their own role, so they land in
+            // the generic workspace instead of a built-in department's.
+            'role' => User::ROLE_OFFICE,
             'office' => 'Library',
             'position' => 'Librarian II',
             'contact_number' => '09171234567',

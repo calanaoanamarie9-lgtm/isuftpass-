@@ -15,6 +15,8 @@ class Office extends Model
         'description',
         'is_active',
         'default_slot_capacity',
+        'open_time',
+        'close_time',
     ];
 
     protected function casts(): array

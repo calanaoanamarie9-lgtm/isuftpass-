@@ -1,4 +1,4 @@
-﻿@php
+@php
     $user = Auth::user();
     $role = $user->roleRule();
 
@@ -9,6 +9,7 @@
         $role === 'admin' => 'Administrator',
         $role === 'registrar' => ($user->office ?? null) ? $user->office . ' Profile' : 'Registrar Profile',
         $role === 'department' => ($user->office ?? null) ? $user->office . ' Department' : 'Department Profile',
+        $role === 'office' => ($user->office ?? null) ? $user->office . ' Office' : 'Office Profile',
         $role === 'osas' => 'OSAS Office',
         $role === 'accounting' => 'Accounting Office',
         $role === 'library' => 'Library Office',
@@ -17,11 +18,15 @@
         default => 'Student Profile',
     };
 
-    $dept = match (strtoupper($user->office ?? '')) {
-        'CBMSD' => 'cbmsd',
-        'COAG' => 'coag',
-        'COED' => 'coed',
-        default => 'cici',
+    // Self-registered offices (role 'office') and any department-role account
+    // whose office is not one of the four colleges use the generic workspace.
+    $dept = match (true) {
+        $role === 'office' => 'workspace',
+        strtoupper($user->office ?? '') === 'CBMSD' => 'cbmsd',
+        strtoupper($user->office ?? '') === 'COAG' => 'coag',
+        strtoupper($user->office ?? '') === 'COED' => 'coed',
+        strtoupper($user->office ?? '') === 'CICI' => 'cici',
+        default => 'workspace',
     };
 
     /*
@@ -620,9 +625,9 @@
 
 
         {{-- =====================================================
-            DEPARTMENT
+            DEPARTMENT / OFFICE WORKSPACE
         ====================================================== --}}
-        @if ($role === 'department')
+        @if (in_array($role, ['department', 'office'], true))
 
             <div>
                 <p class="{{ $sectionClass }}">Main Menu</p>
@@ -732,6 +737,22 @@
                        class="{{ $navClass }}">
                         <span>🔍</span>
                         <span>Student Ledger</span>
+                    </a>
+
+                </div>
+            </div>
+
+
+            <div>
+                <p class="{{ $sectionClass }}">Account &amp; Support</p>
+
+                <div class="space-y-1">
+
+                    <a href="{{ route('profile.edit') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+                        <span>⚙️</span>
+                        <span>Profile Settings</span>
                     </a>
 
                 </div>
