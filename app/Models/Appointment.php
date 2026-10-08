@@ -30,6 +30,16 @@ class Appointment extends Model
     ];
 
     /**
+     * How many of a day's appointments are the day's slots.
+     *
+     * A day holds this many people and stops there; anyone past it still
+     * books (booking is never turned away) but is marked as coming after
+     * the day's first fill rather than taking one of it. The registrar's
+     * approval, not the clock, is what lets a day run past this number.
+     */
+    public const SLOTS_PER_DAY = 10;
+
+    /**
      * Maximum concurrent bookings per time slot, configurable per office.
      */
     public const SLOT_LIMITS = [

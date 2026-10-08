@@ -370,73 +370,17 @@
                                 </label>
 
 
-                                {{-- SPECIFIC SLOTS --}}
-                                <label
-                                    class="flex cursor-pointer
-                                           items-center
-                                           gap-3
-                                           rounded-xl
-                                           border
-                                           px-4 py-3
-                                           transition"
-                                    :class="availabilityType === 'slots'
-                                        ? 'border-blue-300 bg-blue-50'
-                                        : 'border-gray-100 bg-gray-50 hover:border-blue-200'"
-                                >
-
-                                    <input
-                                        type="radio"
-                                        name="availability_type"
-                                        value="slots"
-                                        x-model="availabilityType"
-                                        class="h-5 w-5
-                                               border-gray-300
-                                               text-blue-600
-                                               focus:ring-blue-500"
-                                    >
-
-                                    <div class="flex-1">
-
-                                        <p class="text-sm
-                                                  font-bold
-                                                  text-gray-800">
-
-                                            Specific Time Slots
-
-                                        </p>
-
-                                        <p class="text-[11px]
-                                                  text-gray-400">
-
-                                            Choose individual appointment slots.
-
-                                        </p>
-
-                                    </div>
-
-                                    <span
-                                        x-show="availabilityType === 'slots'"
-                                        class="text-[9px]
-                                               font-extrabold
-                                               uppercase
-                                               text-blue-600">
-
-                                        Selected
-
-                                    </span>
-
-                                </label>
-
                             </div>
 
                         </div>
 
 
                         {{-- =================================================
-                            SPECIFIC SLOTS
+                            APPOINTMENTS
+                            Always shown: the registrar reads how full a
+                            day is whatever the day is set to.
                         ================================================== --}}
                         <div
-                            x-show="availabilityType === 'slots'"
                             x-transition
                             class="mt-6
                                    rounded-2xl
@@ -455,7 +399,7 @@
                                               font-extrabold
                                               text-blue-950">
 
-                                        Time Slots
+                                        Appointments
 
                                     </p>
 
@@ -463,7 +407,10 @@
                                               text-gray-400
                                               mt-0.5">
 
-                                        Select the slots students can book.
+                                        Numbered as they are booked. The first
+                                        <span x-text="slotsPerDay"></span> fill
+                                        the day; anything past that still books
+                                        and is marked bukas na.
 
                                     </p>
 
@@ -477,104 +424,36 @@
                                              font-bold
                                              text-blue-600">
 
-                                    {{ count($timeSlots) }} Slots
+                                    <span x-text="rosterCount + ' Booked'"></span>
 
                                 </span>
 
                             </div>
 
 
-                            {{-- QUICK SET --}}
-                            <div class="flex items-center
-                                        gap-2
-                                        rounded-xl
-                                        bg-white
-                                        border border-blue-100
-                                        p-3
-                                        mb-4">
-
-                                <span class="text-xs
-                                             font-semibold
-                                             text-gray-500
-                                             flex-1">
-
-                                    Open first
-
-                                </span>
-
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="{{ count($timeSlots) }}"
-                                    x-model.number="slotCount"
-                                    @input="applySlotCount()"
-                                    class="w-16
-                                           h-9
-                                           rounded-lg
-                                           border-gray-200
-                                           bg-gray-50
-                                           text-center
-                                           text-xs
-                                           font-extrabold
-                                           text-blue-950
-                                           focus:border-blue-600
-                                           focus:ring-blue-100"
-                                >
-
-                                <span class="text-xs
-                                             font-semibold
-                                             text-gray-500">
-
-                                    slots
-
-                                </span>
-
-                            </div>
-
-                            <div class="flex flex-wrap items-center gap-1.5 mb-4">
-                                <span class="text-[10px] uppercase font-bold text-gray-400 mr-1">Quick:</span>
-                                <button type="button" @click="slotCount = 4; applySlotCount()"
-                                        class="px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700">4 slots</button>
-                                <button type="button" @click="slotCount = 6; applySlotCount()"
-                                        class="px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700">6 slots</button>
-                                <button type="button" @click="slotCount = 8; applySlotCount()"
-                                        class="px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700">8 slots</button>
-                                <button type="button" @click="slotCount = timeSlots.length; applySlotCount()"
-                                        class="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100">All (<span x-text="timeSlots.length"></span> slots)</button>
-                            </div>
-
-
-                            {{-- SLOT LIST --}}
+                            {{-- APPOINTMENT ROSTER --}}
+                            {{-- The list numbers the day's bookings instead of
+                                 the office's clock hours: the registrar is
+                                 reading how full a day is, not choosing between
+                                 times. The day's slots fill in order and
+                                 anything past them still books — there is no
+                                 limit on how many students may ask — so the
+                                 tail is simply marked as coming after the
+                                 day's first fill. --}}
                             <div class="max-h-64
                                         overflow-y-auto
                                         space-y-2
                                         pr-1">
 
-                                @foreach ($timeSlots as $slot)
+                                <template x-for="n in rosterCount" :key="n">
 
-                                    <label
-                                        class="flex cursor-pointer
-                                               items-center
-                                               gap-3
-                                               rounded-xl
-                                               border
-                                               px-3 py-3
-                                               transition"
-                                        :class="selectedSlots.includes('{{ $slot }}')
-                                            ? 'border-blue-300 bg-blue-100/60'
-                                            : 'border-gray-100 bg-white hover:border-blue-200'"
-                                    >
-
-                                        <input
-                                            type="checkbox"
-                                            value="{{ $slot }}"
-                                            x-model="selectedSlots"
-                                            class="h-4 w-4
-                                                   rounded
-                                                   border-gray-300
-                                                   text-blue-600
-                                                   focus:ring-blue-500"
-                                        >
+                                    <div class="flex items-center
+                                                gap-3
+                                                rounded-xl
+                                                border
+                                                border-gray-100
+                                                bg-white
+                                                px-3 py-3">
 
                                         <span class="inline-flex
                                                      items-center
@@ -586,27 +465,53 @@
                                                      text-gray-600
                                                      text-[11px]
                                                      font-extrabold
-                                                     tabular-nums">
+                                                     tabular-nums"
+                                              x-text="n"></span>
 
-                                            {{ $loop->index + 1 }}
-
+                                        <span class="text-xs
+                                                     font-semibold
+                                                     text-gray-500"
+                                              x-show="n <= slotsPerDay">
+                                            Slot
                                         </span>
 
-                                        <span
-                                            x-show="selectedSlots.includes('{{ $slot }}')"
-                                            class="ml-auto
-                                                   text-[9px]
-                                                   font-extrabold
-                                                   uppercase
-                                                   text-blue-600">
-
-                                            Open
-
+                                        <span class="ml-auto
+                                                     text-[9px]
+                                                     font-extrabold
+                                                     uppercase
+                                                     text-amber-600"
+                                              x-show="n > slotsPerDay">
+                                            Bukas na
                                         </span>
 
-                                    </label>
+                                    </div>
 
-                                @endforeach
+                                </template>
+
+                                <div x-show="rosterCount === 0"
+                                     x-transition
+                                     class="rounded-xl
+                                            border border-dashed
+                                            border-gray-200
+                                            bg-gray-50
+                                            px-3 py-6
+                                            text-center">
+
+                                    <p class="text-xs
+                                              font-semibold
+                                              text-gray-500">
+                                        No appointments on this date yet.
+                                    </p>
+
+                                    <p class="text-[11px]
+                                              text-gray-400
+                                              mt-1">
+                                        Booking is unlimited — the first <span
+                                        x-text="slotsPerDay"></span> fill the
+                                        day, and the rest follow.
+                                    </p>
+
+                                </div>
 
                             </div>
 
@@ -1078,11 +983,32 @@
 
                 selectedSlots: [...@json($timeSlots)],
 
-                slotCount: {{ count($timeSlots) }},
-
                 schedule: @json($schedule),
 
-                timeSlots: @json($timeSlots),
+                /* =====================================================
+                   DAY SIZE
+                   How many of a day's appointments are the day's slots.
+                   This is not read off the office's clock hours — those
+                   decide the buckets students are booked into — it is
+                   how full one day is allowed to get before the rest
+                   are marked as coming after it.
+                ===================================================== */
+                slotsPerDay: @json($slotsPerDay),
+
+                /* =====================================================
+                   ROSTER
+                   How many appointments the selected date already
+                   holds. The list numbers these instead of the office's
+                   clock hours, so its length follows the day rather
+                   than the shape of the working day.
+                ===================================================== */
+                appointmentsByDate: @json($appointmentsByDate),
+
+                get rosterCount() {
+
+                    return parseInt(this.appointmentsByDate[this.date] ?? 0, 10) || 0;
+
+                },
 
                 settingsUrl: '{{ route('registrar.availability.settings', ['date' => ':date']) }}',
 
@@ -1090,43 +1016,18 @@
 
 
                 /* =====================================================
-                   QUICK SLOT COUNT
-                ===================================================== */
-                applySlotCount() {
-
-                    const max = this.timeSlots.length;
-
-                    let n = parseInt(this.slotCount);
-
-                    if (isNaN(n) || n < 0) {
-                        n = 0;
-                    }
-
-                    if (n > max) {
-                        n = max;
-                        this.slotCount = max;
-                    }
-
-                    this.selectedSlots =
-                        this.timeSlots.slice(0, n);
-
-                },
-
-
-                /* =====================================================
                    PREVIEW
                 ===================================================== */
                 openPreview() {
-
-                    if (this.availabilityType === 'open') {
-                        return this.timeSlots.length;
-                    }
 
                     if (this.availabilityType === 'closed') {
                         return 0;
                     }
 
-                    return this.selectedSlots.length;
+                    // How many of the day's slots are still unfilled: a day
+                    // holds slotsPerDay people, the ones already booked have
+                    // taken their place, and the rest of the day is open.
+                    return Math.max(0, this.slotsPerDay - this.rosterCount);
 
                 },
 
@@ -1175,15 +1076,6 @@
 
                         this.selectedSlots =
                             data.slots || [];
-
-                        this.slotCount =
-                            this.availabilityType === 'open'
-                                ? this.timeSlots.length
-                                : (
-                                    this.availabilityType === 'closed'
-                                        ? 0
-                                        : this.selectedSlots.length
-                                );
 
                     })
 

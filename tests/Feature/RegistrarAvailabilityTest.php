@@ -6,7 +6,6 @@ use App\Models\Appointment;
 use App\Models\SlotAvailability;
 use App\Models\User;
 use App\Support\SlotAvailabilityService;
-use App\Support\TimeSlots;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -34,38 +33,104 @@ class RegistrarAvailabilityTest extends TestCase
             ->assertSee(Appointment::TIME_SLOTS[0]);
     }
 
-    public function test_the_slot_list_numbers_each_slot_instead_of_printing_its_time(): void
+    /**
+     * Book a student into the Registrar on a given date.
+     */
+    private function bookRegistrar(string $date, string $status = 'pending'): void
     {
-        $slots = TimeSlots::forOffice('Registrar');
+        User::factory()->create(['role' => 'student'])
+            ->appointments()
+            ->create([
+                'office' => 'Registrar',
+                'purpose' => 'Certification',
+                'date' => $date,
+                'time_slot' => '09:00 AM - 10:00 AM',
+                'status' => $status,
+            ]);
+    }
+
+    public function test_the_list_numbers_the_days_appointments_rather_than_the_offices_times(): void
+    {
+        $date = $this->futureDate();
+
+        // Twelve people on one day. The list has to run 1..12 — past the ten
+        // that fill a day — because the registrar is reading how full the day
+        // is, not picking between clock times.
+        foreach (range(1, 12) as $ignored) {
+            $this->bookRegistrar($date);
+        }
 
         $html = $this->actingAs($this->makeRegistrar())
             ->get('/registrar/availability')
             ->assertOk()
             ->getContent();
 
-        // Each row is a checkbox followed straight away by its number, with
-        // nothing but whitespace in between — which is what proves the time
-        // itself is no longer printed in the list.
-        preg_match_all(
-            '/type="checkbox"\s+value="([^"]+)"[^>]*>\s*<span[^>]*>\s*(\d+)\s*<\/span>/',
+        // The page is handed the per-day counts and draws rows from them,
+        // numbered by position rather than printed with a time.
+        $this->assertMatchesRegularExpression(
+            '/"'.preg_quote($date, '/').'"\s*:\s*12(?=[,}])/',
             $html,
-            $pairs,
-            PREG_SET_ORDER
+            'Expected the date to carry its appointment count to the page.'
         );
+        $this->assertStringContainsString('x-for="n in rosterCount"', $html);
+        $this->assertStringContainsString('x-text="n"', $html);
 
-        $this->assertCount(
-            count($slots),
-            $pairs,
-            'Expected every time slot to appear in the list.'
+        // Beyond the first ten the row says so, since booking is unlimited.
+        $this->assertStringContainsString('Bukas na', $html);
+
+        // The hourly checkbox list this replaces is gone.
+        $this->assertDoesNotMatchRegularExpression(
+            '/type="checkbox"\s+value="[^"]+"\s+x-model="selectedSlots"/',
+            $html
         );
+    }
 
-        foreach ($pairs as $index => $pair) {
-            // The value still carries the real time, so saving is unchanged.
-            $this->assertSame($slots[$index], $pair[1]);
+    public function test_a_cancelled_booking_does_not_count_towards_the_day(): void
+    {
+        $date = $this->futureDate();
 
-            // The label shows the slot's position instead.
-            $this->assertSame((string) ($index + 1), $pair[2]);
-        }
+        $this->bookRegistrar($date);
+        $this->bookRegistrar($date, 'cancelled');
+
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '/"'.preg_quote($date, '/').'"\s*:\s*1(?=[,}])/',
+            $html,
+            'A booking nobody will occupy should not be counted towards the day.'
+        );
+    }
+
+    public function test_a_day_with_no_bookings_says_so_instead_of_listing_rows(): void
+    {
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('No appointments on this date yet.', $html);
+        $this->assertStringContainsString('Booking is unlimited', $html);
+    }
+
+    public function test_the_days_size_is_its_own_number_not_the_offices_hours(): void
+    {
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability')
+            ->assertOk()
+            ->getContent();
+
+        // The registrar's day runs 08:00-16:00, so counting clock hours
+        // would report eight. The day's size is handed over as its own
+        // number instead, and both the list and the preview read off it.
+        $this->assertStringContainsString(
+            'slotsPerDay: '.Appointment::SLOTS_PER_DAY,
+            $html,
+            'The day must be sized by its slots, not by the hours the office keeps.'
+        );
+        $this->assertStringContainsString('this.slotsPerDay - this.rosterCount', $html);
     }
 
     public function test_student_cannot_access_availability_management(): void

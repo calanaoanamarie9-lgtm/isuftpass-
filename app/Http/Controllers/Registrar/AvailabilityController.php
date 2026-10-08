@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Registrar;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\Office;
 use App\Models\SlotAvailability;
 use App\Support\AuditLogger;
@@ -11,6 +12,7 @@ use App\Support\TimeSlots;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AvailabilityController extends Controller
@@ -45,8 +47,38 @@ class AvailabilityController extends Controller
         return view('registrar.availability', [
             'office' => Office::where('name', $this->officeKey())->first(),
             'timeSlots' => TimeSlots::forOffice($this->officeKey()),
+            'slotsPerDay' => Appointment::SLOTS_PER_DAY,
             'schedule' => $this->buildSchedule(),
+            'appointmentsByDate' => $this->appointmentsByDate(),
         ]);
+    }
+
+    /**
+     * Appointments booked on each date for this office: date => count.
+     *
+     * The list numbers the day's appointments instead of the office's hourly
+     * slots. The registrar is not choosing between clock times there — they
+     * are reading how full a day is, and a day is full once ten people are
+     * in it. Anything past ten still books (there is no booking limit) and
+     * is simply marked as coming after the day's first ten.
+     *
+     * Cancelled bookings are dropped: a slot that nobody will occupy should
+     * not be counted towards the day.
+     *
+     * @return array<string, int>
+     */
+    private function appointmentsByDate(): array
+    {
+        return Appointment::query()
+            ->where('office', $this->officeKey())
+            ->whereNotIn('status', ['cancelled'])
+            ->select('date', DB::raw('count(*) as total'))
+            ->groupBy('date')
+            ->get()
+            ->mapWithKeys(fn ($row) => [
+                Carbon::parse($row->date)->toDateString() => (int) $row->total,
+            ])
+            ->all();
     }
 
     /**
