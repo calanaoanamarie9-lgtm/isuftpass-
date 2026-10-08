@@ -949,13 +949,6 @@
                                                         x-text="item.date"
                                                     ></p>
 
-                                                    <p
-                                                        class="mt-0.5
-                                                               text-xs
-                                                               text-gray-400"
-                                                        x-text="item.status"
-                                                    ></p>
-
                                                 </div>
 
                                             </div>
@@ -987,135 +980,6 @@
 
                                         </div>
 
-
-                                        {{-- SLOTS --}}
-                                        <template x-if="item.type === 'slots'">
-
-                                            <div class="mt-4
-                                                        grid
-                                                        gap-2
-                                                        sm:grid-cols-2
-                                                        lg:grid-cols-3">
-
-                                                <template
-                                                    x-for="slot in item.slots"
-                                                    :key="slot.start"
-                                                >
-
-                                                    <div
-                                                        class="flex
-                                                               items-center
-                                                               justify-between
-                                                               gap-2
-                                                               rounded-xl
-                                                               border border-gray-100
-                                                               bg-white
-                                                               px-3 py-3"
-                                                    >
-
-                                                        <span
-                                                            class="inline-flex
-                                                                   items-center
-                                                                   justify-center
-                                                                   w-6 h-6
-                                                                   shrink-0
-                                                                   rounded-full
-                                                                   bg-gray-100
-                                                                   text-gray-600
-                                                                   text-[11px]
-                                                                   font-extrabold
-                                                                   tabular-nums"
-                                                            x-text="slotNumber(slot.start)"
-                                                        ></span>
-
-                                                        <span class="inline-flex
-                                                                     items-center
-                                                                     gap-1
-                                                                     text-[9px]
-                                                                     font-extrabold
-                                                                     uppercase
-                                                                     text-green-600">
-
-                                                            <span class="w-1.5 h-1.5
-                                                                         rounded-full
-                                                                         bg-green-500">
-                                                            </span>
-
-                                                            Available
-
-                                                        </span>
-
-                                                    </div>
-
-                                                </template>
-
-                                            </div>
-
-                                        </template>
-
-
-                                        {{-- OPEN ALL DAY --}}
-                                        <template x-if="item.type === 'open'">
-
-                                            <div class="mt-4
-                                                        rounded-xl
-                                                        border border-green-100
-                                                        bg-green-50
-                                                        px-4 py-3">
-
-                                                <div class="flex items-center gap-2">
-
-                                                    <span class="w-2 h-2
-                                                                 rounded-full
-                                                                 bg-green-500">
-                                                    </span>
-
-                                                    <span class="text-xs
-                                                                 font-bold
-                                                                 text-green-700">
-
-                                                        All official time slots
-                                                        are available.
-
-                                                    </span>
-
-                                                </div>
-
-                                            </div>
-
-                                        </template>
-
-
-                                        {{-- CLOSED --}}
-                                        <template x-if="item.type === 'closed'">
-
-                                            <div class="mt-4
-                                                        rounded-xl
-                                                        border border-red-100
-                                                        bg-red-50
-                                                        px-4 py-3">
-
-                                                <div class="flex items-center gap-2">
-
-                                                    <span class="w-2 h-2
-                                                                 rounded-full
-                                                                 bg-red-500">
-                                                    </span>
-
-                                                    <span class="text-xs
-                                                                 font-bold
-                                                                 text-red-700">
-
-                                                        No appointments can be
-                                                        booked on this date.
-
-                                                    </span>
-
-                                                </div>
-
-                                            </div>
-
-                                        </template>
 
                                     </div>
 
@@ -1223,18 +1087,6 @@
                 settingsUrl: '{{ route('registrar.availability.settings', ['date' => ':date']) }}',
 
                 saveUrl: '{{ route('registrar.availability.save') }}',
-
-
-                /* =====================================================
-                   SLOT NUMBERING
-                ===================================================== */
-                slotNumber(start) {
-
-                    const index = this.timeSlots.indexOf(start);
-
-                    return index >= 0 ? index + 1 : start;
-
-                },
 
 
                 /* =====================================================

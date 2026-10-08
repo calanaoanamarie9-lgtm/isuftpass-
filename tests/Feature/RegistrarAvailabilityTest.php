@@ -200,4 +200,33 @@ class RegistrarAvailabilityTest extends TestCase
             ->assertJsonPath('schedule.0.id', $date)
             ->assertJsonPath('schedule.0.type', 'closed');
     }
+
+    public function test_calendar_management_entry_shows_only_the_date_and_what_changed(): void
+    {
+        $date = $this->futureDate();
+        $service = app(SlotAvailabilityService::class);
+        $officeId = $service->officeIdFor('Registrar');
+
+        foreach (Appointment::TIME_SLOTS as $slot) {
+            SlotAvailability::create([
+                'office_id' => $officeId,
+                'date' => $date,
+                'time_slot' => $slot,
+                'max_capacity' => 5,
+                'status' => 'blocked',
+            ]);
+        }
+
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability')
+            ->assertOk()
+            // The entry is the date plus the badge naming what was changed...
+            ->assertSee('x-text="item.date"', false)
+            ->assertSee('x-text="item.typeLabel"', false)
+            // ...and nothing about the individual times behind it.
+            ->assertDontSee('x-text="item.status"', false)
+            ->assertDontSee('No appointments can be booked on this date.')
+            ->assertDontSee('All official time slots are available.')
+            ->assertDontSee('slotNumber', false);
+    }
 }
