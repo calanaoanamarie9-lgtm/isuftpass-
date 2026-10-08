@@ -26,6 +26,7 @@ use App\Http\Controllers\Student\RequestController;
 use App\Http\Controllers\Student\StudentProfileController;
 use App\Http\Controllers\VerifyController;
 use App\Enums\AppointmentStatus;
+use App\Enums\DocumentRequestStatus;
 use App\Models\Appointment;
 use App\Models\DocumentRequest;
 use Illuminate\Support\Facades\Auth;
@@ -271,6 +272,30 @@ Route::get('/dashboard', function () {
             'readyForPickup' => DocumentRequest::query()
                 ->where('status', 'ready_for_pickup')
                 ->count(),
+        ]);
+    }
+
+    if ($user->role === 'registrar') {
+        return view($view, [
+            'pendingCount' => DocumentRequest::query()
+                ->where('status', DocumentRequestStatus::SUBMITTED->value)
+                ->count(),
+            'approvedCount' => DocumentRequest::query()
+                ->where('status', DocumentRequestStatus::FOR_SIGNATURE->value)
+                ->count(),
+            'issuedCount' => DocumentRequest::query()
+                ->where('status', DocumentRequestStatus::COMPLETED->value)
+                ->count(),
+            'servedCount' => DocumentRequest::query()
+                ->where('status', DocumentRequestStatus::COMPLETED->value)
+                ->distinct()
+                ->count('user_id'),
+            'pendingRequests' => DocumentRequest::query()
+                ->where('status', DocumentRequestStatus::SUBMITTED->value)
+                ->with(['documents', 'user'])
+                ->latest()
+                ->limit(8)
+                ->get(),
         ]);
     }
 

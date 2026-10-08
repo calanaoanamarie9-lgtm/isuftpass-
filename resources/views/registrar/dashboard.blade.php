@@ -269,7 +269,7 @@
                               font-black
                               text-gray-900">
 
-                        0
+                        {{ $pendingCount }}
 
                     </p>
 
@@ -340,7 +340,7 @@
                               font-black
                               text-gray-900">
 
-                        0
+                        {{ $approvedCount }}
 
                     </p>
 
@@ -411,7 +411,7 @@
                               font-black
                               text-gray-900">
 
-                        0
+                        {{ $issuedCount }}
 
                     </p>
 
@@ -482,7 +482,7 @@
                               font-black
                               text-gray-900">
 
-                        0
+                        {{ $servedCount }}
 
                     </p>
 
@@ -677,6 +677,117 @@
 
                             <tbody class="divide-y divide-gray-100">
 
+                                @forelse ($pendingRequests as $request)
+
+                                    <tr class="hover:bg-gray-50/70 transition">
+
+                                        {{-- STUDENT --}}
+                                        <td class="px-6 py-4">
+
+                                            <p class="text-sm
+                                                      font-bold
+                                                      text-gray-900">
+
+                                                {{ $request->student_name ?: ($request->user?->name ?? '—') }}
+
+                                            </p>
+
+                                            <p class="mt-0.5
+                                                      text-xs
+                                                      text-gray-400">
+
+                                                {{ $request->request_number }}
+
+                                            </p>
+
+                                        </td>
+
+                                        {{-- DOCUMENT --}}
+                                        <td class="px-6 py-4">
+
+                                            <p class="max-w-[18rem]
+                                                      text-sm
+                                                      text-gray-600">
+
+                                                {{ $request->documentsSummary() }}
+
+                                            </p>
+
+                                        </td>
+
+                                        {{-- DATE REQUESTED --}}
+                                        <td class="px-6 py-4">
+
+                                            <p class="text-sm
+                                                      text-gray-700">
+
+                                                {{ ($request->submitted_at ?? $request->created_at)->format('M j, Y') }}
+
+                                            </p>
+
+                                            <p class="mt-0.5
+                                                      text-xs
+                                                      text-gray-400">
+
+                                                {{ ($request->submitted_at ?? $request->created_at)->format('g:i A') }}
+
+                                            </p>
+
+                                        </td>
+
+                                        {{-- STATUS --}}
+                                        <td class="px-6 py-4">
+
+                                            <span class="inline-flex
+                                                         items-center
+                                                         gap-1.5
+                                                         px-2.5 py-1
+                                                         rounded-full
+                                                         text-[10px]
+                                                         font-extrabold
+                                                         uppercase
+                                                         tracking-wider
+                                                         bg-red-50
+                                                         text-red-700
+                                                         ring-1
+                                                         ring-red-200">
+
+                                                <span class="w-1.5 h-1.5
+                                                             rounded-full
+                                                             bg-red-500"></span>
+
+                                                Pending
+
+                                            </span>
+
+                                        </td>
+
+                                        {{-- ACTION --}}
+                                        <td class="px-6 py-4 text-right">
+
+                                            <a href="{{ route('registrar.document-requests.show', $request) }}"
+                                               class="inline-flex
+                                                      items-center
+                                                      gap-1.5
+                                                      px-3 py-1.5
+                                                      rounded-lg
+                                                      bg-blue-600
+                                                      text-white
+                                                      text-xs
+                                                      font-bold
+                                                      hover:bg-blue-700
+                                                      transition">
+
+                                                Review
+
+                                            </a>
+
+                                        </td>
+
+                                    </tr>
+
+                                @empty
+
                                 <tr>
 
                                     <td colspan="5"
@@ -733,6 +844,8 @@
                                     </td>
 
                                 </tr>
+
+                                @endforelse
 
                             </tbody>
 
