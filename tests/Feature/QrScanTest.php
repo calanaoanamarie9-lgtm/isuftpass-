@@ -115,7 +115,9 @@ class QrScanTest extends TestCase
 
         $this->get($this->claimUrl($request))
             ->assertOk()
-            ->assertSee('Document Claim Slip')
+            // The scanned page is the same Digital Claim Pass card the
+            // student sees in view details.
+            ->assertSee('Digital Claim Pass')
             ->assertSee($request->request_number)
             ->assertSee('Ready for release');
 

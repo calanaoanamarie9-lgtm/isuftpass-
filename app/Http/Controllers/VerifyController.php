@@ -84,8 +84,17 @@ class VerifyController extends Controller
             return redirect()->route('registrar.qr.index', ['q' => $token]);
         }
 
+        // The scanned page shows the same claim pass — QR included — as the
+        // student's view details, so the payload is rebuilt here.
+        $qrCodeDataUri = (new \Endroid\QrCode\Writer\SvgWriter())
+            ->write(new \Endroid\QrCode\QrCode(
+                \App\Support\QrUrl::to('/verify/document/' . $documentRequest->claim_token)
+            ))
+            ->getDataUri();
+
         return view('verify.document', [
             'documentRequest' => $documentRequest,
+            'qrCodeDataUri' => $qrCodeDataUri,
         ]);
     }
 
