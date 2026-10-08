@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Notifications\DocumentRequestReceivedNotification;
 use App\Notifications\DocumentRequestStatusNotification;
 use App\Support\AuditLogger;
+use App\Support\RegistrarNotifier;
 use App\Support\SafeMailer;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\SvgWriter;
@@ -87,6 +88,14 @@ class DocumentRequestController extends Controller
 
         SafeMailer::send($documentRequest->user, new DocumentRequestReceived($documentRequest));
         $documentRequest->user->notify(new DocumentRequestReceivedNotification($documentRequest));
+
+        // A new request only becomes work when the registrar sees it. The
+        // alert lands on their own queue, so the next click is one link away.
+        RegistrarNotifier::alert(
+            $documentRequest,
+            'New document request',
+            $documentRequest->student_name . ' submitted a request for ' . $documentRequest->documentsSummary() . '. It is waiting in your queue.'
+        );
 
         return redirect()
             ->route('student.documents.index')

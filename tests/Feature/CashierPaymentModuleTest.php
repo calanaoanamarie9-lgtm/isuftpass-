@@ -6,6 +6,7 @@ use App\Enums\DocumentRequestStatus;
 use App\Models\Document;
 use App\Models\User;
 use App\Notifications\DocumentRequestStatusNotification;
+use App\Notifications\RegistrarRequestAlert;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -71,6 +72,65 @@ class CashierPaymentModuleTest extends TestCase
             DocumentRequestStatusNotification::class,
             fn ($notification) => str_contains($notification->message, 'payment has been recorded'),
         );
+    }
+
+    public function test_recording_payment_notifies_every_registrar_account(): void
+    {
+        Notification::fake();
+
+        $registrarOne = User::factory()->create(['role' => 'registrar']);
+        $registrarTwo = User::factory()->create(['role' => 'registrar']);
+        $otherDesk = User::factory()->create(['role' => 'cashier']);
+
+        [, $request] = $this->makeStudentWithRequest();
+
+        $this->actingAs($this->makeCashier())
+            ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2025-00123'])
+            ->assertRedirect();
+
+        Notification::assertSentTo($registrarOne, RegistrarRequestAlert::class);
+        Notification::assertSentTo($registrarTwo, RegistrarRequestAlert::class);
+
+        // Only the registrar desk is in this pipeline — the cashier who
+        // recorded it and every other office have no action to take.
+        Notification::assertNotSentTo($otherDesk, RegistrarRequestAlert::class);
+    }
+
+    public function test_registrar_alert_targets_their_own_request_queue(): void
+    {
+        Notification::fake();
+
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        [, $request] = $this->makeStudentWithRequest();
+
+        $this->actingAs($this->makeCashier())
+            ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2025-00123']);
+
+        Notification::assertSentTo(
+            $registrar,
+            RegistrarRequestAlert::class,
+            // The student route is behind role:student; a registrar clicking
+            // it would hit a 403 instead of their queue.
+            fn ($notification) => $notification->toArray($registrar)['url']
+                === route('registrar.document-requests.show', $request),
+        );
+    }
+
+    public function test_recording_payment_notifies_the_student_and_the_registrar_once_each(): void
+    {
+        Notification::fake();
+
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        [$student, $request] = $this->makeStudentWithRequest();
+
+        $this->actingAs($this->makeCashier())
+            ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2025-00123']);
+        $this->actingAs($this->makeCashier())
+            ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2025-00123']);
+
+        // The second attempt is refused, so neither side is alerted twice.
+        Notification::assertSentToTimes($student, DocumentRequestStatusNotification::class, 1);
+        Notification::assertSentToTimes($registrar, RegistrarRequestAlert::class, 1);
     }
 
     public function test_or_number_is_required_when_recording_payment(): void

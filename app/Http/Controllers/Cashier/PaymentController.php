@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DocumentRequest;
 use App\Notifications\DocumentRequestStatusNotification;
 use App\Support\AuditLogger;
+use App\Support\RegistrarNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -78,7 +79,16 @@ class PaymentController extends Controller
             'Your payment has been recorded by the Cashier Office. You may claim your document when the status is Ready for Pick-up.',
         ));
 
-        return back()->with('status', 'Payment recorded for ' . $documentRequest->request_number . '.');
+        // The registrar cannot see the request move until someone tells them.
+        // This is the hand-off the whole pipeline waits on: payment landed,
+        // the request now reads Paid, and it is sitting in their queue.
+        RegistrarNotifier::alert(
+            $documentRequest,
+            'Payment recorded — ready to process',
+            'Payment of ₱' . number_format($documentRequest->totalFee(), 2) . ' (OR No. ' . $documentRequest->or_number . ') has been recorded. The request is now Paid and waiting in your queue.'
+        );
+
+        return back()->with('status', 'Payment recorded for ' . $documentRequest->request_number . '. The registrar has been notified.');
     }
 
     public function history(Request $request): View

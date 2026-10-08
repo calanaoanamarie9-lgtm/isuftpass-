@@ -4,7 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Document;
 use App\Models\User;
+use App\Notifications\DocumentRequestReceivedNotification;
+use App\Notifications\RegistrarRequestAlert;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class DocumentRequestOfficialFormTest extends TestCase
@@ -89,6 +92,42 @@ class DocumentRequestOfficialFormTest extends TestCase
         $this->assertEquals('Barangay Uno, Iloilo City', $request->student_address);
         $this->assertEquals('09171234567', $request->student_contact);
         $this->assertEquals(1, $user->notifications()->count());
+    }
+
+    public function test_submission_notifies_every_registrar_account(): void
+    {
+        Notification::fake();
+
+        $documents = $this->makeDocuments();
+        $user = $this->createStudent();
+        $registrarOne = User::factory()->create(['role' => 'registrar']);
+        $registrarTwo = User::factory()->create(['role' => 'registrar']);
+        $otherDesk = User::factory()->create(['role' => 'cashier']);
+
+        $this->actingAs($user)
+            ->post('/student/document-requests', $this->validPayload([
+                'document_ids' => [$documents[0]->id],
+            ]))
+            ->assertRedirect(route('student.documents.index'));
+
+        $request = $user->documentRequests()->first();
+
+        Notification::assertSentTo(
+            $registrarOne,
+            RegistrarRequestAlert::class,
+            // The request number is appended when the payload is built, so
+            // assert on what the registrar will actually see on screen.
+            fn ($notification) => str_contains(
+                $notification->toArray($registrarOne)['message'],
+                $request->request_number,
+            ),
+        );
+        Notification::assertSentTo($registrarTwo, RegistrarRequestAlert::class);
+        Notification::assertNotSentTo($otherDesk, RegistrarRequestAlert::class);
+
+        // The student keeps their own "request received" alert — the two
+        // audiences are told separately, in their own words.
+        Notification::assertSentTo($user, DocumentRequestReceivedNotification::class);
     }
 
     public function test_submission_shows_instructional_banner(): void
