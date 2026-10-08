@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Cashier;
 
+use App\Enums\DocumentRequestStatus;
 use App\Http\Controllers\Controller;
 use App\Models\DocumentRequest;
 use App\Notifications\DocumentRequestStatusNotification;
@@ -46,12 +47,30 @@ class PaymentController extends Controller
             'or_number' => ['required', 'string', 'max:50', 'unique:document_requests,or_number'],
         ]);
 
-        $documentRequest->update([
+        $attributes = [
             'paid_at' => now(),
             'or_number' => strtoupper($validated['or_number']),
-        ]);
+        ];
 
-        AuditLogger::log('payment.recorded', 'Recorded payment for request ' . $documentRequest->request_number . ' (OR No. ' . $documentRequest->or_number . ', ₱' . number_format($documentRequest->totalFee(), 2) . ').');
+        // Recording the payment IS the approval the pipeline used to wait
+        // for: the registrar's "Paid" step is simply `processing`, so the
+        // cashier moves the request there in the same write. Anything past
+        // that step (advanced by the registrar already) is left alone, and
+        // a cancelled request is never resurrected by a late payment.
+        if (in_array($documentRequest->status, [
+            DocumentRequestStatus::SUBMITTED->value,
+            DocumentRequestStatus::PROCESSING->value,
+        ], true)) {
+            $attributes['status'] = DocumentRequestStatus::PROCESSING->value;
+            $attributes['processing_at'] = $documentRequest->processing_at ?? now();
+        }
+
+        $documentRequest->update($attributes);
+
+        $statusLabel = DocumentRequestStatus::tryFrom($documentRequest->status)?->label()
+            ?? ucfirst(str_replace('_', ' ', $documentRequest->status));
+
+        AuditLogger::log('payment.recorded', 'Recorded payment for request ' . $documentRequest->request_number . ' (OR No. ' . $documentRequest->or_number . ', ₱' . number_format($documentRequest->totalFee(), 2) . '). Status is now ' . $statusLabel . '.');
 
         $documentRequest->user->notify(new DocumentRequestStatusNotification(
             $documentRequest,
