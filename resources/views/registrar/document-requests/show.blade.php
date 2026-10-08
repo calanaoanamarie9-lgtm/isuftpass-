@@ -17,6 +17,12 @@
             : ($activeStep !== false
                 ? $steps[$activeStep]['label']
                 : ucfirst(str_replace('_', ' ', $request->status)));
+
+        // Label of the status this request will be set to when the
+        // registrar clicks the primary action button.
+        $nextLabel = ($activeStep !== false && isset($steps[$activeStep + 1]))
+            ? $steps[$activeStep + 1]['label']
+            : null;
     @endphp
 
 
@@ -1184,13 +1190,9 @@
                                       action="{{ route('registrar.document-requests.next', $request) }}"
                                       data-confirm="{{ $request->status === 'ready_for_pickup'
                                         ? 'Verify that the student is present and release the documents.'
-                                        : 'Approve and advance this request to the next pipeline stage.' }}"
-                                      data-confirm-title="{{ $request->status === 'ready_for_pickup'
-                                        ? 'Mark as claimed?'
-                                        : 'Approve this document?' }}"
-                                      data-confirm-ok="{{ $request->status === 'ready_for_pickup'
-                                        ? 'Yes, mark as claimed'
-                                        : 'Yes, approve' }}"
+                                        : 'Advance this request to the next pipeline stage.' }}"
+                                      data-confirm-title="{{ $nextLabel ? 'Mark as ' . $nextLabel . '?' : 'Advance this request?' }}"
+                                      data-confirm-ok="{{ $nextLabel ? 'Yes, mark as ' . $nextLabel : 'Yes, advance' }}"
                                       data-confirm-icon="{{ $request->status === 'ready_for_pickup'
                                         ? 'success'
                                         : 'question' }}">
@@ -1275,10 +1277,8 @@
 
                                         @if (! $request->isPaid())
                                             Payment required first
-                                        @elseif ($request->status === 'ready_for_pickup')
-                                            Mark as Claimed
                                         @else
-                                            Approve Document
+                                            Mark as {{ $nextLabel ?? 'Advance' }}
                                         @endif
 
                                     </button>

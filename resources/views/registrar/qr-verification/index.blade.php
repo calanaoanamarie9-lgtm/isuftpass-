@@ -638,7 +638,7 @@
                                     </svg>
 
                                     @if ($documentRequest->isPaid())
-                                        Verify &amp; Claim / Release Documents
+                                        Mark as Claimed
                                     @else
                                         Payment required first
                                     @endif

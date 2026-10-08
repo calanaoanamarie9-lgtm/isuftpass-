@@ -257,6 +257,25 @@ class RegistrarDocumentRequestModuleTest extends TestCase
             ->assertSee('Payment required first');
     }
 
+    public function test_action_button_shows_the_next_status_it_will_set(): void
+    {
+        $expectations = [
+            DocumentRequestStatus::SUBMITTED->value        => 'Mark as Paid',
+            DocumentRequestStatus::PROCESSING->value       => 'Mark as Approved',
+            DocumentRequestStatus::FOR_SIGNATURE->value    => 'Mark as For Release',
+            DocumentRequestStatus::READY_FOR_PICKUP->value => 'Mark as Claimed',
+        ];
+
+        foreach ($expectations as $status => $buttonLabel) {
+            [, $request] = $this->makeStudentWithRequest($status);
+
+            $this->actingAs($this->makeRegistrar())
+                ->get('/registrar/document-requests/' . $request->id)
+                ->assertOk()
+                ->assertSee($buttonLabel);
+        }
+    }
+
     public function test_registrar_can_cancel_request_and_notify_student(): void
     {
         [$student, $request] = $this->makeStudentWithRequest();
@@ -336,7 +355,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
             ->assertSee('Document Request Found')
             ->assertSee($request->request_number)
             ->assertSee('Transcript of Records')
-            ->assertSee('Verify & Claim / Release Documents');
+            ->assertSee('Mark as Claimed');
     }
 
     public function test_qr_verification_claim_marks_request_completed(): void
