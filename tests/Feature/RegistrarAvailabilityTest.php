@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\SlotAvailability;
 use App\Models\User;
 use App\Support\SlotAvailabilityService;
+use App\Support\TimeSlots;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -31,6 +32,40 @@ class RegistrarAvailabilityTest extends TestCase
             ->assertSee('Availability Schedule')
             ->assertSee('Set Availability')
             ->assertSee(Appointment::TIME_SLOTS[0]);
+    }
+
+    public function test_the_slot_list_numbers_each_slot_instead_of_printing_its_time(): void
+    {
+        $slots = TimeSlots::forOffice('Registrar');
+
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability')
+            ->assertOk()
+            ->getContent();
+
+        // Each row is a checkbox followed straight away by its number, with
+        // nothing but whitespace in between — which is what proves the time
+        // itself is no longer printed in the list.
+        preg_match_all(
+            '/type="checkbox"\s+value="([^"]+)"[^>]*>\s*<span[^>]*>\s*(\d+)\s*<\/span>/',
+            $html,
+            $pairs,
+            PREG_SET_ORDER
+        );
+
+        $this->assertCount(
+            count($slots),
+            $pairs,
+            'Expected every time slot to appear in the list.'
+        );
+
+        foreach ($pairs as $index => $pair) {
+            // The value still carries the real time, so saving is unchanged.
+            $this->assertSame($slots[$index], $pair[1]);
+
+            // The label shows the slot's position instead.
+            $this->assertSame((string) ($index + 1), $pair[2]);
+        }
     }
 
     public function test_student_cannot_access_availability_management(): void

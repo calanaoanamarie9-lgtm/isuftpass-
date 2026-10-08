@@ -576,11 +576,19 @@
                                                    focus:ring-blue-500"
                                         >
 
-                                        <span class="text-xs
-                                                     font-bold
-                                                     text-gray-700">
+                                        <span class="inline-flex
+                                                     items-center
+                                                     justify-center
+                                                     w-6 h-6
+                                                     shrink-0
+                                                     rounded-full
+                                                     bg-gray-100
+                                                     text-gray-600
+                                                     text-[11px]
+                                                     font-extrabold
+                                                     tabular-nums">
 
-                                            {{ $slot }}
+                                            {{ $loop->index + 1 }}
 
                                         </span>
 
@@ -1006,10 +1014,18 @@
                                                     >
 
                                                         <span
-                                                            class="text-xs
-                                                                   font-bold
-                                                                   text-gray-700"
-                                                            x-text="slot.start"
+                                                            class="inline-flex
+                                                                   items-center
+                                                                   justify-center
+                                                                   w-6 h-6
+                                                                   shrink-0
+                                                                   rounded-full
+                                                                   bg-gray-100
+                                                                   text-gray-600
+                                                                   text-[11px]
+                                                                   font-extrabold
+                                                                   tabular-nums"
+                                                            x-text="slotNumber(slot.start)"
                                                         ></span>
 
                                                         <span class="inline-flex
@@ -1207,6 +1223,18 @@
                 settingsUrl: '{{ route('registrar.availability.settings', ['date' => ':date']) }}',
 
                 saveUrl: '{{ route('registrar.availability.save') }}',
+
+
+                /* =====================================================
+                   SLOT NUMBERING
+                ===================================================== */
+                slotNumber(start) {
+
+                    const index = this.timeSlots.indexOf(start);
+
+                    return index >= 0 ? index + 1 : start;
+
+                },
 
 
                 /* =====================================================
