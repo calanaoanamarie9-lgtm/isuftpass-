@@ -23,7 +23,7 @@ class RegistrarNotificationsTest extends TestCase
         return User::factory()->create(['role' => 'registrar', 'name' => 'Regina Reyes']);
     }
 
-    private function makeStudentRequest(): \App\Models\DocumentRequest
+    private function makeStudentRequest(?string $status = 'submitted'): \App\Models\DocumentRequest
     {
         $student = User::factory()->create(['role' => 'student', 'name' => 'Delacruz, Juan Miguel']);
         $document = Document::create(['name' => 'Transcript of Records', 'description' => 'TOR', 'fee' => 100.00]);
@@ -33,7 +33,7 @@ class RegistrarNotificationsTest extends TestCase
             'student_address' => 'Iloilo City',
             'student_contact' => '09170000000',
             'student_course_year' => 'BSIT 3',
-            'status' => 'submitted',
+            'status' => $status,
             'purpose_type' => 'employment',
             'educational_status' => 'not_graduated',
             'educational_level' => 'college',
@@ -63,6 +63,51 @@ class RegistrarNotificationsTest extends TestCase
             ->assertSee('New document request')
             ->assertSee('waiting in your queue')
             ->assertSee($request->request_number);
+    }
+
+    /**
+     * The hand-off the whole reorder depends on: the cashier records the
+     * payment and the registrar has to find out about it without watching
+     * the cashier's screen. No Notification::fake() here — the database
+     * channel has to write the row itself, on the page the registrar
+     * actually opens, or the alert only ever existed in a test.
+     */
+    public function test_a_cashier_payment_reaches_the_registrar_notifications_page(): void
+    {
+        $registrar = $this->makeRegistrar();
+
+        // Already approved — payment only ever happens after that step.
+        $request = $this->makeStudentRequest('for_signature');
+
+        $this->actingAs(User::factory()->create(['role' => 'cashier']))
+            ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2026-00777'])
+            ->assertRedirect();
+
+        $this->assertSame('processing', $request->fresh()->status);
+
+        // The registrar has one unread alert, and it carries the payment
+        // details they need before releasing the document.
+        $this->assertSame(1, $registrar->unreadNotifications()->count());
+
+        $alert = $registrar->notifications()->first();
+        $this->assertSame(RegistrarRequestAlert::class, $alert->type);
+        $this->assertStringContainsString('Payment recorded', $alert->data['title']);
+        $this->assertStringContainsString('OR-2026-00777', $alert->data['message']);
+        $this->assertStringContainsString($request->request_number, $alert->data['message']);
+
+        // And it is readable on the page they open.
+        $this->actingAs($registrar)
+            ->get('/registrar/notifications')
+            ->assertOk()
+            ->assertSee('Payment recorded')
+            ->assertSee($request->request_number);
+
+        // Clicking it clears the badge and lands on the release buttons.
+        $this->actingAs($registrar)
+            ->get('/registrar/notifications/' . $alert->id . '/open')
+            ->assertRedirect(route('registrar.document-requests.show', $request));
+
+        $this->assertSame(0, $registrar->unreadNotifications()->count());
     }
 
     public function test_opening_the_alert_lands_the_registrar_on_the_request(): void
