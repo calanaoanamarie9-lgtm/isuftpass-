@@ -150,16 +150,16 @@
                                 Pending
                             </p>
 
-                            <p class="text-2xl font-extrabold text-yellow-600 mt-2">
+                            <p class="text-2xl font-extrabold text-red-600 mt-2">
                                 {{ $requests->where('status', 'submitted')->count() }}
                             </p>
 
                         </div>
 
-                        <div class="w-10 h-10 rounded-xl bg-yellow-50
+                        <div class="w-10 h-10 rounded-xl bg-red-50
                                     flex items-center justify-center">
 
-                            <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-red-500"></span>
 
                         </div>
 

@@ -32,7 +32,7 @@
                 </div>
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Pending Payments</p>
-                    <p class="mt-1 text-2xl font-extrabold text-yellow-600">{{ $pendingPayments }}</p>
+                    <p class="mt-1 text-2xl font-extrabold text-red-600">{{ $pendingPayments }}</p>
                     <p class="mt-1 text-xs text-gray-400">Awaiting cashier recording</p>
                 </div>
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">

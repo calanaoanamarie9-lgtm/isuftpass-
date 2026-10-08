@@ -222,7 +222,7 @@
                             border border-gray-100
                             shadow-sm
                             hover:shadow-md
-                            hover:border-yellow-200
+                            hover:border-red-200
                             transition">
 
                     <div class="flex items-start
@@ -230,11 +230,11 @@
 
                         <div class="w-11 h-11
                                     rounded-xl
-                                    bg-yellow-50
+                                    bg-red-50
                                     flex items-center
                                     justify-center">
 
-                            <svg class="w-5 h-5 text-yellow-600"
+                            <svg class="w-5 h-5 text-red-600"
                                  fill="none"
                                  stroke="currentColor"
                                  viewBox="0 0 24 24">
@@ -252,8 +252,8 @@
                                      font-extrabold
                                      uppercase
                                      tracking-wider
-                                     text-yellow-600
-                                     bg-yellow-50
+                                     text-red-600
+                                     bg-red-50
                                      px-2 py-1
                                      rounded-full">
 

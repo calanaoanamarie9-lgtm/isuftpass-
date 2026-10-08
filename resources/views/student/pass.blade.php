@@ -190,7 +190,7 @@
                                         </span>
                                     @else
                                         <span class="px-2 py-1 rounded-full
-                                                     bg-yellow-100 text-yellow-700
+                                                     bg-red-100 text-red-700
                                                      text-[9px] font-bold">
                                             Pending
                                         </span>

@@ -14,7 +14,7 @@
         and is currently pending review by the Registrar's Office.
     </p>
 
-    @include('emails.partials.badge', ['slot' => 'Pending Review', 'bg' => '#fef9c3', 'text' => '#854d0e'])
+    @include('emails.partials.badge', ['slot' => 'Pending Review', 'bg' => '#fee2e2', 'text' => '#b91c1c'])
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;border-collapse:collapse;">
         @include('emails.partials.row', ['label' => 'Request Number', 'value' => $documentRequest->request_number])

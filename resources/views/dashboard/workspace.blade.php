@@ -61,9 +61,9 @@
             </a>
 
             <a href="{{ route($prefix . '.appointments') }}"
-               class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:border-yellow-300 hover:shadow-md transition">
-                <div class="w-11 h-11 bg-yellow-50 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:border-red-300 hover:shadow-md transition">
+                <div class="w-11 h-11 bg-red-50 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
@@ -117,7 +117,7 @@
                                 </p>
                             </div>
                             <span class="shrink-0 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full {{ match($appointment->status) {
-                                'pending' => 'bg-yellow-50 text-yellow-700',
+                                'pending' => 'bg-red-50 text-red-700',
                                 'confirmed' => 'bg-green-50 text-green-700',
                                 'completed' => 'bg-blue-50 text-blue-700',
                                 default => 'bg-gray-50 text-gray-500',

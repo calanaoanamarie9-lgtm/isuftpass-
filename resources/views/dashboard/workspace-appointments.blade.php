@@ -176,7 +176,7 @@
 
                         </div>
 
-                        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600">
 
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -397,7 +397,7 @@
                                         @php
                                             $statusClasses = match($appointment->status) {
                                                 'pending' =>
-                                                    'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+                                                    'bg-red-50 text-red-700 ring-1 ring-red-200',
                                                 'confirmed' =>
                                                     'bg-green-50 text-green-700 ring-1 ring-green-200',
                                                 'checked_in' =>
@@ -1131,7 +1131,7 @@
 
                     return {
 
-                        'bg-amber-50 text-amber-700 ring-1 ring-amber-200':
+                        'bg-red-50 text-red-700 ring-1 ring-red-200':
                             status === 'pending',
 
                         'bg-green-50 text-green-700 ring-1 ring-green-200':

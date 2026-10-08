@@ -184,7 +184,7 @@
                             </p>
 
                             <p class="text-3xl font-extrabold
-                                      text-amber-600 mt-2">
+                                      text-red-600 mt-2">
 
                                 {{ $pendingCount }}
 
@@ -199,10 +199,10 @@
                         </div>
 
                         <div class="w-12 h-12 rounded-xl
-                                    bg-amber-50
+                                    bg-red-50
                                     flex items-center justify-center">
 
-                            <svg class="w-6 h-6 text-amber-600"
+                            <svg class="w-6 h-6 text-red-600"
                                  fill="none"
                                  stroke="currentColor"
                                  viewBox="0 0 24 24">
@@ -758,9 +758,9 @@
                                         ring-1 ring-slate-200
 
                                     @else
-                                        bg-yellow-50
-                                        text-yellow-700
-                                        ring-1 ring-yellow-200
+                                        bg-red-50
+                                        text-red-700
+                                        ring-1 ring-red-200
                                     @endif
                                 ">
 

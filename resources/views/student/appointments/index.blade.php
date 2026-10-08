@@ -169,7 +169,7 @@
                                         bg-orange-50 text-orange-700 border-orange-200
 
                                     @elseif ($appointment->status === 'pending')
-                                        bg-yellow-50 text-yellow-700 border-yellow-200
+                                        bg-red-50 text-red-700 border-red-200
 
                                     @elseif ($appointment->status === 'completed')
                                         bg-blue-50 text-blue-700 border-blue-200
@@ -193,7 +193,7 @@
                                         @elseif ($appointment->status === 'for_reschedule')
                                             bg-orange-600
                                         @elseif ($appointment->status === 'pending')
-                                            bg-yellow-600
+                                            bg-red-600
                                         @elseif ($appointment->status === 'completed')
                                             bg-blue-600
                                         @else

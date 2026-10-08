@@ -116,6 +116,8 @@
                                         bg-red-300 text-red-950
                                     @elseif ($appointment->status === 'no_show')
                                         bg-gray-300 text-gray-800
+                                    @elseif ($appointment->status === 'pending')
+                                        bg-red-300 text-red-950
                                     @else
                                         bg-yellow-300 text-yellow-950
                                     @endif

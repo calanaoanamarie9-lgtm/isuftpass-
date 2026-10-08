@@ -312,12 +312,12 @@
                                                      px-3 py-1.5
                                                      rounded-full
                                                      text-xs font-bold
-                                                     bg-yellow-50
-                                                     text-yellow-700
-                                                     border border-yellow-200">
+                                                     bg-red-50
+                                                     text-red-700
+                                                     border border-red-200">
 
                                             <span class="w-1.5 h-1.5 rounded-full
-                                                         bg-yellow-500"></span>
+                                                         bg-red-500"></span>
 
                                             {{ ucwords(str_replace('_', ' ', $request->status)) }}
 

@@ -638,12 +638,12 @@
                                                      gap-2
                                                      px-3 py-1.5
                                                      rounded-full
-                                                     bg-yellow-50
-                                                     text-yellow-700
+                                                     bg-red-50
+                                                     text-red-700
                                                      text-xs
                                                      font-bold">
 
-                                            <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                                            <span class="w-2 h-2 rounded-full bg-red-500"></span>
 
                                             Pending
 
