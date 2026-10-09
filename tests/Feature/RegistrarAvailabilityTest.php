@@ -34,11 +34,18 @@ class RegistrarAvailabilityTest extends TestCase
     }
 
     /**
-     * Book a student into the Registrar on a given date.
+     * Book a student into the Registrar on a given date, under a name of our
+     * choosing when the test cares who is on the list and in what order.
      */
-    private function bookRegistrar(string $date, string $status = 'pending'): void
-    {
-        User::factory()->create(['role' => 'student'])
+    private function bookRegistrar(
+        string $date,
+        string $status = 'pending',
+        ?string $name = null,
+    ): void {
+        User::factory()->create(array_filter([
+            'role' => 'student',
+            'name' => $name,
+        ]))
             ->appointments()
             ->create([
                 'office' => 'Registrar',
@@ -47,6 +54,32 @@ class RegistrarAvailabilityTest extends TestCase
                 'time_slot' => '09:00 AM - 10:00 AM',
                 'status' => $status,
             ]);
+    }
+
+    /**
+     * Pull the day's rosters back out of the page. They arrive as JSON inside
+     * the Alpine component rather than as rendered rows, so the names have to
+     * be decoded before anything can be said about them.
+     *
+     * @return array<string, list<string>>
+     */
+    private function rosterFrom(string $html): array
+    {
+        $this->assertMatchesRegularExpression(
+            '/rosterByDate:\s*\{/',
+            $html,
+            'The page must be handed the day rosters.'
+        );
+
+        preg_match('/rosterByDate:\s*(\{.*?\}),/s', $html, $matches);
+
+        $this->assertNotEmpty($matches[1] ?? null, 'Could not find the roster payload.');
+
+        $roster = json_decode($matches[1], true);
+
+        $this->assertIsArray($roster, 'The roster payload must be valid JSON.');
+
+        return $roster;
     }
 
     public function test_the_list_numbers_the_days_appointments_rather_than_the_offices_times(): void
@@ -65,15 +98,17 @@ class RegistrarAvailabilityTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        // The page is handed the per-day counts and draws rows from them,
-        // numbered by position rather than printed with a time.
-        $this->assertMatchesRegularExpression(
-            '/"'.preg_quote($date, '/').'"\s*:\s*12(?=[,}])/',
-            $html,
-            'Expected the date to carry its appointment count to the page.'
+        // The page is handed the day's people and draws one row per person,
+        // numbered by arrival position rather than printed with a clock time.
+        $roster = $this->rosterFrom($html);
+
+        $this->assertCount(
+            12,
+            $roster[$date] ?? [],
+            'Expected the date to carry its people to the page.'
         );
-        $this->assertStringContainsString('x-for="n in rosterCount"', $html);
-        $this->assertStringContainsString('x-text="n"', $html);
+        $this->assertStringContainsString('x-for="(name, i) in roster"', $html);
+        $this->assertStringContainsString('x-text="i + 1"', $html);
 
         // Beyond the first ten the row says so, since booking is unlimited.
         $this->assertStringContainsString('Bukas na', $html);
@@ -85,22 +120,25 @@ class RegistrarAvailabilityTest extends TestCase
         );
     }
 
-    public function test_a_cancelled_booking_does_not_count_towards_the_day(): void
+    public function test_a_cancelled_booking_is_left_off_the_roster_and_the_rest_keep_arrival_order(): void
     {
         $date = $this->futureDate();
 
-        $this->bookRegistrar($date);
-        $this->bookRegistrar($date, 'cancelled');
+        $this->bookRegistrar($date, 'pending', 'Ada Arrived First');
+        $this->bookRegistrar($date, 'cancelled', 'Cleo Walked Away');
+        $this->bookRegistrar($date, 'pending', 'Bea Arrived Second');
 
         $html = $this->actingAs($this->makeRegistrar())
             ->get('/registrar/availability')
             ->assertOk()
             ->getContent();
 
-        $this->assertMatchesRegularExpression(
-            '/"'.preg_quote($date, '/').'"\s*:\s*1(?=[,}])/',
-            $html,
-            'A booking nobody will occupy should not be counted towards the day.'
+        $roster = $this->rosterFrom($html);
+
+        $this->assertSame(
+            ['Ada Arrived First', 'Bea Arrived Second'],
+            $roster[$date] ?? null,
+            'A booking nobody will occupy is left off, and the rest keep the order they arrived in.'
         );
     }
 

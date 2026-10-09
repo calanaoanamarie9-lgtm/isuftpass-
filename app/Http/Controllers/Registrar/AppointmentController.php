@@ -27,7 +27,7 @@ class AppointmentController extends Controller
     {
         $appointments = Appointment::with('user')
             ->where('office', auth()->user()->officeScope())
-            ->latest()
+            ->firstComeFirstServed()
             ->paginate(12);
 
         return view('registrar.appointments.index', [

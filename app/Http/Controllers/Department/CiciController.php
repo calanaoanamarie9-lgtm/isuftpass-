@@ -23,7 +23,7 @@ class CiciController extends Controller
 
         $appointments = \App\Models\Appointment::with('user')
             ->where('office', $office)
-            ->latest()
+            ->firstComeFirstServed()
             ->paginate(12);
 
         return view('departments.CICI.appointments', [

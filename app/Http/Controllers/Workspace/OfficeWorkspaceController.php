@@ -38,7 +38,7 @@ class OfficeWorkspaceController extends Controller
             'office' => $office,
             'appointments' => Appointment::with('user')
                 ->where('office', $office)
-                ->latest()
+                ->firstComeFirstServed()
                 ->paginate(12),
             'workspacePrefix' => 'workspace',
         ]);

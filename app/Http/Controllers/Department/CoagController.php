@@ -23,7 +23,7 @@ class CoagController extends Controller
 
         $appointments = \App\Models\Appointment::with('user')
             ->where('office', $office)
-            ->latest()
+            ->firstComeFirstServed()
             ->paginate(12);
 
         return view('departments.COAG.appointments', [

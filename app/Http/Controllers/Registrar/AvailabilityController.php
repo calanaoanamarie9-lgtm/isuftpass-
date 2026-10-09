@@ -12,7 +12,6 @@ use App\Support\TimeSlots;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AvailabilityController extends Controller
@@ -49,35 +48,38 @@ class AvailabilityController extends Controller
             'timeSlots' => TimeSlots::forOffice($this->officeKey()),
             'slotsPerDay' => Appointment::SLOTS_PER_DAY,
             'schedule' => $this->buildSchedule(),
-            'appointmentsByDate' => $this->appointmentsByDate(),
+            'rosterByDate' => $this->rosterByDate(),
         ]);
     }
 
     /**
-     * Appointments booked on each date for this office: date => count.
+     * The day's appointments in booking order: date => list of names.
      *
-     * The list numbers the day's appointments instead of the office's hourly
-     * slots. The registrar is not choosing between clock times there — they
-     * are reading how full a day is, and a day is full once ten people are
-     * in it. Anything past ten still books (there is no booking limit) and
-     * is simply marked as coming after the day's first ten.
+     * The list numbers these instead of the office's hourly slots, so the
+     * registrar reads the queue itself rather than a tally of it. Whoever
+     * booked first sits at the top and takes one of the day's first slots;
+     * anyone arriving past that still books — booking is never turned away —
+     * but lands below the day's fill instead of in front of it. First come,
+     * first served.
      *
      * Cancelled bookings are dropped: a slot that nobody will occupy should
-     * not be counted towards the day.
+     * not count towards the day.
      *
-     * @return array<string, int>
+     * @return array<string, list<string>>
      */
-    private function appointmentsByDate(): array
+    private function rosterByDate(): array
     {
         return Appointment::query()
+            ->with('user:id,name')
             ->where('office', $this->officeKey())
             ->whereNotIn('status', ['cancelled'])
-            ->select('date', DB::raw('count(*) as total'))
-            ->groupBy('date')
+            ->firstComeFirstServed()
             ->get()
-            ->mapWithKeys(fn ($row) => [
-                Carbon::parse($row->date)->toDateString() => (int) $row->total,
-            ])
+            ->groupBy(fn (Appointment $appointment) => $appointment->date->toDateString())
+            ->map(fn ($appointments) => $appointments
+                ->map(fn (Appointment $appointment) => $appointment->user?->name ?? '—')
+                ->all()
+            )
             ->all();
     }
 

@@ -82,7 +82,7 @@ class AlumniController extends Controller
         $user = Auth::user();
 
         return view('alumni.appointments', [
-            'appointments' => $user->appointments()->upcoming()->latest()->get(),
+            'appointments' => $user->appointments()->upcoming()->firstComeFirstServed()->get(),
             'user' => $user,
         ]);
     }

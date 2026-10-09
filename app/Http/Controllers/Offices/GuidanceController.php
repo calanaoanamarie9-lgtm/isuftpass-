@@ -19,7 +19,7 @@ class GuidanceController extends Controller
             'office' => 'Guidance',
             'appointments' => \App\Models\Appointment::with('user')
                 ->where('office', 'Guidance')
-                ->latest()
+                ->firstComeFirstServed()
                 ->paginate(12),
         ]);
     }

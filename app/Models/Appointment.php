@@ -152,6 +152,19 @@ class Appointment extends Model
     }
 
     /**
+     * Queue order: whoever booked first is served first.
+     *
+     * Arrival is the time the booking was made, and where two bookings land
+     * in the same second the insert order breaks the tie — so a day's list
+     * reads back in the sequence the bookings actually arrived instead of
+     * newest first.
+     */
+    public function scopeFirstComeFirstServed(Builder $query): Builder
+    {
+        return $query->orderBy('created_at')->orderBy('id');
+    }
+
+    /**
      * Remaining available seats for a given office / date / time slot,
      * driven by the slot availability & capacity rules.
      * Optionally ignore one appointment (e.g. the one being rescheduled).

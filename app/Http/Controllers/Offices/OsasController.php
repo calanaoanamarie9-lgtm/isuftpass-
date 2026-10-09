@@ -19,7 +19,7 @@ class OsasController extends Controller
             'office' => 'OSAS',
             'appointments' => \App\Models\Appointment::with('user')
                 ->where('office', 'OSAS')
-                ->latest()
+                ->firstComeFirstServed()
                 ->paginate(12),
         ]);
     }

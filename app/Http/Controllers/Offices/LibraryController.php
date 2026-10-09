@@ -19,7 +19,7 @@ class LibraryController extends Controller
             'office' => 'Library',
             'appointments' => \App\Models\Appointment::with('user')
                 ->where('office', 'Library')
-                ->latest()
+                ->firstComeFirstServed()
                 ->paginate(12),
         ]);
     }

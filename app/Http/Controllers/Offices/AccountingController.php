@@ -19,7 +19,7 @@ class AccountingController extends Controller
             'office' => 'Accounting',
             'appointments' => \App\Models\Appointment::with('user')
                 ->where('office', 'Accounting')
-                ->latest()
+                ->firstComeFirstServed()
                 ->paginate(12),
         ]);
     }

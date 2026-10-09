@@ -445,7 +445,7 @@
                                         space-y-2
                                         pr-1">
 
-                                <template x-for="n in rosterCount" :key="n">
+                                <template x-for="(name, i) in roster" :key="i">
 
                                     <div class="flex items-center
                                                 gap-3
@@ -466,23 +466,27 @@
                                                      text-[11px]
                                                      font-extrabold
                                                      tabular-nums"
-                                              x-text="n"></span>
+                                              x-text="i + 1"></span>
 
-                                        <span class="text-xs
+                                        <span class="min-w-0
+                                                     flex-1
+                                                     truncate
+                                                     text-sm
                                                      font-semibold
-                                                     text-gray-500"
-                                              x-show="n <= slotsPerDay">
-                                            Slot
-                                        </span>
+                                                     text-gray-800"
+                                              x-text="name"></span>
 
                                         <span class="ml-auto
+                                                     shrink-0
                                                      text-[9px]
                                                      font-extrabold
-                                                     uppercase
-                                                     text-amber-600"
-                                              x-show="n > slotsPerDay">
-                                            Bukas na
-                                        </span>
+                                                     uppercase"
+                                              :class="i + 1 <= slotsPerDay
+                                                  ? 'text-blue-600'
+                                                  : 'text-amber-600'"
+                                              x-text="i + 1 <= slotsPerDay
+                                                  ? 'Slot'
+                                                  : 'Bukas na'"></span>
 
                                     </div>
 
@@ -997,16 +1001,22 @@
 
                 /* =====================================================
                    ROSTER
-                   How many appointments the selected date already
-                   holds. The list numbers these instead of the office's
-                   clock hours, so its length follows the day rather
-                   than the shape of the working day.
+                   The day's bookings in the order they arrived. The
+                   list numbers these instead of the office's clock
+                   hours, so whoever booked first is the first row and
+                   takes one of the day's slots before anyone below.
                 ===================================================== */
-                appointmentsByDate: @json($appointmentsByDate),
+                rosterByDate: @json($rosterByDate),
+
+                get roster() {
+
+                    return this.rosterByDate[this.date] || [];
+
+                },
 
                 get rosterCount() {
 
-                    return parseInt(this.appointmentsByDate[this.date] ?? 0, 10) || 0;
+                    return this.roster.length;
 
                 },
 
