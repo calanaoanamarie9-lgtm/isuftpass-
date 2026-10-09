@@ -405,17 +405,6 @@
 
                                     </p>
 
-                                    <p class="text-[10px]
-                                              text-gray-400
-                                              mt-0.5">
-
-                                        Numbered as they are booked. The first
-                                        <span x-text="slotsPerDay"></span> fill
-                                        the day; anything past that still books
-                                        and is marked bukas na.
-
-                                    </p>
-
                                 </div>
 
                                 <span class="px-2.5 py-1
@@ -527,19 +516,6 @@
                                               }"
                                               x-text="row.statusLabel"></span>
 
-                                        <span class="ml-auto
-                                                     shrink-0
-                                                     text-[9px]
-                                                     font-extrabold
-                                                     uppercase"
-                                              x-show="! row.cancelled"
-                                              :class="row.number <= slotsPerDay
-                                                  ? 'text-blue-600'
-                                                  : 'text-amber-600'"
-                                              x-text="row.number <= slotsPerDay
-                                                  ? 'Slot'
-                                                  : 'Bukas na'"></span>
-
                                     </div>
 
                                 </template>
@@ -557,14 +533,6 @@
                                               font-semibold
                                               text-gray-500">
                                         No appointments on this date yet.
-                                    </p>
-
-                                    <p class="text-[11px]
-                                              text-gray-400
-                                              mt-1">
-                                        Booking is unlimited — the first <span
-                                        x-text="slotsPerDay"></span> fill the
-                                        day, and the rest follow.
                                     </p>
 
                                 </div>

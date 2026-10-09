@@ -161,8 +161,9 @@ class RegistrarAvailabilityTest extends TestCase
             'Rows must arrive already numbered by arrival position.'
         );
 
-        // Beyond the first ten the row says so, since booking is unlimited.
-        $this->assertStringContainsString('Bukas na', $html);
+        // Booking is no longer capped at ten: every row keeps its arrival
+        // number, but nothing marks the eleventh person as "bukas na".
+        $this->assertStringNotContainsString('Bukas na', $html);
 
         // The hourly checkbox list this replaces is gone.
         $this->assertDoesNotMatchRegularExpression(
@@ -253,7 +254,7 @@ class RegistrarAvailabilityTest extends TestCase
             ->getContent();
 
         $this->assertStringContainsString('No appointments on this date yet.', $html);
-        $this->assertStringContainsString('Booking is unlimited', $html);
+        $this->assertStringNotContainsString('Booking is unlimited', $html);
     }
 
     public function test_the_days_size_is_its_own_number_not_the_offices_hours(): void
