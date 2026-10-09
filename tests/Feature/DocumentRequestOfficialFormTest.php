@@ -241,7 +241,7 @@ class DocumentRequestOfficialFormTest extends TestCase
         $this->assertEquals('Certificate of Enrollment', $user->documentRequests()->first()->others_specification);
     }
 
-    public function test_the_others_box_is_open_for_typing_without_ticking_it_first(): void
+    public function test_the_others_field_opens_once_the_option_is_ticked(): void
     {
         $this->makeDocuments();
         $user = $this->createStudent();
@@ -251,23 +251,68 @@ class DocumentRequestOfficialFormTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        // The field sits open under the option instead of waiting behind the
-        // tick, so there is something on screen to type into straight away.
-        $this->assertStringContainsString(
-            '<div id="others-spec" class="mt-3">',
+        // With nothing chosen there is nothing to type into yet...
+        $this->assertMatchesRegularExpression(
+            '/id="others-spec"[^>]*class="[^"]*\bhidden\b/',
             $html,
-            'The specification box must be open so the document can be named.'
+            'The specification field waits behind the Others option.'
         );
+
+        // ...and ticking that option opens the field and hands over the
+        // caret, while unticking empties it so what they wrote cannot travel
+        // under an option they walked away from. The handler rides on the
+        // checkbox itself, so opening the field never depends on anything
+        // else on the page.
+        $checkboxTag = explode('>', explode('name="others"', $html, 2)[1] ?? '', 2)[0];
+
+        $this->assertStringContainsString(
+            'onchange=',
+            $checkboxTag,
+            "The Others tick must be what opens the field. Got: {$checkboxTag}"
+        );
+        $this->assertStringContainsString("field.classList.toggle('hidden', ! this.checked)", $checkboxTag);
+        $this->assertStringContainsString('input.focus()', $checkboxTag);
+        $this->assertStringContainsString("input.value = ''", $checkboxTag);
+
+        // The field is opened by the tick; it does not drive itself.
+        $fieldTag = explode('>', explode('id="others_specification"', $html, 2)[1] ?? '', 2)[0];
+
+        $this->assertStringNotContainsString('onchange=', $fieldTag);
+        $this->assertStringContainsString('<input id="others_specification"', $html);
+    }
+
+    public function test_the_field_is_left_open_when_they_are_sent_back_to_name_it(): void
+    {
+        $documents = $this->makeDocuments();
+        $user = $this->createStudent();
+
+        // They ticked Others but wrote nothing, so the form comes back
+        // asking again.
+        $this->actingAs($user)
+            ->post('/student/document-requests', $this->validPayload([
+                'document_ids' => [$documents[0]->id],
+                'others' => '1',
+                'others_specification' => '',
+            ]))
+            ->assertSessionHasErrors('others_specification');
+
+        $html = $this->actingAs($user)
+            ->get('/student/document-requests/create')
+            ->assertOk()
+            ->getContent();
+
+        // Handed back to name the document, the field is already waiting
+        // open with their choice still ticked — nothing to hunt for.
         $this->assertDoesNotMatchRegularExpression(
             '/id="others-spec"[^>]*class="[^"]*\bhidden\b/',
             $html,
-            'The specification box must not be hidden behind the Others tick.'
+            'Sent back to type the document, the field must already be open.'
         );
-
-        // Typing ticks the option for them, so what they wrote is what gets
-        // sent rather than being dropped for a box nobody remembered to tick.
-        $this->assertStringContainsString('x-on:input=', $html);
-        $this->assertStringContainsString("getElementById('others').checked = true", $html);
+        $this->assertMatchesRegularExpression(
+            '/id="others"[^>]*checked/i',
+            $html,
+            'The option they chose must still be ticked.'
+        );
     }
 
     public function test_representative_mode_requires_name(): void

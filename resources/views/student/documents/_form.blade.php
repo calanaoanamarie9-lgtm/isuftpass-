@@ -271,6 +271,10 @@
                                            name="others"
                                            value="1"
                                            @checked(old('others', $documentRequest?->others_specification ? 1 : null))
+                                           onchange="var field = document.getElementById('others-spec');
+                                                     var input = document.getElementById('others_specification');
+                                                     field.classList.toggle('hidden', ! this.checked);
+                                                     if (this.checked) { input.focus(); } else { input.value = ''; }"
                                            class="mt-0.5 w-4 h-4 rounded
                                                   text-blue-700
                                                   focus:ring-blue-600
@@ -293,12 +297,14 @@
                             </div>
 
 
-                            {{-- The box sits open under the option instead of
-                                 hiding behind the tick: the student names the
-                                 document straight away, and typing ticks
-                                 "Others" for them so what they wrote is what
-                                 actually gets sent. --}}
-                            <div id="others-spec" class="mt-3">
+                            {{-- The field belongs to the option: it opens the
+                                 moment Others is ticked and takes the caret,
+                                 so the student can start writing the document
+                                 nobody listed. Unticking it hands the field
+                                 back empty, so nothing can be sent under an
+                                 option they walked away from. --}}
+                            <div id="others-spec"
+                                 class="mt-3 {{ old('others', $documentRequest?->others_specification ? 1 : null) ? '' : 'hidden' }}">
 
                                 <label for="others_specification"
                                        class="block text-sm font-bold text-gray-700 mb-2">
@@ -313,7 +319,6 @@
                                        type="text"
                                        value="{{ old('others_specification', $documentRequest?->others_specification ?? '') }}"
                                        placeholder="e.g. Certificate of Enrollment"
-                                       x-on:input="document.getElementById('others').checked = true"
                                        class="w-full rounded-xl border-gray-300
                                               bg-white text-sm text-gray-800
                                               shadow-sm
@@ -323,7 +328,7 @@
                                 <p class="mt-1.5
                                           text-[11px]
                                           text-gray-400">
-                                    Typing here ticks <span class="font-semibold">Others</span> for you.
+                                    Whatever you write here is the document the office will prepare for you.
                                 </p>
 
                             </div>
