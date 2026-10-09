@@ -166,7 +166,7 @@ class QrCheckInController extends Controller
             'studentId' => $appointment->user->studentProfile?->student_id,
             'purpose' => $appointment->purpose,
             'office' => $appointment->office,
-            'schedule' => $appointment->date->format('M d, Y') . ' · ' . $appointment->time_slot,
+            'schedule' => $appointment->date->format('M d, Y') . ' · ' . $appointment->timeToCome(),
             'status' => $appointment->statusLabel(),
             'checkedInAt' => $appointment->checked_in_at?->format('g:i A'),
             'checkIns' => CheckInList::today(auth()->user()->officeScope()),

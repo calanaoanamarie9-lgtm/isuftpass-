@@ -242,7 +242,9 @@
 
                                         {{ $appointment->confirmed_time
                                             ? 'Come At'
-                                            : 'Time Slot Asked' }}
+                                            : ($appointment->time_slot
+                                                ? 'Time Slot Asked'
+                                                : 'Time to Come') }}
 
                                     </p>
 

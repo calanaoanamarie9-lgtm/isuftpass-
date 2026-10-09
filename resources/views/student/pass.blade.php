@@ -429,7 +429,7 @@
 
                                             <p class="text-[10px] text-blue-100">
                                                 {{ $appointment->date->format('M j, Y') }} •
-                                                {{ $appointment->time_slot }}
+                                                {{ $appointment->timeToCome() }}
                                             </p>
                                         </div>
 

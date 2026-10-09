@@ -176,7 +176,7 @@
                         </p>
 
                         <p class="mt-1 font-bold text-gray-900 break-words">
-                            {{ $appointment->time_slot }}
+                            {{ $appointment->timeToCome() }}
                         </p>
                     </div>
 

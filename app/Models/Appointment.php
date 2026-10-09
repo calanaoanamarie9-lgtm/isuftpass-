@@ -122,10 +122,13 @@ class Appointment extends Model
      * office approves it, it answers with the time it wants them there, and
      * that answer is what the student follows. Everything that tells a
      * student when to arrive reads this rather than the raw request.
+     *
+     * Offices that set the time themselves (the Registrar) take no slot at
+     * booking, so a booking still waiting on approval reads as pending.
      */
     public function timeToCome(): string
     {
-        return $this->confirmed_time ?: (string) $this->time_slot;
+        return $this->confirmed_time ?: ($this->time_slot ?: 'To be set by the office');
     }
 
     /**

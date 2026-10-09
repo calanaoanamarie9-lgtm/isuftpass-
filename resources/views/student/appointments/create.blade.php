@@ -384,11 +384,16 @@
                         </div>
 
 
-                        {{-- DIVIDER --}}
-                        <div class="my-8 border-t border-gray-100"></div>
+                        {{-- SECTION: TIME
+                             A student booking the Registrar picks a date
+                             only; the office answers with the time when it
+                             approves, so this whole block hides for it.
+                        --}}
+                        <div id="time-section">
+
+                            <div class="my-8 border-t border-gray-100"></div>
 
 
-                        {{-- SECTION: TIME --}}
                         <div>
 
                             <div class="flex items-center gap-3 mb-5">
@@ -452,6 +457,8 @@
 
                         </div>
 
+                        </div>{{-- /#time-section --}}
+
 
                         {{-- DIVIDER --}}
                         <div class="my-8 border-t border-gray-100"></div>
@@ -465,7 +472,8 @@
                                 <div class="w-8 h-8 rounded-lg bg-blue-50
                                             flex items-center justify-center">
 
-                                    <span class="text-sm font-black text-blue-700">
+                                    <span id="notes-step"
+                                          class="text-sm font-black text-blue-700">
                                         4
                                     </span>
 
@@ -615,6 +623,30 @@
         const dateEl = document.getElementById('date');
         const slotSelect = document.getElementById('time_slot');
         const slotHint = document.getElementById('slot-hint');
+        const timeSection = document.getElementById('time-section');
+        const notesStep = document.getElementById('notes-step');
+        const registrarOffice = {{ Js::from(\App\Enums\Office::Registrar->value) }};
+
+
+        // The Registrar does not ask for a time: booking it shows a date only,
+        // and the office answers with a time when it approves. A disabled
+        // control is not submitted, so the request reaches the server with no
+        // slot at all — which is exactly what a Registrar booking is.
+        function applyOfficeMode() {
+
+            const registrar = officeEl.value === registrarOffice;
+
+            timeSection.classList.toggle('hidden', registrar);
+            slotSelect.disabled = registrar;
+            slotSelect.required = ! registrar;
+
+            if (notesStep) {
+
+                notesStep.textContent = registrar ? '3' : '4';
+
+            }
+
+        }
 
 
         const keepOption = (label, value = '') => {
@@ -635,6 +667,20 @@
 
             const office = officeEl.value;
             const date = dateEl.value;
+
+
+            if (office === registrarOffice) {
+
+                applyOfficeMode();
+
+                keepOption('The office will set your time');
+
+                slotHint.textContent =
+                    'The Registrar assigns the exact time when your appointment is approved.';
+
+                return;
+
+            }
 
 
             if (!office || !date) {
@@ -736,7 +782,13 @@
 
         officeEl.addEventListener(
             'change',
-            loadSlots
+            () => {
+
+                applyOfficeMode();
+
+                loadSlots();
+
+            }
         );
 
 
@@ -764,6 +816,8 @@
         document.addEventListener(
             'DOMContentLoaded',
             () => {
+
+                applyOfficeMode();
 
                 if (
                     officeEl.value &&

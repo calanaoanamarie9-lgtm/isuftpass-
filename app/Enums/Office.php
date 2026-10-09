@@ -42,6 +42,18 @@ enum Office: string
     }
 
     /**
+     * Offices that do not ask the student for a time when they book.
+     *
+     * A student booking one of these picks a date only; the office answers
+     * with the exact time when it approves the appointment, so the booking
+     * form hides the slot picker. The Registrar runs its queue this way.
+     */
+    public static function setsTimeOnApproval(string $office): bool
+    {
+        return $office === self::Registrar->value;
+    }
+
+    /**
      * Names of self-registered offices with an approved, active account.
      * Resolved once per request; falls back to the enum alone when the
      * database is not reachable (migrations, early console boot).

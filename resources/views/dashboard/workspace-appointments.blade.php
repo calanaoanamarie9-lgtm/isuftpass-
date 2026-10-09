@@ -8,6 +8,7 @@
             'date' => $a->date->format('M j, Y'),
             'raw_date' => $a->date->format('Y-m-d'),
             'time_slot' => $a->time_slot,
+            'time_to_come' => $a->timeToCome(),
             'confirmed_time' => $a->confirmed_time,
             'status' => $a->status,
             'reschedule_reason' => $a->reschedule_reason,
@@ -374,7 +375,7 @@
                                             </span>
 
                                             <span>
-                                                {{ $appointment->time_slot }}
+                                                {{ $appointment->timeToCome() }}
                                             </span>
 
                                         </div>
@@ -529,7 +530,7 @@
                                         <p class="mt-1 text-sm text-slate-500">
                                             {{ $appointment->date->format('M j, Y') }}
                                             •
-                                            {{ $appointment->time_slot }}
+                                            {{ $appointment->timeToCome() }}
                                         </p>
 
                                     </div>
@@ -679,12 +680,12 @@
                                 <div class="p-4">
 
                                     <p class="text-xs font-bold uppercase tracking-wider text-slate-400">
-                                        Time Slot
+                                        Time to Come
                                     </p>
 
                                     <p
                                         class="mt-1 font-bold text-slate-900"
-                                        x-text="selected.time_slot"
+                                        x-text="selected.time_to_come"
                                     ></p>
 
                                 </div>
@@ -923,7 +924,7 @@
                     <div class="p-4 bg-gray-50 border border-gray-200 rounded-xl">
                         <span class="text-xs font-semibold text-gray-500 uppercase">Current Schedule</span>
                         <p class="font-bold text-gray-800" x-text="selected?.date"></p>
-                        <p class="text-sm text-gray-600" x-text="selected?.time_slot"></p>
+                        <p class="text-sm text-gray-600" x-text="selected?.time_to_come"></p>
                     </div>
 
                     {{-- New Date Input --}}

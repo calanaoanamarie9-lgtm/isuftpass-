@@ -269,7 +269,7 @@
                             </p>
 
                             <p class="text-sm text-blue-200 mt-1">
-                                {{ $appointment->time_slot }}
+                                {{ $appointment->timeToCome() }}
                             </p>
 
                         </div>

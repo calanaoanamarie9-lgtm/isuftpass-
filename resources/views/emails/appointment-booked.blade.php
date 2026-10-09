@@ -9,7 +9,11 @@
     <p style="margin:0 0 22px;font-size:14px;line-height:1.8;color:#374151;">
         This is a reminder for your visit to <strong>{{ $appointment->office }}</strong>
         on <strong>{{ $appointment->date->format('F j, Y') }}</strong>
-        during <strong>{{ $appointment->time_slot }}</strong>.
+        @if ($appointment->time_slot)
+            during <strong>{{ $appointment->time_slot }}</strong>.
+        @else
+            &mdash; the office will tell you the exact time once it approves.
+        @endif
     </p>
 
     @include('emails.partials.badge', ['slot' => 'Appointment Reminder', 'bg' => '#dbeafe', 'text' => '#1e40af'])
@@ -18,7 +22,7 @@
         @include('emails.partials.row', ['label' => 'Office / Department', 'value' => $appointment->office])
         @include('emails.partials.row', ['label' => 'Purpose', 'value' => $appointment->purpose])
         @include('emails.partials.row', ['label' => 'Appointment Date', 'value' => $appointment->date->format('F j, Y (D)')])
-        @include('emails.partials.row', ['label' => 'Time Slot', 'value' => $appointment->time_slot])
+        @include('emails.partials.row', ['label' => $appointment->time_slot ? 'Time Slot' : 'Time to Come', 'value' => $appointment->timeToCome()])
         @include('emails.partials.row', ['label' => 'Reference Number', 'value' => $appointment->reference_code])
     </table>
 

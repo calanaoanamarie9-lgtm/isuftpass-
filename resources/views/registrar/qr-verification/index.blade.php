@@ -837,7 +837,7 @@
                                 <p class="mt-1 text-sm font-extrabold
                                           text-blue-950">
 
-                                    {{ $appointment->time_slot }}
+                                    {{ $appointment->timeToCome() }}
 
                                 </p>
 
@@ -1334,7 +1334,7 @@
                                                 {{ $appointment->office }}
                                                 —
                                                 {{ $appointment->date->format('M j, Y') }}
-                                                {{ $appointment->time_slot }}
+                                                {{ $appointment->timeToCome() }}
 
                                             </p>
 

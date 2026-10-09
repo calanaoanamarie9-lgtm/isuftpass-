@@ -113,7 +113,7 @@
                             <div class="flex-1 min-w-0">
                                 <p class="font-bold text-gray-900 text-sm truncate">{{ $appointment->user?->name ?? 'Student' }}</p>
                                 <p class="text-xs text-gray-500 truncate">
-                                    {{ $appointment->purpose }} &middot; {{ $appointment->date->format('M j, Y') }} &middot; {{ $appointment->time_slot }}
+                                    {{ $appointment->purpose }} &middot; {{ $appointment->date->format('M j, Y') }} &middot; {{ $appointment->timeToCome() }}
                                 </p>
                             </div>
                             <span class="shrink-0 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full {{ match($appointment->status) {

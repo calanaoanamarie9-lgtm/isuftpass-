@@ -21,9 +21,13 @@ class AppointmentCancelledNotification extends Notification
 
     public function toArray(object $notifiable): array
     {
+        $when = $this->appointment->time_slot
+            ? ' at ' . $this->appointment->time_slot
+            : '';
+
         return [
             'title' => 'Appointment Cancelled',
-            'message' => 'Your ' . $this->appointment->office . ' appointment scheduled on ' . $this->appointment->date->format('F j, Y') . ' at ' . $this->appointment->time_slot . ' has been cancelled.',
+            'message' => 'Your ' . $this->appointment->office . ' appointment scheduled on ' . $this->appointment->date->format('F j, Y') . $when . ' has been cancelled.',
             'url' => route('student.appointments.index', ['tab' => 'cancelled']),
         ];
     }

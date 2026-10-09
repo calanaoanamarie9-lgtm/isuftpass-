@@ -1104,7 +1104,7 @@
                                 <span class="text-xs
                                              text-gray-400">
 
-                                    {{ $appointment->time_slot }}
+                                    {{ $appointment->timeToCome() }}
 
                                 </span>
 

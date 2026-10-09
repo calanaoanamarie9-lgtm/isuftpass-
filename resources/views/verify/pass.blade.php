@@ -309,7 +309,7 @@
 
                                             <span class="mx-1">•</span>
 
-                                            {{ $appointment->time_slot }}
+                                            {{ $appointment->timeToCome() }}
 
                                         </p>
 

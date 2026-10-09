@@ -675,7 +675,7 @@
                                                   text-slate-500
                                                   mt-0.5">
 
-                                            {{ $appointment->time_slot }}
+                                            {{ $appointment->timeToCome() }}
 
                                         </p>
 
@@ -803,7 +803,7 @@
                                             reference: @js($appointment->reference_code),
                                             office: @js($appointment->office),
                                             dateLabel: @js($appointment->date->format('F j, Y')),
-                                            timeSlot: @js($appointment->time_slot),
+                                            timeSlot: @js($appointment->timeToCome()),
                                             reason: @js($appointment->reschedule_reason)
                                         })"
 

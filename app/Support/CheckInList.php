@@ -27,7 +27,7 @@ class CheckInList
             ->map(fn (Appointment $appointment) => [
                 'student' => $appointment->user->name,
                 'time' => $appointment->checked_in_at->format('g:i A'),
-                'slot' => $appointment->time_slot,
+                'slot' => $appointment->timeToCome(),
                 'status' => $appointment->statusLabel(),
             ])
             ->all();

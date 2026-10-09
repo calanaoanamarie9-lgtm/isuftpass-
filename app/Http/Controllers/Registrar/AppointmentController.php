@@ -205,13 +205,18 @@ class AppointmentController extends Controller
             'confirmed_time.before' => 'The office is closed by then. Choose a time before ' . self::clock($hours['close']) . '.',
         ]);
 
-        $remaining = Appointment::remainingSlots($appointment->office, $appointment->date->toDateString(), $appointment->time_slot);
+        // Offices that set the time themselves (the Registrar) carry no
+        // requested slot, so there is no slot capacity to weigh here — the
+        // day's own queue handles that.
+        if ($appointment->time_slot !== null) {
+            $remaining = Appointment::remainingSlots($appointment->office, $appointment->date->toDateString(), $appointment->time_slot);
 
-        if ($remaining < 1) {
-            return back()->with(
-                'error',
-                'The time slot is already at maximum capacity. Reschedule this appointment to an open slot first.'
-            );
+            if ($remaining < 1) {
+                return back()->with(
+                    'error',
+                    'The time slot is already at maximum capacity. Reschedule this appointment to an open slot first.'
+                );
+            }
         }
 
         $appointment->update([

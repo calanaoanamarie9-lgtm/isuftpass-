@@ -22,9 +22,13 @@ class AppointmentBookedNotification extends Notification
 
     public function toArray(object $notifiable): array
     {
+        $when = $this->appointment->time_slot
+            ? ' at ' . $this->appointment->time_slot
+            : ' — the time will be set once it is approved';
+
         return [
             'title' => 'Appointment Booked',
-            'message' => 'Your ' . $this->appointment->office . ' appointment on ' . $this->appointment->date->format('F j, Y') . ' at ' . $this->appointment->time_slot . ' is pending confirmation.',
+            'message' => 'Your ' . $this->appointment->office . ' appointment on ' . $this->appointment->date->format('F j, Y') . $when . ' is pending confirmation.',
             'url' => route('student.appointments.index'),
         ];
     }
