@@ -447,7 +447,7 @@
                                         space-y-2
                                         pr-1">
 
-                                <template x-for="(name, i) in roster" :key="i">
+                                <template x-for="(row, i) in roster" :key="i">
 
                                     <div class="flex items-center
                                                 gap-3
@@ -455,38 +455,75 @@
                                                 border
                                                 border-gray-100
                                                 bg-white
-                                                px-3 py-3">
+                                                px-3 py-3"
+                                         :class="row.cancelled
+                                             ? 'bg-red-50/40 border-red-100'
+                                             : ''">
 
+                                        {{-- WHERE THE BOOKING SITS IN THE
+                                             DAY. A cancelled one takes no
+                                             number: it is not going to
+                                             occupy one. --}}
                                         <span class="inline-flex
                                                      items-center
                                                      justify-center
                                                      w-6 h-6
                                                      shrink-0
                                                      rounded-full
-                                                     bg-gray-100
-                                                     text-gray-600
                                                      text-[11px]
                                                      font-extrabold
                                                      tabular-nums"
-                                              x-text="i + 1"></span>
+                                              :class="row.cancelled
+                                                  ? 'bg-red-100 text-red-500'
+                                                  : 'bg-gray-100 text-gray-600'"
+                                              x-text="row.number === null ? '✕' : row.number"></span>
 
                                         <span class="min-w-0
                                                      flex-1
                                                      truncate
                                                      text-sm
-                                                     font-semibold
-                                                     text-gray-800"
-                                              x-text="name"></span>
+                                                     font-semibold"
+                                              :class="row.cancelled
+                                                  ? 'text-gray-400 line-through'
+                                                  : 'text-gray-800'"
+                                              x-text="row.name"></span>
+
+                                        {{-- WHAT THIS BOOKING IS: approved
+                                             by this office, still waiting
+                                             on it, or cancelled. --}}
+                                        <span class="shrink-0
+                                                     px-1.5 py-0.5
+                                                     rounded-full
+                                                     text-[9px]
+                                                     font-extrabold
+                                                     uppercase"
+                                              :class="{
+                                                  'bg-green-50 text-green-700 ring-1 ring-green-200':
+                                                      row.status === 'confirmed',
+
+                                                  'bg-amber-50 text-amber-700 ring-1 ring-amber-200':
+                                                      row.status === 'pending',
+
+                                                  'bg-red-50 text-red-600 ring-1 ring-red-200':
+                                                      row.cancelled,
+
+                                                  'bg-blue-50 text-blue-700 ring-1 ring-blue-200':
+                                                      row.status !== 'confirmed'
+                                                      && row.status !== 'pending'
+                                                      && ! row.cancelled
+                                              }"
+                                              x-text="row.statusLabel"></span>
 
                                         <span class="ml-auto
                                                      shrink-0
                                                      text-[9px]
                                                      font-extrabold
                                                      uppercase"
-                                              :class="i + 1 <= slotsPerDay
+                                              x-show="! row.cancelled"
+                                              :class="row.number <= slotsPerDay
                                                   ? 'text-blue-600'
                                                   : 'text-amber-600'"
-                                              x-text="i + 1 <= slotsPerDay
+                                              x-text="row.number <= slotsPerDay
                                                   ? 'Slot'
                                                   : 'Bukas na'"></span>
 
@@ -494,7 +531,7 @@
 
                                 </template>
 
-                                <div x-show="rosterCount === 0"
+                                <div x-show="roster.length === 0"
                                      x-transition
                                      class="rounded-xl
                                             border border-dashed
@@ -1252,7 +1289,10 @@
 
                 get rosterCount() {
 
-                    return this.roster.length;
+                    // Cancelled bookings stay on the list so they can be
+                    // seen, but nobody is coming for them: they neither
+                    // fill the day nor count towards it.
+                    return this.roster.filter(row => ! row.cancelled).length;
 
                 },
 

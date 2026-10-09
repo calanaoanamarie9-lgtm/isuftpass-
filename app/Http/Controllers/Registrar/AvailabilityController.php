@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Registrar;
 
+use App\Enums\AppointmentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Office;
@@ -58,7 +59,7 @@ class AvailabilityController extends Controller
     }
 
     /**
-     * The day's appointments in booking order: date => list of names.
+     * The day's appointments in booking order: date => list of rows.
      *
      * The list numbers these instead of the office's hourly slots, so the
      * registrar reads the queue itself rather than a tally of it. Whoever
@@ -67,24 +68,45 @@ class AvailabilityController extends Controller
      * but lands below the day's fill instead of in front of it. First come,
      * first served.
      *
-     * Cancelled bookings are dropped: a slot that nobody will occupy should
-     * not count towards the day.
+     * Every row carries the appointment's state — approved by this office,
+     * still waiting on it, or cancelled — because the registrar is reading
+     * who is coming, not merely how many. Cancelled bookings keep their
+     * place on the list so nothing quietly disappears, but they take no
+     * number: a booking nobody will occupy does not count towards the day.
      *
-     * @return array<string, list<string>>
+     * @return array<string, list<array{name: string, status: string, statusLabel: string, cancelled: bool, number: int|null}>>
      */
     private function rosterByDate(): array
     {
         return Appointment::query()
             ->with('user:id,name')
             ->where('office', $this->officeKey())
-            ->whereNotIn('status', ['cancelled'])
             ->firstComeFirstServed()
             ->get()
             ->groupBy(fn (Appointment $appointment) => $appointment->date->toDateString())
-            ->map(fn ($appointments) => $appointments
-                ->map(fn (Appointment $appointment) => $appointment->user?->name ?? '—')
-                ->all()
-            )
+            ->map(function ($appointments) {
+                $rows = [];
+                $number = 0;
+
+                foreach ($appointments as $appointment) {
+                    $cancelled = $appointment->status === AppointmentStatus::CANCELLED->value;
+
+                    $rows[] = [
+                        'name' => $appointment->user?->name ?? '—',
+                        'status' => $appointment->status,
+                        // The button this office presses reads "Approve", so
+                        // the list names the result the same way.
+                        'statusLabel' => $appointment->status === AppointmentStatus::CONFIRMED->value
+                            ? 'Approved'
+                            : (AppointmentStatus::tryFrom($appointment->status)?->label()
+                                ?? ucfirst($appointment->status)),
+                        'cancelled' => $cancelled,
+                        'number' => $cancelled ? null : ++$number,
+                    ];
+                }
+
+                return $rows;
+            })
             ->all();
     }
 

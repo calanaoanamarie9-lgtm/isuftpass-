@@ -61,10 +61,10 @@ class RegistrarAvailabilityTest extends TestCase
 
     /**
      * Pull the day's rosters back out of the page. They arrive as JSON inside
-     * the Alpine component rather than as rendered rows, so the names have to
-     * be decoded before anything can be said about them.
+     * the Alpine component rather than as rendered rows, so each row's payload
+     * has to be decoded before anything can be said about it.
      *
-     * @return array<string, list<string>>
+     * @return array<string, list<array{name: string, status: string, statusLabel: string, cancelled: bool, number: int|null}>>
      */
     private function rosterFrom(string $html): array
     {
@@ -74,11 +74,52 @@ class RegistrarAvailabilityTest extends TestCase
             'The page must be handed the day rosters.'
         );
 
-        preg_match('/rosterByDate:\s*(\{.*?\}),/s', $html, $matches);
+        $marker = 'rosterByDate: ';
 
-        $this->assertNotEmpty($matches[1] ?? null, 'Could not find the roster payload.');
+        $payload = substr($html, strpos($html, $marker) + strlen($marker));
 
-        $roster = json_decode($matches[1], true);
+        // The payload holds objects of its own, so it has to be closed by
+        // counting braces rather than by stopping at the first one.
+        $depth = 0;
+        $end = null;
+        $inString = false;
+        $escaped = false;
+
+        for ($i = 0, $length = strlen($payload); $i < $length; $i++) {
+            $character = $payload[$i];
+
+            if ($escaped) {
+                $escaped = false;
+                continue;
+            }
+
+            if ($character === '\\') {
+                $escaped = true;
+                continue;
+            }
+
+            if ($character === '"') {
+                $inString = ! $inString;
+                continue;
+            }
+
+            if ($inString) {
+                continue;
+            }
+
+            if ($character === '{') {
+                $depth++;
+            }
+
+            if ($character === '}' && --$depth === 0) {
+                $end = $i;
+                break;
+            }
+        }
+
+        $this->assertNotNull($end, 'Could not find the roster payload.');
+
+        $roster = json_decode(substr($payload, 0, $end + 1), true);
 
         $this->assertIsArray($roster, 'The roster payload must be valid JSON.');
 
@@ -110,8 +151,15 @@ class RegistrarAvailabilityTest extends TestCase
             $roster[$date] ?? [],
             'Expected the date to carry its people to the page.'
         );
-        $this->assertStringContainsString('x-for="(name, i) in roster"', $html);
-        $this->assertStringContainsString('x-text="i + 1"', $html);
+        $this->assertStringContainsString('x-for="(row, i) in roster"', $html);
+        $this->assertStringContainsString('x-text="row.number', $html);
+
+        // The numbers come off the list itself, in booking order.
+        $this->assertSame(
+            range(1, 12),
+            array_column($roster[$date] ?? [], 'number'),
+            'Rows must arrive already numbered by arrival position.'
+        );
 
         // Beyond the first ten the row says so, since booking is unlimited.
         $this->assertStringContainsString('Bukas na', $html);
@@ -123,13 +171,14 @@ class RegistrarAvailabilityTest extends TestCase
         );
     }
 
-    public function test_a_cancelled_booking_is_left_off_the_roster_and_the_rest_keep_arrival_order(): void
+    public function test_every_booking_is_shown_with_its_state_and_only_live_ones_take_a_number(): void
     {
         $date = $this->futureDate();
 
         $this->bookRegistrar($date, 'pending', 'Ada Arrived First');
         $this->bookRegistrar($date, 'cancelled', 'Cleo Walked Away');
         $this->bookRegistrar($date, 'pending', 'Bea Arrived Second');
+        $this->bookRegistrar($date, 'confirmed', 'Dan Was Approved');
 
         $html = $this->actingAs($this->makeRegistrar())
             ->get('/registrar/availability')
@@ -137,12 +186,34 @@ class RegistrarAvailabilityTest extends TestCase
             ->getContent();
 
         $roster = $this->rosterFrom($html);
+        $rows = $roster[$date] ?? [];
 
         $this->assertSame(
-            ['Ada Arrived First', 'Bea Arrived Second'],
-            $roster[$date] ?? null,
-            'A booking nobody will occupy is left off, and the rest keep the order they arrived in.'
+            ['Ada Arrived First', 'Cleo Walked Away', 'Bea Arrived Second', 'Dan Was Approved'],
+            array_column($rows, 'name'),
+            'Everyone on the day is shown in arrival order — including the booking that was cancelled.'
         );
+
+        $this->assertSame(
+            [1, null, 2, 3],
+            array_column($rows, 'number'),
+            'A cancelled booking takes no number; the rest keep the order they arrived in.'
+        );
+
+        $this->assertTrue(
+            $rows[1]['cancelled'] ?? null,
+            'The cancelled booking must be marked as cancelled.'
+        );
+
+        $this->assertSame(
+            ['Pending', 'Cancelled', 'Pending', 'Approved'],
+            array_column($rows, 'statusLabel'),
+            'The registrar must be able to see what is approved, what is still waiting, and what was cancelled.'
+        );
+
+        // And the row is drawn from that payload, badge and all.
+        $this->assertStringContainsString('x-text="row.statusLabel"', $html);
+        $this->assertStringContainsString('row.cancelled', $html);
     }
 
     public function test_a_day_with_no_bookings_says_so_instead_of_listing_rows(): void
