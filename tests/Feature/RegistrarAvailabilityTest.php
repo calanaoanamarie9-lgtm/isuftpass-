@@ -216,6 +216,35 @@ class RegistrarAvailabilityTest extends TestCase
         $this->assertStringContainsString('row.cancelled', $html);
     }
 
+    public function test_the_roster_shows_the_time_the_office_told_each_student_to_come(): void
+    {
+        $date = $this->futureDate();
+
+        $this->bookRegistrar($date, 'pending', 'Ana Still Waiting');
+
+        // A booking the office has already answered.
+        $this->bookRegistrar($date, 'confirmed', 'Bea Was Approved');
+
+        Appointment::query()
+            ->whereHas('user', fn ($q) => $q->where('name', 'Bea Was Approved'))
+            ->update(['confirmed_time' => '2:30 PM']);
+
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability')
+            ->assertOk()
+            ->getContent();
+
+        $rows = $this->rosterFrom($html)[$date] ?? [];
+
+        $this->assertSame(
+            ['2:30 PM'],
+            array_values(array_filter(array_column($rows, 'time'))),
+            'The roster carries the time the office set for the student it approved.'
+        );
+
+        $this->assertStringContainsString('row.time', $html);
+    }
+
     public function test_a_day_with_no_bookings_says_so_instead_of_listing_rows(): void
     {
         $html = $this->actingAs($this->makeRegistrar())

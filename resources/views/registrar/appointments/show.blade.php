@@ -233,14 +233,60 @@
                         {{-- Approve --}}
                         @if (in_array($appointment->status, ['pending', 'for_reschedule']))
 
+                            @php $officeHours = \App\Support\TimeSlots::hoursFor($appointment->office); @endphp
+
                             <form method="POST"
                                   action="{{ route('registrar.appointments.confirm', $appointment) }}"
-                                  data-confirm="Confirm this appointment for the selected slot?"
-                                  data-confirm-ok="Yes, confirm"
-                                  data-confirm-icon="question"
-                                  data-confirm-title="Confirm appointment?">
+                                  class="flex flex-wrap items-end gap-3">
 
                                 @csrf
+
+                                {{-- The office answers the student's request with
+                                     the time it actually wants them there. --}}
+                                <div>
+
+                                    <label for="confirmed-time-{{ $appointment->id }}"
+                                           class="block text-[10px]
+                                                  uppercase
+                                                  tracking-widest
+                                                  font-black
+                                                  text-gray-500
+                                                  mb-1.5">
+
+                                        Time to come
+
+                                    </label>
+
+                                    <input type="time"
+                                           id="confirmed-time-{{ $appointment->id }}"
+                                           name="confirmed_time"
+                                           min="{{ $officeHours['open'] }}"
+                                           max="{{ $officeHours['close'] }}"
+                                           value="{{ old('confirmed_time', $appointment->time_slot ? \Illuminate\Support\Str::before($appointment->time_slot, ' - ') : $officeHours['open']) }}"
+                                           required
+
+                                           class="w-40
+                                                  rounded-xl
+                                                  border border-gray-200
+                                                  bg-white
+                                                  px-3 py-2.5
+                                                  text-sm
+                                                  font-bold
+                                                  text-gray-800
+                                                  focus:border-blue-500
+                                                  focus:ring-2
+                                                  focus:ring-blue-200
+                                                  outline-none
+                                                  transition
+                                                  @error('confirmed_time') border-red-400 @enderror">
+
+                                    @error('confirmed_time')
+                                        <p class="mt-1.5 text-xs font-semibold text-red-600">
+                                            {{ $message }}
+                                        </p>
+                                    @enderror
+
+                                </div>
 
                                 <button type="submit"
                                         class="inline-flex items-center gap-2
@@ -263,7 +309,7 @@
 
                                     </svg>
 
-                                    Approve Appointment
+                                    Approve & Set Time
 
                                 </button>
 
@@ -469,15 +515,31 @@
                                             p-5">
 
                                     <p class="text-xs text-blue-200">
-                                        Time Slot
+
+                                        {{ $appointment->confirmed_time
+                                            ? 'Time to Come'
+                                            : 'Time Slot Asked' }}
+
                                     </p>
 
                                     <p class="text-xl sm:text-2xl
                                               font-extrabold text-white mt-2">
 
-                                        {{ $appointment->time_slot }}
+                                        {{ $appointment->timeToCome() }}
 
                                     </p>
+
+                                    @if ($appointment->confirmed_time
+                                        && $appointment->time_slot
+                                        && $appointment->time_slot !== $appointment->confirmed_time)
+
+                                        <p class="text-xs text-blue-200 mt-2">
+
+                                            Asked for {{ $appointment->time_slot }}
+
+                                        </p>
+
+                                    @endif
 
                                 </div>
 

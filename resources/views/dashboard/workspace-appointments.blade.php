@@ -8,6 +8,7 @@
             'date' => $a->date->format('M j, Y'),
             'raw_date' => $a->date->format('Y-m-d'),
             'time_slot' => $a->time_slot,
+            'confirmed_time' => $a->confirmed_time,
             'status' => $a->status,
             'reschedule_reason' => $a->reschedule_reason,
             'original_time_slot' => $a->original_time_slot,
@@ -791,6 +792,24 @@
 
                                 @csrf
 
+                                {{-- The office answers with the time it wants
+                                     the student there, not the slot asked for. --}}
+                                <label
+                                    for="ws-confirmed-time"
+                                    class="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500"
+                                >
+                                    Time to come
+                                </label>
+
+                                <input
+                                    id="ws-confirmed-time"
+                                    type="time"
+                                    name="confirmed_time"
+                                    x-model="approveTime"
+                                    required
+                                    class="mb-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                >
+
                                 <button
                                     type="submit"
                                     class="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-green-700"
@@ -1011,6 +1030,11 @@
 
                 selected: null,
 
+                // The time the office wants the student to arrive. Seeded from
+                // the slot they asked for so the registrar usually only has to
+                // confirm it.
+                approveTime: '',
+
                 rescheduleOpen: false,
 
                 rescheduleDate: '',
@@ -1030,6 +1054,22 @@
                 openDetails(appointment) {
 
                     this.selected = appointment;
+
+                    // Offer the slot the student asked for, in the H:i a time
+                    // input understands, so approving is usually one click.
+                    const asked = (appointment.time_slot || '').trim();
+                    const match = asked.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+
+                    if (match) {
+                        let hour = parseInt(match[1], 10) % 12;
+
+                        if (/pm/i.test(match[3])) hour += 12;
+
+                        this.approveTime =
+                            String(hour).padStart(2, '0') + ':' + match[2];
+                    } else {
+                        this.approveTime = '';
+                    }
 
                 },
 

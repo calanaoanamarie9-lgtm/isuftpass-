@@ -61,6 +61,7 @@ class Appointment extends Model
         'original_date',
         'original_time_slot',
         'time_slot',
+        'confirmed_time',
         'reschedule_reason',
         'status',
         'notes',
@@ -112,6 +113,19 @@ class Appointment extends Model
     public function isUpcoming(): bool
     {
         return in_array($this->status, AppointmentStatus::schedulableValues(), true);
+    }
+
+    /**
+     * The time this student is actually being asked to come.
+     *
+     * A booking starts as a request — the slot they hoped for. Once the
+     * office approves it, it answers with the time it wants them there, and
+     * that answer is what the student follows. Everything that tells a
+     * student when to arrive reads this rather than the raw request.
+     */
+    public function timeToCome(): string
+    {
+        return $this->confirmed_time ?: (string) $this->time_slot;
     }
 
     /**

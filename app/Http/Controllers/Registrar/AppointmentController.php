@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Registrar;
 use App\Enums\AppointmentStatus;
 use App\Enums\Office;
 use App\Http\Controllers\Controller;
+use App\Mail\AppointmentApproved;
 use App\Mail\AppointmentRescheduled;
 use App\Models\Appointment;
+use App\Notifications\AppointmentApprovedNotification;
 use App\Notifications\AppointmentRescheduledNotification;
 use App\Support\AuditLogger;
 use App\Support\SafeMailer;
@@ -162,6 +164,11 @@ class AppointmentController extends Controller
 
     /**
      * Approve a pending / for-reschedule appointment, guarding slot capacity.
+     *
+     * The student asked for a slot; approving is the office answering with the
+     * time it actually wants them there. The registrar picks that time here,
+     * and the student is told it by email and in the system — an approval they
+     * never hear about is not an approval.
      */
     public function confirm(Request $request, Appointment $appointment): RedirectResponse
     {
@@ -182,6 +189,22 @@ class AppointmentController extends Controller
             'Only pending or for-reschedule appointments can be confirmed.'
         );
 
+        $hours = TimeSlots::hoursFor($appointment->office);
+
+        $data = $request->validate([
+            'confirmed_time' => [
+                'required',
+                'date_format:H:i',
+                'after_or_equal:' . $hours['open'],
+                'before:' . $hours['close'],
+            ],
+        ], [
+            'confirmed_time.required' => 'Pick the time you want the student to come.',
+            'confirmed_time.date_format' => 'That is not a readable time.',
+            'confirmed_time.after_or_equal' => 'The office is not open that early. Choose a time at or after ' . self::clock($hours['open']) . '.',
+            'confirmed_time.before' => 'The office is closed by then. Choose a time before ' . self::clock($hours['close']) . '.',
+        ]);
+
         $remaining = Appointment::remainingSlots($appointment->office, $appointment->date->toDateString(), $appointment->time_slot);
 
         if ($remaining < 1) {
@@ -193,12 +216,35 @@ class AppointmentController extends Controller
 
         $appointment->update([
             'status' => AppointmentStatus::CONFIRMED->value,
+            'confirmed_time' => self::clock($data['confirmed_time']),
             'confirmed_at' => now(),
         ]);
 
-        AuditLogger::log('appointment.confirmed', 'Confirmed appointment ' . $appointment->reference_code . ' for ' . $appointment->date->toDateString() . ' (' . $appointment->time_slot . ').');
+        // The student booked a date and a hoped-for slot; this is the office
+        // telling them when to actually arrive.
+        SafeMailer::send($appointment->user, new AppointmentApproved($appointment));
+        $appointment->user->notify(new AppointmentApprovedNotification($appointment));
 
-        return back()->with('status', 'Appointment confirmed.');
+        AuditLogger::log(
+            'appointment.confirmed',
+            'Confirmed appointment ' . $appointment->reference_code . ' for ' . $appointment->date->toDateString()
+                . ', student to come at ' . $appointment->confirmed_time . '.'
+        );
+
+        return back()->with(
+            'status',
+            'Appointment approved. ' . $appointment->user->name . ' has been told to come at ' . $appointment->confirmed_time . '.'
+        );
+    }
+
+    /**
+     * An H:i clock time spelled the way the office reads it: 09:00 -> 9:00 AM.
+     */
+    private static function clock(string $time): string
+    {
+        [$hour, $minute] = array_map('intval', explode(':', $time));
+
+        return sprintf('%d:%02d %s', $hour % 12 ?: 12, $minute, $hour < 12 ? 'AM' : 'PM');
     }
 
     /**

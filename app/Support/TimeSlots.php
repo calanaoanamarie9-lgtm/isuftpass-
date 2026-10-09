@@ -30,12 +30,25 @@ class TimeSlots
      */
     public static function forOffice(?string $office): array
     {
+        $hours = self::hoursFor($office);
+
+        return self::between($hours['open'], $hours['close']);
+    }
+
+    /**
+     * The hours an office keeps, in H:i, falling back to the default day
+     * when it has saved none yet.
+     *
+     * @return array{open: string, close: string}
+     */
+    public static function hoursFor(?string $office): array
+    {
         $row = $office === null ? null : self::officeRow($office);
 
-        return self::between(
-            $row?->open_time ?: self::DEFAULT_OPEN,
-            $row?->close_time ?: self::DEFAULT_CLOSE,
-        );
+        return [
+            'open' => $row?->open_time ?: self::DEFAULT_OPEN,
+            'close' => $row?->close_time ?: self::DEFAULT_CLOSE,
+        ];
     }
 
     /**

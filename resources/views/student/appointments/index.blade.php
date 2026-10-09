@@ -232,19 +232,38 @@
                                 </div>
 
 
-                                {{-- Time --}}
+                                {{-- Time to come --}}
                                 <div class="border border-gray-200
                                             rounded-xl px-4 py-3">
 
                                     <p class="text-[10px] uppercase
                                               tracking-widest
                                               text-gray-400 font-bold">
-                                        Time Slot
+
+                                        {{ $appointment->confirmed_time
+                                            ? 'Come At'
+                                            : 'Time Slot Asked' }}
+
                                     </p>
 
                                     <p class="text-sm font-bold text-gray-800 mt-1">
-                                        {{ $appointment->time_slot }}
+                                        {{ $appointment->timeToCome() }}
                                     </p>
+
+                                    @if ($appointment->confirmed_time
+                                        && $appointment->time_slot
+                                        && $appointment->time_slot !== $appointment->confirmed_time)
+
+                                        <p class="text-[11px]
+                                                  text-gray-400
+                                                  mt-1">
+
+                                            You asked for
+                                            {{ $appointment->time_slot }}
+
+                                        </p>
+
+                                    @endif
 
                                 </div>
 

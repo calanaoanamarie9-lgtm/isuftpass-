@@ -100,6 +100,9 @@ class AvailabilityController extends Controller
                             ? 'Approved'
                             : (AppointmentStatus::tryFrom($appointment->status)?->label()
                                 ?? ucfirst($appointment->status)),
+                        // When the office told this student to arrive, once
+                        // it has answered their request.
+                        'time' => $appointment->confirmed_time,
                         'cancelled' => $cancelled,
                         'number' => $cancelled ? null : ++$number,
                     ];

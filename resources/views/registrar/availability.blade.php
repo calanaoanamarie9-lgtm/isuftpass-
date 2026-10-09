@@ -488,6 +488,19 @@
                                                   : 'text-gray-800'"
                                               x-text="row.name"></span>
 
+                                        {{-- When the office told this
+                                             student to arrive, once it has
+                                             answered their request. --}}
+                                        <span class="shrink-0
+                                                     text-[11px]
+                                                     font-extrabold
+                                                     tabular-nums"
+                                              x-show="row.time && ! row.cancelled"
+                                              :class="row.status === 'confirmed'
+                                                  ? 'text-blue-700'
+                                                  : 'text-gray-400'"
+                                              x-text="row.time"></span>
+
                                         {{-- WHAT THIS BOOKING IS: approved
                                              by this office, still waiting
                                              on it, or cancelled. --}}

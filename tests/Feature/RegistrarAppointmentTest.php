@@ -3,13 +3,16 @@
 namespace Tests\Feature;
 
 use App\Enums\AppointmentStatus;
+use App\Mail\AppointmentApproved;
 use App\Models\Appointment;
 use App\Models\SlotAvailability;
 use App\Models\User;
+use App\Notifications\AppointmentApprovedNotification;
 use App\Notifications\AppointmentRescheduledNotification;
 use App\Support\SlotAvailabilityService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class RegistrarAppointmentTest extends TestCase
@@ -280,14 +283,51 @@ class RegistrarAppointmentTest extends TestCase
         $appointment->update(['time_slot' => $slot]);
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/appointments/'.$appointment->id.'/confirm')
+            ->post('/registrar/appointments/'.$appointment->id.'/confirm', [
+                'confirmed_time' => '09:00',
+            ])
             ->assertRedirect()
             ->assertSessionHas('error');
 
         $this->assertEquals(AppointmentStatus::PENDING->value, $appointment->refresh()->status);
     }
 
-    public function test_registrar_can_confirm_pending_appointment(): void
+    public function test_registrar_can_confirm_pending_appointment_and_sets_the_time_to_come(): void
+    {
+        Mail::fake();
+        Notification::fake();
+
+        [, $appointment] = $this->makeStudentWithAppointment();
+
+        $this->actingAs($this->makeRegistrar())
+            ->post('/registrar/appointments/'.$appointment->id.'/confirm', [
+                'confirmed_time' => '14:30',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $appointment->refresh();
+
+        $this->assertEquals(AppointmentStatus::CONFIRMED->value, $appointment->status);
+        $this->assertNotNull($appointment->confirmed_at);
+
+        // The office answers the student's request with the time it wants
+        // them there — not the slot they asked for.
+        $this->assertSame('2:30 PM', $appointment->confirmed_time);
+        $this->assertSame('2:30 PM', $appointment->timeToCome());
+
+        // And the student is actually told.
+        Notification::assertSentTo(
+            $appointment->user,
+            AppointmentApprovedNotification::class,
+            fn (AppointmentApprovedNotification $notification) => str_contains(
+                $notification->toArray($appointment->user)['message'],
+                'Come at 2:30 PM'
+            )
+        );
+    }
+
+    public function test_approving_without_a_time_is_refused(): void
     {
         Mail::fake();
 
@@ -296,12 +336,55 @@ class RegistrarAppointmentTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->post('/registrar/appointments/'.$appointment->id.'/confirm')
             ->assertRedirect()
-            ->assertSessionHas('status');
+            ->assertSessionHasErrors('confirmed_time');
 
-        $appointment->refresh();
+        $this->assertEquals(AppointmentStatus::PENDING->value, $appointment->refresh()->status);
+    }
 
-        $this->assertEquals(AppointmentStatus::CONFIRMED->value, $appointment->status);
-        $this->assertNotNull($appointment->confirmed_at);
+    public function test_the_time_must_fall_inside_the_offices_own_hours(): void
+    {
+        Mail::fake();
+
+        [, $appointment] = $this->makeStudentWithAppointment();
+
+        // Before the office opens.
+        $this->actingAs($this->makeRegistrar())
+            ->post('/registrar/appointments/'.$appointment->id.'/confirm', [
+                'confirmed_time' => '06:00',
+            ])
+            ->assertSessionHasErrors('confirmed_time');
+
+        // After it closes.
+        $this->actingAs($this->makeRegistrar())
+            ->post('/registrar/appointments/'.$appointment->id.'/confirm', [
+                'confirmed_time' => '23:00',
+            ])
+            ->assertSessionHasErrors('confirmed_time');
+
+        $this->assertEquals(AppointmentStatus::PENDING->value, $appointment->refresh()->status);
+    }
+
+    public function test_the_student_is_notified_of_the_time_they_are_expected(): void
+    {
+        Mail::fake();
+        Notification::fake();
+
+        [$student, $appointment] = $this->makeStudentWithAppointment();
+
+        $this->actingAs($this->makeRegistrar())
+            ->post('/registrar/appointments/'.$appointment->id.'/confirm', [
+                'confirmed_time' => '10:00',
+            ])
+            ->assertRedirect();
+
+        // SafeMailer hands the message straight to the transport rather than
+        // queueing it, so this is assertSent.
+        Mail::assertSent(AppointmentApproved::class, function (AppointmentApproved $mail) use ($student) {
+            return $mail->hasTo($student->email)
+                && str_contains($mail->render(), '10:00 AM');
+        });
+
+        Notification::assertSentTo($student, AppointmentApprovedNotification::class);
     }
 
     public function test_reschedule_records_original_schedule_and_reason(): void
