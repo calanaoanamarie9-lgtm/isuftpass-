@@ -196,6 +196,16 @@ class DocumentRequestController extends Controller
             }
         }
 
+        // Naming a document is what asks for it. When somebody writes the
+        // document they came for, it counts as ticking Others whether or not
+        // the box ever got ticked — so what they asked for is not quietly
+        // dropped on save because a browser did not run our script.
+        $typed = $request->input('others_specification');
+
+        if (is_string($typed) && trim($typed) !== '') {
+            $request->merge(['others' => 1]);
+        }
+
         return $request->validate([
             'document_ids' => ['required', 'array', 'min:1'],
             'document_ids.*' => ['integer', 'exists:documents,id'],

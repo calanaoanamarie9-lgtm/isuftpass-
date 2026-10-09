@@ -182,6 +182,25 @@ class DocumentRequestOfficialFormTest extends TestCase
             ->assertSessionHasErrors('others_specification');
     }
 
+    public function test_typing_a_document_keeps_it_even_when_the_box_was_never_ticked(): void
+    {
+        $documents = $this->makeDocuments();
+        $user = $this->createStudent();
+
+        $this->actingAs($user)
+            ->post('/student/document-requests', $this->validPayload([
+                'document_ids' => [$documents[0]->id],
+                'others_specification' => 'Certificate of Registration',
+            ]))
+            ->assertRedirect();
+
+        $this->assertSame(
+            'Certificate of Registration',
+            $user->documentRequests()->first()->others_specification,
+            'What they wrote is the document they asked for, tick or no tick.'
+        );
+    }
+
     public function test_conditional_fields_accept_missing_or_array_values(): void
     {
         $documents = $this->makeDocuments();
@@ -198,7 +217,10 @@ class DocumentRequestOfficialFormTest extends TestCase
 
         $request = $user->documentRequests()->first();
         $this->assertNotNull($request);
-        $this->assertNull($request->others_specification);
+        // The array is flattened to its first entry, and naming a document
+        // counts as asking for it — so it is kept instead of being dropped
+        // for a box nobody ticked.
+        $this->assertEquals('Some document', $request->others_specification);
         $this->assertNull($request->transfer_to);
         $this->assertEquals('Rep Name', $request->representative_name);
     }
