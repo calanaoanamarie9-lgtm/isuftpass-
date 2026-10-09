@@ -133,7 +133,7 @@ class CompleteProfileController extends Controller
         }
 
         // Store avatar path if uploaded
-        if ($request->hasFile('avatar') && $user->avatar) {
+        if ($request->hasFile('avatar')) {
             $path = $request->file('avatar')->store('avatars', 'public');
             $user->update(['avatar' => $path]);
         }
