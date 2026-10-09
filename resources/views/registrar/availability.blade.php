@@ -379,10 +379,11 @@
 
                         {{-- =================================================
                             APPOINTMENTS
-                            Always shown: the registrar reads how full a
-                            day is whatever the day is set to.
+                            Only when the day has bookings: there is
+                            nothing to read once the list is empty.
                         ================================================== --}}
                         <div
+                            x-show="roster.length > 0"
                             x-transition
                             class="mt-6
                                    rounded-2xl
@@ -423,14 +424,10 @@
 
 
                             {{-- APPOINTMENT ROSTER --}}
-                            {{-- The list numbers the day's bookings instead of
-                                 the office's clock hours: the registrar is
-                                 reading how full a day is, not choosing between
-                                 times. The day's slots fill in order and
-                                 anything past them still books — there is no
-                                 limit on how many students may ask — so the
-                                 tail is simply marked as coming after the
-                                 day's first fill. --}}
+                            {{-- The list numbers the day's bookings by
+                                 arrival order rather than the office's clock
+                                 hours: the registrar reads who is coming,
+                                 not a timetable. --}}
                             <div class="max-h-64
                                         overflow-y-auto
                                         space-y-2
@@ -519,23 +516,6 @@
                                     </div>
 
                                 </template>
-
-                                <div x-show="roster.length === 0"
-                                     x-transition
-                                     class="rounded-xl
-                                            border border-dashed
-                                            border-gray-200
-                                            bg-gray-50
-                                            px-3 py-6
-                                            text-center">
-
-                                    <p class="text-xs
-                                              font-semibold
-                                              text-gray-500">
-                                        No appointments on this date yet.
-                                    </p>
-
-                                </div>
 
                             </div>
 

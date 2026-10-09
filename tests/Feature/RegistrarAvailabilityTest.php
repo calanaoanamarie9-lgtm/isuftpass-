@@ -246,15 +246,17 @@ class RegistrarAvailabilityTest extends TestCase
         $this->assertStringContainsString('row.time', $html);
     }
 
-    public function test_a_day_with_no_bookings_says_so_instead_of_listing_rows(): void
+    public function test_a_day_with_no_bookings_keeps_the_list_off_the_page(): void
     {
         $html = $this->actingAs($this->makeRegistrar())
             ->get('/registrar/availability')
             ->assertOk()
             ->getContent();
 
-        $this->assertStringContainsString('No appointments on this date yet.', $html);
-        $this->assertStringNotContainsString('Booking is unlimited', $html);
+        // Nothing to read once nobody has booked: the whole appointments
+        // panel is hidden, not shown with an empty placeholder.
+        $this->assertStringContainsString('x-show="roster.length > 0"', $html);
+        $this->assertStringNotContainsString('No appointments on this date yet.', $html);
     }
 
     public function test_the_days_size_is_its_own_number_not_the_offices_hours(): void
