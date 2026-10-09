@@ -74,6 +74,20 @@ class RegistrarDocumentRequestModuleTest extends TestCase
             ->assertDontSee($completedRequest->request_number);
     }
 
+    public function test_registrar_can_filter_the_archive_tab_to_completed_requests(): void
+    {
+        [, $activeRequest] = $this->makeStudentWithRequest();
+        [, $completedRequest] = $this->makeStudentWithRequest(DocumentRequestStatus::COMPLETED->value);
+        [, $cancelledRequest] = $this->makeStudentWithRequest(DocumentRequestStatus::CANCELLED->value);
+
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/document-requests?tab=archived&status=completed')
+            ->assertOk()
+            ->assertSee($completedRequest->request_number)
+            ->assertDontSee($cancelledRequest->request_number)
+            ->assertDontSee($activeRequest->request_number);
+    }
+
     public function test_registrar_can_view_request_details(): void
     {
         [$student] = $this->makeStudentWithRequest();

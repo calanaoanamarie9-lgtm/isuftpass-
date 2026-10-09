@@ -103,6 +103,16 @@ class RegistrarDashboardTest extends TestCase
         $this->assertStatShows($html, 'Students Served', 2);
     }
 
+    public function test_the_stat_cards_link_to_their_matching_request_lists(): void
+    {
+        $this->actingAs($this->makeRegistrar())
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee(route('registrar.document-requests.index', ['tab' => 'active', 'status' => 'submitted']))
+            ->assertSee(route('registrar.document-requests.index', ['tab' => 'active', 'status' => 'for_signature']))
+            ->assertSee(route('registrar.document-requests.index', ['tab' => 'archived', 'status' => 'completed']));
+    }
+
     public function test_the_pending_table_names_the_students_behind_the_count(): void
     {
         $pending = $this->makeRequest(

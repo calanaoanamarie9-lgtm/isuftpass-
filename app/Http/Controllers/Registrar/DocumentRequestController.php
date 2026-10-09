@@ -27,10 +27,16 @@ class DocumentRequestController extends Controller
         $query = DocumentRequest::with(['user', 'documents'])->latest();
 
         if ($tab === 'archived') {
-            $query->whereIn('status', [
+            $archived = [
                 DocumentRequestStatus::COMPLETED->value,
                 DocumentRequestStatus::CANCELLED->value,
-            ]);
+            ];
+
+            // The dashboard's "Issued Documents" card links straight to the
+            // completed ones, so the history tab honours a status filter too.
+            $status = $request->query('status');
+
+            $query->whereIn('status', in_array($status, $archived, true) ? [$status] : $archived);
         } elseif ($status = $request->query('status')) {
             $query->where('status', $status);
         } else {

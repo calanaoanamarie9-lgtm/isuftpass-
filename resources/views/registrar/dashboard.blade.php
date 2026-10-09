@@ -215,7 +215,8 @@
 
 
                 {{-- PENDING --}}
-                <div class="group
+                <a href="{{ route('registrar.document-requests.index', ['tab' => 'active', 'status' => 'submitted']) }}"
+                   class="group block
                             bg-white
                             rounded-2xl
                             p-5
@@ -282,11 +283,12 @@
 
                     </p>
 
-                </div>
+                </a>
 
 
                 {{-- APPROVED --}}
-                <div class="group
+                <a href="{{ route('registrar.document-requests.index', ['tab' => 'active', 'status' => 'for_signature']) }}"
+                   class="group block
                             bg-white
                             rounded-2xl
                             p-5
@@ -353,11 +355,12 @@
 
                     </p>
 
-                </div>
+                </a>
 
 
                 {{-- ISSUED --}}
-                <div class="group
+                <a href="{{ route('registrar.document-requests.index', ['tab' => 'archived', 'status' => 'completed']) }}"
+                   class="group block
                             bg-white
                             rounded-2xl
                             p-5
@@ -424,11 +427,12 @@
 
                     </p>
 
-                </div>
+                </a>
 
 
                 {{-- STUDENTS --}}
-                <div class="group
+                <a href="{{ route('registrar.students.index') }}"
+                   class="group block
                             bg-white
                             rounded-2xl
                             p-5
@@ -495,7 +499,7 @@
 
                     </p>
 
-                </div>
+                </a>
 
             </div>
 
