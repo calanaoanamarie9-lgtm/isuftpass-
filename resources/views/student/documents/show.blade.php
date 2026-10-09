@@ -480,6 +480,35 @@
                             </div>
 
 
+                            {{-- What they typed for a document nobody listed --}}
+                            @if ($documentRequest->others_specification)
+
+                                <div>
+
+                                    <p
+                                        class="text-[10px]
+                                               font-bold
+                                               tracking-wider
+                                               text-gray-400
+                                               uppercase"
+                                    >
+                                        Others
+                                    </p>
+
+                                    <p
+                                        class="mt-1
+                                               text-sm
+                                               font-black
+                                               text-gray-900"
+                                    >
+                                        {{ $documentRequest->others_specification }}
+                                    </p>
+
+                                </div>
+
+                            @endif
+
+
                             {{-- Copies --}}
                             <div>
 

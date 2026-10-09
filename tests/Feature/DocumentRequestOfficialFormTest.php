@@ -219,6 +219,35 @@ class DocumentRequestOfficialFormTest extends TestCase
         $this->assertEquals('Certificate of Enrollment', $user->documentRequests()->first()->others_specification);
     }
 
+    public function test_the_others_box_is_open_for_typing_without_ticking_it_first(): void
+    {
+        $this->makeDocuments();
+        $user = $this->createStudent();
+
+        $html = $this->actingAs($user)
+            ->get('/student/document-requests/create')
+            ->assertOk()
+            ->getContent();
+
+        // The field sits open under the option instead of waiting behind the
+        // tick, so there is something on screen to type into straight away.
+        $this->assertStringContainsString(
+            '<div id="others-spec" class="mt-3">',
+            $html,
+            'The specification box must be open so the document can be named.'
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/id="others-spec"[^>]*class="[^"]*\bhidden\b/',
+            $html,
+            'The specification box must not be hidden behind the Others tick.'
+        );
+
+        // Typing ticks the option for them, so what they wrote is what gets
+        // sent rather than being dropped for a box nobody remembered to tick.
+        $this->assertStringContainsString('x-on:input=', $html);
+        $this->assertStringContainsString("getElementById('others').checked = true", $html);
+    }
+
     public function test_representative_mode_requires_name(): void
     {
         $documents = $this->makeDocuments();
@@ -270,6 +299,30 @@ class DocumentRequestOfficialFormTest extends TestCase
 
         $this->assertNotNull($request->claim_token);
         $this->assertNotEquals($request->claim_token, $request->request_number);
+    }
+
+    public function test_show_page_repeats_the_others_document_they_named(): void
+    {
+        $documents = $this->makeDocuments();
+        $user = $this->createStudent();
+
+        $this->actingAs($user)
+            ->post('/student/document-requests', $this->validPayload([
+                'document_ids' => [$documents[0]->id],
+                'others' => '1',
+                'others_specification' => 'Certificate of Good Moral Character',
+            ]))
+            ->assertRedirect();
+
+        $request = $user->documentRequests()->first();
+
+        // Whatever they typed has to survive the trip and come back to them
+        // on the details page, sitting beside the purpose they picked.
+        $this->actingAs($user)
+            ->get('/student/document-requests/' . $request->id)
+            ->assertOk()
+            ->assertSee('Others')
+            ->assertSee('Certificate of Good Moral Character');
     }
 
     public function test_show_page_renders_scannable_claim_qr(): void
