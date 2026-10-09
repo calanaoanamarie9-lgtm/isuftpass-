@@ -25,15 +25,31 @@ class AppointmentController extends Controller
     /**
      * Staff management list of student appointments for the account's office.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
+        // The filter speaks the office's language: "Approved" is the label the
+        // page prints for a stored "confirmed" status, so the option is turned
+        // back into the value the column actually holds.
+        $filter = $request->query('status');
+        $filter = is_string($filter) ? $filter : null;
+
+        $status = [
+            'pending' => AppointmentStatus::PENDING->value,
+            'approved' => AppointmentStatus::CONFIRMED->value,
+            'rescheduled' => AppointmentStatus::RESCHEDULED->value,
+            'cancelled' => AppointmentStatus::CANCELLED->value,
+        ][$filter] ?? null;
+
         $appointments = Appointment::with('user')
             ->where('office', auth()->user()->officeScope())
+            ->when($status, fn ($query) => $query->where('status', $status))
             ->firstComeFirstServed()
-            ->paginate(12);
+            ->paginate(12)
+            ->withQueryString();
 
         return view('registrar.appointments.index', [
             'appointments' => $appointments,
+            'statusFilter' => $filter,
         ]);
     }
 

@@ -380,7 +380,9 @@
                 </div>
 
 
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+                <form method="GET"
+                      action="{{ route('registrar.appointments.index') }}"
+                      class="grid grid-cols-1 lg:grid-cols-12 gap-3">
 
                     {{-- SEARCH --}}
                     <div class="lg:col-span-6 relative">
@@ -420,6 +422,8 @@
                     <div class="lg:col-span-3">
 
                         <select
+                            name="status"
+                            onchange="this.form.submit()"
                             class="w-full rounded-xl
                                    border-slate-200
                                    bg-slate-50
@@ -428,19 +432,25 @@
                                    focus:border-blue-500
                                    focus:ring-blue-500">
 
-                            <option>All Status</option>
+                            <option value="all" @selected(! $statusFilter || $statusFilter === 'all')>
+                                All Status
+                            </option>
 
-                            <option>Pending</option>
+                            <option value="pending" @selected($statusFilter === 'pending')>
+                                Pending
+                            </option>
 
-                            <option>Confirmed</option>
+                            <option value="approved" @selected($statusFilter === 'approved')>
+                                Approved
+                            </option>
 
-                            <option>For Reschedule</option>
+                            <option value="rescheduled" @selected($statusFilter === 'rescheduled')>
+                                Rescheduled
+                            </option>
 
-                            <option>Rescheduled</option>
-
-                            <option>Completed</option>
-
-                            <option>Cancelled</option>
+                            <option value="cancelled" @selected($statusFilter === 'cancelled')>
+                                Cancelled
+                            </option>
 
                         </select>
 
@@ -462,7 +472,7 @@
 
                     </div>
 
-                </div>
+                </form>
 
             </div>
 

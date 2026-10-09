@@ -96,6 +96,41 @@ class RegistrarAppointmentTest extends TestCase
             ->assertDontSee($regAppt->reference_code);
     }
 
+    public function test_registrar_can_filter_the_list_by_status(): void
+    {
+        $registrar = $this->makeRegistrar();
+
+        // "Approved" is the page's word for a stored "confirmed" booking.
+        $appointments = [
+            'pending' => $this->makeStudentWithAppointment(AppointmentStatus::PENDING->value)[1],
+            'approved' => $this->makeStudentWithAppointment(AppointmentStatus::CONFIRMED->value)[1],
+            'rescheduled' => $this->makeStudentWithAppointment(AppointmentStatus::RESCHEDULED->value)[1],
+            'cancelled' => $this->makeStudentWithAppointment(AppointmentStatus::CANCELLED->value)[1],
+        ];
+
+        foreach ($appointments as $filter => $shown) {
+            $response = $this->actingAs($registrar)
+                ->get('/registrar/appointments?status='.$filter)
+                ->assertOk()
+                ->assertSee($shown->reference_code);
+
+            foreach ($appointments as $other => $hidden) {
+                if ($other !== $filter) {
+                    $response->assertDontSee($hidden->reference_code);
+                }
+            }
+        }
+
+        // "All Status" keeps every booking on the page.
+        $response = $this->actingAs($registrar)
+            ->get('/registrar/appointments?status=all')
+            ->assertOk();
+
+        foreach ($appointments as $appointment) {
+            $response->assertSee($appointment->reference_code);
+        }
+    }
+
     public function test_student_cannot_access_registrar_routes(): void
     {
         [$student] = $this->makeStudentWithAppointment();
