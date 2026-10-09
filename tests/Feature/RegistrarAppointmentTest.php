@@ -75,6 +75,18 @@ class RegistrarAppointmentTest extends TestCase
             ->assertSee($appointment->reference_code);
     }
 
+    public function test_the_details_page_no_longer_shows_the_current_schedule_panel(): void
+    {
+        [, $appointment] = $this->makeStudentWithAppointment();
+
+        $this->actingAs($this->makeRegistrar())
+            ->get(route('registrar.appointments.show', $appointment))
+            ->assertOk()
+            ->assertDontSee('Confirmed appointment information')
+            ->assertDontSee('Appointment Date')
+            ->assertDontSee('Time Slot Asked');
+    }
+
     public function test_registrar_with_office_sees_only_own_office_appointments(): void
     {
         [$student1, $regAppt] = $this->makeStudentWithAppointment();
