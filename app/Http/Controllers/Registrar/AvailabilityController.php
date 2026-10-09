@@ -41,13 +41,18 @@ class AvailabilityController extends Controller
     /**
      * Registrar Availability page — configure open days/slots and review the schedule.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
+        // The page is a calendar, so it opens on a month: that month's set
+        // dates come with it, and ?month= lets a page be pointed at another.
+        $month = $this->resolveMonth($request->input('month'));
+
         return view('registrar.availability', [
             'office' => Office::where('name', $this->officeKey())->first(),
             'timeSlots' => TimeSlots::forOffice($this->officeKey()),
             'slotsPerDay' => Appointment::SLOTS_PER_DAY,
-            'schedule' => $this->buildSchedule(),
+            'month' => $month,
+            'schedule' => $this->buildSchedule($month),
             'rosterByDate' => $this->rosterByDate(),
         ]);
     }
@@ -86,9 +91,14 @@ class AvailabilityController extends Controller
     /**
      * JSON: upcoming configured dates for the schedule panel.
      */
-    public function schedule(): JsonResponse
+    /**
+     * A month's set dates, for paging the calendar without a full reload.
+     */
+    public function schedule(Request $request): JsonResponse
     {
-        return response()->json(['schedule' => $this->buildSchedule()]);
+        return response()->json([
+            'schedule' => $this->buildSchedule($this->resolveMonth($request->input('month'))),
+        ]);
     }
 
     /**
@@ -166,9 +176,14 @@ class AvailabilityController extends Controller
             }
         );
 
+        // The calendar reads one month at a time, so send back the month
+        // that was written — it is the one the grid should be showing.
+        $savedMonth = Carbon::parse($data['date'])->format('Y-m');
+
         return response()->json([
             'message' => $office->name . ' availability has been updated.',
-            'schedule' => $this->buildSchedule(),
+            'month' => $savedMonth,
+            'schedule' => $this->buildSchedule($savedMonth),
         ]);
     }
 
@@ -237,18 +252,31 @@ class AvailabilityController extends Controller
     }
 
     /**
-     * Upcoming date-specific overrides grouped for the schedule panel.
+     * The dates in a month that carry an override, each with what was set.
+     *
+     * One entry per date — its status and the times behind it, which is
+     * what the calendar prints inside that day's own cell. The month is
+     * bounded rather than running from today onwards so a date earlier in
+     * the month still reads truthfully when the grid is turned back to it.
+     *
+     * @return array<int, array{id: string, date: string, status: string, type: string, typeLabel: string, slots: array<int, array{start: string}>}>
      */
-    private function buildSchedule(): array
+    private function buildSchedule(string $month): array
     {
         $office = Office::where('name', $this->officeKey())->first();
         $slots = TimeSlots::forOffice($this->officeKey());
         $total = count($slots);
 
+        // The '!' keeps the month pinned to its first day, so a month name
+        // typed on the 31st cannot overflow into the next one.
+        $monthStart = Carbon::createFromFormat('!Y-m', $month);
+        $monthEnd = $monthStart->copy()->endOfMonth();
+
         $groups = SlotAvailability::query()
             ->when($office, fn ($query) => $query->where('office_id', $office->id))
             ->whereNotNull('date')
-            ->whereDate('date', '>=', today())
+            ->whereDate('date', '>=', $monthStart->toDateString())
+            ->whereDate('date', '<=', $monthEnd->toDateString())
             ->orderBy('date')
             ->get()
             ->groupBy(fn (SlotAvailability $rule) => Carbon::parse($rule->date)->toDateString());
@@ -288,7 +316,9 @@ class AvailabilityController extends Controller
     {
         if ($month && preg_match('/^\d{4}-\d{2}$/', $month)) {
             try {
-                return Carbon::createFromFormat('Y-m', $month)->format('Y-m');
+                // '!' clears the day, so '2026-02' asked for on the 31st
+                // cannot overflow into March and hand back the wrong month.
+                return Carbon::createFromFormat('!Y-m', $month)->format('Y-m');
             } catch (\Throwable) {
                 // fall through to current month
             }

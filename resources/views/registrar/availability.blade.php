@@ -218,7 +218,7 @@
                                 type="date"
                                 x-model="date"
                                 min="{{ now()->toDateString() }}"
-                                @change="loadSelectedDate()"
+                                @change="loadSelectedDate(); syncMonthTo(date)"
                                 class="w-full
                                        h-12
                                        rounded-xl
@@ -676,21 +676,11 @@
 
                                 <div>
 
-                                    <p class="text-[10px]
-                                              uppercase
-                                              tracking-widest
-                                              font-bold
-                                              text-blue-500">
-
-                                        Calendar Management
-
-                                    </p>
-
                                     <h2 class="text-lg
                                                font-extrabold
                                                text-blue-950">
 
-                                        Schedule
+                                        Availability Schedule
 
                                     </h2>
 
@@ -725,178 +715,257 @@
                     <div class="p-6 sm:p-7">
 
 
-                        {{-- EMPTY --}}
-                        <template x-if="schedule.length === 0">
+                        {{-- MONTH NAVIGATION --}}
+                        <div class="flex items-center
+                                    justify-between
+                                    mb-5">
 
-                            <div class="min-h-[450px]
-                                        flex
-                                        flex-col
-                                        items-center
-                                        justify-center
-                                        text-center">
+                            <button type="button"
+                                    @click="shiftMonth(-1)"
+                                    aria-label="Previous month"
+                                    class="inline-flex items-center
+                                           px-3 py-2
+                                           rounded-xl
+                                           text-sm font-bold
+                                           text-gray-500
+                                           hover:bg-gray-100
+                                           transition">
 
-                                <div class="w-20 h-20
-                                            rounded-3xl
-                                            bg-blue-50
-                                            flex items-center
-                                            justify-center
-                                            mb-5">
+                                <svg class="w-4 h-4"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
 
-                                    <svg
-                                        class="w-9 h-9 text-blue-300"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                        stroke-width="1.7"
-                                    >
+                                    <path stroke-linecap="round"
+                                          stroke-linejoin="round"
+                                          stroke-width="2"
+                                          d="M15 19l-7-7 7-7"/>
 
-                                        <rect
-                                            x="3"
-                                            y="4"
-                                            width="18"
-                                            height="17"
-                                            rx="2"
-                                        />
+                                </svg>
 
-                                        <path
-                                            stroke-linecap="round"
-                                            d="M16 2v4M8 2v4M3 10h18"
-                                        />
+                            </button>
 
-                                    </svg>
+                            <p class="text-sm
+                                      font-extrabold
+                                      text-blue-950"
+                               x-text="monthLabel"></p>
 
-                                </div>
+                            <button type="button"
+                                    @click="shiftMonth(1)"
+                                    aria-label="Next month"
+                                    class="inline-flex items-center
+                                           px-3 py-2
+                                           rounded-xl
+                                           text-sm font-bold
+                                           text-gray-500
+                                           hover:bg-gray-100
+                                           transition">
 
+                                <svg class="w-4 h-4"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
 
-                                <h3 class="text-base
-                                           font-extrabold
-                                           text-blue-950">
+                                    <path stroke-linecap="round"
+                                          stroke-linejoin="round"
+                                          stroke-width="2"
+                                          d="M9 5l7 7-7 7"/>
 
-                                    No Schedule Set
+                                </svg>
 
-                                </h3>
+                            </button>
 
-                                <p class="max-w-md
-                                          mt-2
-                                          text-sm
-                                          leading-6
-                                          text-gray-400">
-
-                                    All dates and time slots remain available
-                                    unless they are fully booked or manually
-                                    closed.
-
-                                </p>
-
-                            </div>
-
-                        </template>
+                        </div>
 
 
-                        {{-- SCHEDULE LIST --}}
-                        <template x-if="schedule.length > 0">
+                        {{-- WEEKDAYS --}}
+                        <div class="grid grid-cols-7 gap-2 mb-2">
 
-                            <div class="space-y-4">
+                            <template x-for="weekday in weekdays" :key="weekday">
 
-                                <template
-                                    x-for="item in schedule"
-                                    :key="item.id"
-                                >
+                                <div class="text-center
+                                            text-[10px]
+                                            font-bold
+                                            uppercase
+                                            tracking-wide
+                                            text-gray-400"
+                                     x-text="weekday"></div>
 
-                                    <div
-                                        @click="editItem(item)"
-                                        class="group
-                                               cursor-pointer
-                                               rounded-2xl
-                                               border border-gray-100
-                                               bg-[#f8fafc]
-                                               p-5
-                                               transition
-                                               hover:border-blue-300
-                                               hover:bg-blue-50/40
-                                               hover:shadow-sm"
-                                    >
+                            </template>
 
-                                        {{-- TOP --}}
+                        </div>
+
+
+                        {{-- ONE CELL PER DAY
+                             The month's own shape: what was set on a date
+                             sits inside that date's cell — the badge naming
+                             it, a line saying how much of the day is open,
+                             and the times themselves — instead of being
+                             read down a list. Padding days are inert; days
+                             that have passed can be read but not written. --}}
+                        <div class="grid grid-cols-7 gap-2">
+
+                            <template x-for="(cell, index) in calendarCells" :key="index">
+
+                                <div @click="editCell(cell)"
+                                     :title="cell.entry ? cell.entry.date : (cell.iso || '')"
+                                     class="min-h-[124px]
+                                            rounded-xl
+                                            border
+                                            p-2
+                                            transition"
+                                     :class="cellClass(cell)">
+
+                                    <template x-if="!cell.blank">
+
                                         <div class="flex flex-col
-                                                    sm:flex-row
-                                                    sm:items-center
-                                                    sm:justify-between
-                                                    gap-3">
+                                                    gap-1.5
+                                                    h-full">
 
-                                            <div class="flex items-center
-                                                        gap-3">
+                                            {{-- DAY --}}
+                                            <span class="inline-flex
+                                                         items-center
+                                                         justify-center
+                                                         w-6 h-6
+                                                         rounded-full
+                                                         text-xs
+                                                         font-extrabold"
+                                                  :class="cell.today
+                                                      ? 'bg-blue-800 text-white'
+                                                      : (
+                                                          cell.past
+                                                              ? 'text-gray-400'
+                                                              : 'text-gray-700'
+                                                      )"
+                                                  x-text="cell.day"></span>
 
-                                                <div class="w-11 h-11
-                                                            rounded-xl
-                                                            bg-white
-                                                            border border-gray-100
-                                                            flex items-center
-                                                            justify-center
-                                                            group-hover:bg-blue-50">
+                                            {{-- NOTHING SET ON THIS DATE --}}
+                                            <span class="text-[10px]
+                                                          font-bold
+                                                          uppercase
+                                                          tracking-wide
+                                                          text-gray-400"
+                                                  x-show="!cell.entry">
+                                                Not set
+                                            </span>
 
-                                                    <svg class="w-5 h-5 text-blue-600"
-                                                         fill="none"
-                                                         stroke="currentColor"
-                                                         viewBox="0 0 24 24">
+                                            {{-- WHAT WAS SET ON THIS DATE --}}
+                                            <template x-if="cell.entry">
 
-                                                        <path stroke-linecap="round"
-                                                              stroke-linejoin="round"
-                                                              stroke-width="2"
-                                                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                <div class="flex flex-col
+                                                            gap-1.5">
 
-                                                    </svg>
+                                                    <span class="inline-flex
+                                                                 w-full
+                                                                 text-center
+                                                                 px-1 py-0.5
+                                                                 rounded-md
+                                                                 text-[9px]
+                                                                 font-extrabold
+                                                                 uppercase
+                                                                 leading-tight
+                                                                 tracking-tight"
+                                                          :class="{
+                                                              'bg-green-50 text-green-700 ring-1 ring-green-200':
+                                                                  cell.entry.type === 'open',
+
+                                                              'bg-red-50 text-red-600 ring-1 ring-red-200':
+                                                                  cell.entry.type === 'closed',
+
+                                                              'bg-blue-50 text-blue-700 ring-1 ring-blue-200':
+                                                                  cell.entry.type === 'slots'
+                                                          }"
+                                                          x-text="cell.entry.typeLabel"></span>
+
+                                                        {{-- HOW MUCH OF THE DAY IS OPEN --}}
+                                                        <p class="text-[10px]
+                                                                  leading-4
+                                                                  text-gray-500"
+                                                           x-text="cell.entry.status"></p>
+
+                                                        {{-- THE TIMES BEHIND IT --}}
+                                                        <div class="flex
+                                                                    flex-wrap
+                                                                    gap-1">
+
+                                                            <template x-for="(slot, slotIndex) in cell.entry.slots.slice(0, 3)"
+                                                                      :key="slotIndex">
+
+                                                                <span class="px-1 py-0.5
+                                                                              rounded
+                                                                              bg-blue-50
+                                                                              text-blue-700
+                                                                              text-[9px]
+                                                                              font-bold"
+                                                                      x-text="slot.start.split(' - ')[0]"></span>
+
+                                                            </template>
+
+                                                            <span class="text-[9px]
+                                                                          font-bold
+                                                                          text-gray-400"
+                                                                  x-show="cell.entry.slots.length > 3"
+                                                                  x-text="'+' + (cell.entry.slots.length - 3)"></span>
+
+                                                        </div>
 
                                                 </div>
 
-                                                <div>
-
-                                                    <p
-                                                        class="text-sm
-                                                               font-extrabold
-                                                               text-blue-950"
-                                                        x-text="item.date"
-                                                    ></p>
-
-                                                </div>
-
-                                            </div>
-
-
-                                            {{-- TYPE --}}
-                                            <span
-                                                class="inline-flex
-                                                       self-start
-                                                       sm:self-center
-                                                       px-3 py-1.5
-                                                       rounded-full
-                                                       text-[10px]
-                                                       font-extrabold
-                                                       uppercase
-                                                       tracking-wide"
-                                                :class="{
-                                                    'bg-green-50 text-green-700 ring-1 ring-green-200':
-                                                        item.type === 'open',
-
-                                                    'bg-red-50 text-red-600 ring-1 ring-red-200':
-                                                        item.type === 'closed',
-
-                                                    'bg-blue-50 text-blue-700 ring-1 ring-blue-200':
-                                                        item.type === 'slots'
-                                                }"
-                                                x-text="item.typeLabel"
-                                            ></span>
+                                            </template>
 
                                         </div>
 
+                                    </template>
 
-                                    </div>
+                                </div>
 
-                                </template>
+                            </template>
 
-                            </div>
+                        </div>
 
-                        </template>
+
+                        {{-- LEGEND --}}
+                        <div class="mt-5
+                                    flex
+                                    flex-wrap
+                                    items-center
+                                    gap-x-4
+                                    gap-y-2
+                                    text-[11px]
+                                    font-semibold
+                                    text-gray-500">
+
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded bg-green-600 inline-block"></span>
+                                Open Entire Day
+                            </span>
+
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded bg-blue-600 inline-block"></span>
+                                Specific Time Slots
+                            </span>
+
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded bg-red-500 inline-block"></span>
+                                Closed
+                            </span>
+
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded bg-gray-300 inline-block"></span>
+                                Not set
+                            </span>
+
+                        </div>
+
+
+                        <p x-show="schedule.length === 0"
+                           class="mt-4
+                                  text-xs
+                                  leading-5
+                                  text-gray-400">
+                            No dates have been set for this month yet — every day
+                            runs on its regular hours until you change one.
+                        </p>
 
                     </div>
 
@@ -988,6 +1057,200 @@
                 selectedSlots: [...@json($timeSlots)],
 
                 schedule: @json($schedule),
+
+                /* =====================================================
+                   CALENDAR
+                   The month as a grid rather than a line at a time.
+                   Every day gets a cell, and whatever was set on that
+                   date is printed inside its own cell — the badge that
+                   names the setting and the times behind it — so a whole
+                   month can be read at a glance. Days nothing was set
+                   on say so, and are still clickable: that is how a
+                   date gets set in the first place.
+                ===================================================== */
+                monthCursor: @json($month),
+
+                months: ['January', 'February', 'March', 'April', 'May', 'June',
+                         'July', 'August', 'September', 'October', 'November', 'December'],
+
+                weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+
+                scheduleUrl: '{{ route('registrar.availability.schedule') }}',
+
+                get monthLabel() {
+
+                    const [year, month] = this.monthCursor.split('-').map(Number);
+
+                    return this.months[month - 1] + ' ' + year;
+
+                },
+
+                /* The month's set dates, reachable straight from a cell. */
+                get scheduleByDate() {
+
+                    return this.schedule.reduce((byDate, item) => {
+
+                        byDate[item.id] = item;
+
+                        return byDate;
+
+                    }, {});
+
+                },
+
+                /* =====================================================
+                   THE GRID
+                   Leading and trailing days are blank so the month
+                   lands in whole weeks; each real day carries its date,
+                   whether it has passed, and its own setting if any.
+                ===================================================== */
+                get calendarCells() {
+
+                    const [year, month] = this.monthCursor.split('-').map(Number);
+
+                    // Week starts Monday, matching the rest of the system.
+                    const leading = (new Date(year, month - 1, 1).getDay() + 6) % 7;
+
+                    const days = new Date(year, month, 0).getDate();
+
+                    const today = this.todayIso();
+
+                    const blank = () => ({
+                        blank: true, day: null, iso: null,
+                        today: false, past: false, entry: null
+                    });
+
+                    const cells = Array.from({ length: leading }, blank);
+
+                    for (let day = 1; day <= days; day++) {
+
+                        const iso = this.monthCursor + '-' + String(day).padStart(2, '0');
+
+                        cells.push({
+                            blank: false,
+                            day: day,
+                            iso: iso,
+                            today: iso === today,
+                            past: iso < today,
+                            entry: this.scheduleByDate[iso] || null,
+                        });
+
+                    }
+
+                    while (cells.length % 7 !== 0) {
+                        cells.push(blank());
+                    }
+
+                    return cells;
+
+                },
+
+                todayIso() {
+
+                    const now = new Date();
+
+                    return now.getFullYear()
+                        + '-' + String(now.getMonth() + 1).padStart(2, '0')
+                        + '-' + String(now.getDate()).padStart(2, '0');
+
+                },
+
+                /* How a day is dressed: padding is inert, days already
+                   behind us sit flat, and the rest invite a click. */
+                cellClass(cell) {
+
+                    if (cell.blank) {
+                        return 'border-dashed border-gray-100 bg-gray-50/60';
+                    }
+
+                    if (cell.past) {
+                        return 'border-gray-100 bg-gray-50';
+                    }
+
+                    if (cell.entry) {
+                        return 'border-gray-200 bg-white cursor-pointer '
+                            + 'hover:border-blue-300 hover:shadow-sm';
+                    }
+
+                    return 'border-gray-100 bg-white/70 cursor-pointer '
+                        + 'hover:border-blue-200';
+
+                },
+
+                /* A day that has passed can still be read but no longer
+                   written — saving one would be refused anyway. */
+                editCell(cell) {
+
+                    if (cell.blank || cell.past) {
+                        return;
+                    }
+
+                    this.editItem({ id: cell.iso });
+
+                },
+
+                /* =====================================================
+                   PAGING THE MONTH
+                ===================================================== */
+                shiftMonth(step) {
+
+                    const [year, month] = this.monthCursor.split('-').map(Number);
+
+                    const shifted = new Date(year, month - 1 + step, 1);
+
+                    this.monthCursor = shifted.getFullYear()
+                        + '-' + String(shifted.getMonth() + 1).padStart(2, '0');
+
+                    this.loadMonth();
+
+                },
+
+                /* Follow a date typed straight into the date box. */
+                syncMonthTo(iso) {
+
+                    const month = (iso || '').slice(0, 7);
+
+                    if (month && month !== this.monthCursor) {
+
+                        this.monthCursor = month;
+
+                        this.loadMonth();
+
+                    }
+
+                },
+
+                loadMonth() {
+
+                    fetch(
+                        this.scheduleUrl + '?month=' + encodeURIComponent(this.monthCursor),
+                        {
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        }
+                    )
+
+                    .then(response => response.json())
+
+                    .then(data => {
+
+                        this.schedule = data.schedule || [];
+
+                    })
+
+                    .catch(() => {
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Unable to Load',
+                            text: 'That month\'s schedule could not be loaded.',
+                            confirmButtonColor: '#1e3a8a'
+                        });
+
+                    });
+
+                },
 
                 /* =====================================================
                    DAY SIZE
@@ -1199,6 +1462,12 @@
 
                     this.schedule =
                         data.schedule;
+
+                    // The date written may sit outside the month on
+                    // screen, so bring the grid to the month that just
+                    // changed — it is the one holding what was saved.
+                    this.monthCursor =
+                        data.month || this.monthCursor;
 
 
                     Swal.fire({

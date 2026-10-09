@@ -29,6 +29,9 @@ class RegistrarAvailabilityTest extends TestCase
             ->get('/registrar/availability')
             ->assertOk()
             ->assertSee('Availability Schedule')
+            // The calendar card carries the schedule's own name rather than
+            // the old "Calendar Management" label.
+            ->assertDontSee('Calendar Management')
             ->assertSee('Set Availability')
             ->assertSee(Appointment::TIME_SLOTS[0]);
     }
@@ -298,13 +301,45 @@ class RegistrarAvailabilityTest extends TestCase
         }
 
         $this->actingAs($this->makeRegistrar())
-            ->getJson('/registrar/availability/schedule')
+            ->getJson('/registrar/availability/schedule?month=' . substr($date, 0, 7))
             ->assertOk()
             ->assertJsonPath('schedule.0.id', $date)
             ->assertJsonPath('schedule.0.type', 'closed');
     }
 
-    public function test_calendar_management_entry_shows_only_the_date_and_what_changed(): void
+    public function test_the_calendar_reads_one_month_at_a_time(): void
+    {
+        $service = app(SlotAvailabilityService::class);
+        $officeId = $service->officeIdFor('Registrar');
+
+        foreach (['2026-03-15', '2026-04-15'] as $date) {
+            foreach (Appointment::TIME_SLOTS as $slot) {
+                SlotAvailability::create([
+                    'office_id' => $officeId,
+                    'date' => $date,
+                    'time_slot' => $slot,
+                    'max_capacity' => 5,
+                    'status' => 'blocked',
+                ]);
+            }
+        }
+
+        // A month is a page, not a running total: asking for March hands
+        // back March and nothing from April beside it.
+        $this->actingAs($this->makeRegistrar())
+            ->getJson('/registrar/availability/schedule?month=2026-03')
+            ->assertOk()
+            ->assertJsonCount(1, 'schedule')
+            ->assertJsonPath('schedule.0.id', '2026-03-15');
+
+        $this->actingAs($this->makeRegistrar())
+            ->getJson('/registrar/availability/schedule?month=2026-04')
+            ->assertOk()
+            ->assertJsonCount(1, 'schedule')
+            ->assertJsonPath('schedule.0.id', '2026-04-15');
+    }
+
+    public function test_calendar_management_renders_a_grid_with_each_dates_setting_in_its_own_cell(): void
     {
         $date = $this->futureDate();
         $service = app(SlotAvailabilityService::class);
@@ -320,16 +355,39 @@ class RegistrarAvailabilityTest extends TestCase
             ]);
         }
 
-        $this->actingAs($this->makeRegistrar())
-            ->get('/registrar/availability')
+        $month = substr($date, 0, 7);
+
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability?month=' . $month)
             ->assertOk()
-            // The entry is the date plus the badge naming what was changed...
-            ->assertSee('x-text="item.date"', false)
-            ->assertSee('x-text="item.typeLabel"', false)
-            // ...and nothing about the individual times behind it.
-            ->assertDontSee('x-text="item.status"', false)
-            ->assertDontSee('No appointments can be booked on this date.')
-            ->assertDontSee('All official time slots are available.')
-            ->assertDontSee('slotNumber', false);
+            ->getContent();
+
+        // The panel is a calendar now: it opens on a month and can be
+        // paged a month at a time.
+        $this->assertStringContainsString('monthCursor: "'.$month.'"', $html);
+        $this->assertStringContainsString('x-for="(cell, index) in calendarCells"', $html);
+        $this->assertStringContainsString('x-text="monthLabel"', $html);
+        $this->assertStringContainsString('@click="shiftMonth(-1)"', $html);
+        $this->assertStringContainsString('@click="shiftMonth(1)"', $html);
+
+        // Every day gets a cell, and the day that was configured carries
+        // its own setting inside it: the badge naming what was done, a
+        // line saying how much of the day is open, and the times.
+        $this->assertStringContainsString('x-text="cell.entry.typeLabel"', $html);
+        $this->assertStringContainsString('x-text="cell.entry.status"', $html);
+        $this->assertStringContainsString('cell.entry.slots.slice(0, 3)', $html);
+        $this->assertStringContainsString('Not set', $html);
+
+        // Days are clicked where they stand rather than picked out of a
+        // list running down the page.
+        $this->assertStringContainsString('@click="editCell(cell)"', $html);
+        $this->assertDoesNotMatchRegularExpression('/x-for="item in schedule"/', $html);
+        $this->assertDoesNotMatchRegularExpression('/x-text="item\.\w+"/', $html);
+
+        // None of the copy the list this replaces used to print.
+        $this->assertDoesNotMatchRegularExpression('/x-text="item\.status"/', $html);
+        $this->assertStringNotContainsString('No appointments can be booked on this date.', $html);
+        $this->assertStringNotContainsString('All official time slots are available.', $html);
+        $this->assertStringNotContainsString('slotNumber', $html);
     }
 }
