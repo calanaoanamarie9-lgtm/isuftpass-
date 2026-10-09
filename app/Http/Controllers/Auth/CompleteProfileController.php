@@ -44,24 +44,35 @@ class CompleteProfileController extends Controller
     {
         $user = $request->user();
 
-        if ($user->studentProfile) {
-            $validated = $request->validate([
-                'student_id' => ['nullable', 'string', 'max:30'],
-                'course' => ['nullable', 'string', 'max:100'],
-                'year_level' => ['nullable', 'string', Rule::in(StudentProfile::YEAR_LEVELS)],
-                'contact_number' => ['required', 'string', 'max:20'],
-                'address' => ['nullable', 'string', 'max:255'],
-            ]);
+        // Validate avatar (optional) and contact_number (required for all)
+        $validated = $request->validate([
 
+            'avatar' => ['sometimes', 'image', 'max:2048'],
+
+            'contact_number' => ['required', 'string', 'max:20'],
+        ]);
+
+        if ($user->studentProfile) {
             $profile = $user->studentProfile ?? $user->studentProfile()->create();
 
-            $profile->update($validated);
+            $profile->update(array_merge(
+                array_filter($validated),
+                [
+                    'student_id' => $request->student_id,
+                    'course' => $request->course,
+                    'year_level' => $request->year_level,
+                    'address' => $request->address,
+                ]
+            ));
         } else {
+            // Determine registration type and apply original validation rules
+            $type = $user->registration_type;
+
             $common = [
                 'contact_number' => ['required', 'string', 'max:20'],
             ];
 
-            $rules = match ($user->registration_type) {
+            $rules = match ($type) {
                 'alumni' => $common + [
                     'student_id' => ['nullable', 'string', 'max:30'],
                     'course' => ['nullable', 'string', 'max:100'],
@@ -82,7 +93,49 @@ class CompleteProfileController extends Controller
 
             $validated = $request->validate($rules);
 
-            $user->update($validated);
+            $updateData = array_merge($validated, [
+                'contact_number' => $request->contact_number,
+            ]);
+
+            if ($type === 'alumni') {
+                if ($request->has('student_id')) {
+                    $updateData['student_id'] = $request->student_id;
+                }
+                if ($request->has('course')) {
+                    $updateData['course'] = $request->course;
+                }
+                if ($request->has('year_graduated')) {
+                    $updateData['year_graduated'] = $request->year_graduated;
+                }
+            } elseif ($type === 'guest') {
+                if ($request->has('organization')) {
+                    $updateData['organization'] = $request->organization;
+                }
+                if ($request->has('address')) {
+                    $updateData['address'] = $request->address;
+                }
+                if ($request->has('purpose')) {
+                    $updateData['purpose'] = $request->purpose;
+                }
+            } elseif ($type === 'parent') {
+                if ($request->has('relationship_to_student')) {
+                    $updateData['relationship_to_student'] = $request->relationship_to_student;
+                }
+                if ($request->has('student_full_name')) {
+                    $updateData['student_full_name'] = $request->student_full_name;
+                }
+                if ($request->has('student_id')) {
+                    $updateData['student_id'] = $request->student_id;
+                }
+            }
+
+            $user->update($updateData);
+        }
+
+        // Store avatar path if uploaded
+        if ($request->hasFile('avatar') && $user->avatar) {
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $user->update(['avatar' => $path]);
         }
 
         return redirect()->route('dashboard');
