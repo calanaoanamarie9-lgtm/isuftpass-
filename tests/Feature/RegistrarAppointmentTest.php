@@ -87,6 +87,18 @@ class RegistrarAppointmentTest extends TestCase
             ->assertDontSee('Time Slot Asked');
     }
 
+    public function test_the_details_page_no_longer_shows_the_verification_panel(): void
+    {
+        [, $appointment] = $this->makeStudentWithAppointment();
+
+        $this->actingAs($this->makeRegistrar())
+            ->get(route('registrar.appointments.show', $appointment))
+            ->assertOk()
+            ->assertDontSee('ISUFSTPASS Verified')
+            ->assertDontSee('Secure university transaction')
+            ->assertDontSee('Appointment record is securely stored');
+    }
+
     public function test_registrar_with_office_sees_only_own_office_appointments(): void
     {
         [$student1, $regAppt] = $this->makeStudentWithAppointment();
