@@ -73,9 +73,10 @@
                                   text-gray-500
                                   max-w-2xl">
 
-                            Manage the dates and time slots available for
-                            student appointments. Students can only book
-                            slots marked as available.
+                            Manage which dates are open for student
+                            appointments. Students can only book days marked
+                            as available, and the day's list is numbered
+                            first come, first served.
 
                         </p>
 
@@ -292,7 +293,8 @@
                                         <p class="text-[11px]
                                                   text-gray-400">
 
-                                            All official slots will be available.
+                                            The whole day will be open for
+                                            bookings.
 
                                         </p>
 
@@ -798,10 +800,11 @@
 
                         {{-- ONE CELL PER DAY
                              The month's own shape: what was set on a date
-                             sits inside that date's cell — the badge naming
-                             it, a line saying how much of the day is open,
-                             and the times themselves — instead of being
-                             read down a list. Padding days are inert; days
+                             sits inside that date's cell — one badge naming
+                             it — instead of being read down a list. A day's
+                             bookings are numbered first come, first served
+                             on the roster below, so a cell carries no clock
+                             times of its own. Padding days are inert; days
                              that have passed can be read but not written. --}}
                         <div class="grid grid-cols-7 gap-2">
 
@@ -877,38 +880,6 @@
                                                           }"
                                                           x-text="cell.entry.typeLabel"></span>
 
-                                                        {{-- HOW MUCH OF THE DAY IS OPEN --}}
-                                                        <p class="text-[10px]
-                                                                  leading-4
-                                                                  text-gray-500"
-                                                           x-text="cell.entry.status"></p>
-
-                                                        {{-- THE TIMES BEHIND IT --}}
-                                                        <div class="flex
-                                                                    flex-wrap
-                                                                    gap-1">
-
-                                                            <template x-for="(slot, slotIndex) in cell.entry.slots.slice(0, 3)"
-                                                                      :key="slotIndex">
-
-                                                                <span class="px-1 py-0.5
-                                                                              rounded
-                                                                              bg-blue-50
-                                                                              text-blue-700
-                                                                              text-[9px]
-                                                                              font-bold"
-                                                                      x-text="slot.start.split(' - ')[0]"></span>
-
-                                                            </template>
-
-                                                            <span class="text-[9px]
-                                                                          font-bold
-                                                                          text-gray-400"
-                                                                  x-show="cell.entry.slots.length > 3"
-                                                                  x-text="'+' + (cell.entry.slots.length - 3)"></span>
-
-                                                        </div>
-
                                                 </div>
 
                                             </template>
@@ -942,7 +913,7 @@
 
                             <span class="flex items-center gap-1.5">
                                 <span class="w-3 h-3 rounded bg-blue-600 inline-block"></span>
-                                Specific Time Slots
+                                Partly Open
                             </span>
 
                             <span class="flex items-center gap-1.5">
@@ -1062,11 +1033,13 @@
                    CALENDAR
                    The month as a grid rather than a line at a time.
                    Every day gets a cell, and whatever was set on that
-                   date is printed inside its own cell — the badge that
-                   names the setting and the times behind it — so a whole
-                   month can be read at a glance. Days nothing was set
-                   on say so, and are still clickable: that is how a
-                   date gets set in the first place.
+                   date is printed inside its own cell — one badge
+                   naming the setting — so a whole month can be read at
+                   a glance. A day's bookings are counted on the roster
+                   below, first come, first served, so no cell carries
+                   an hour of its own. Days nothing was set on say so,
+                   and are still clickable: that is how a date gets set
+                   in the first place.
                 ===================================================== */
                 monthCursor: @json($month),
 
@@ -1377,24 +1350,6 @@
                             icon: 'warning',
                             title: 'Date Required',
                             text: 'Please select a date first.',
-                            confirmButtonColor: '#1e3a8a'
-                        });
-
-                        return;
-
-                    }
-
-
-                    if (
-                        this.availabilityType === 'slots'
-                        &&
-                        this.selectedSlots.length === 0
-                    ) {
-
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'No Time Slots',
-                            text: 'Please select at least one time slot.',
                             confirmButtonColor: '#1e3a8a'
                         });
 

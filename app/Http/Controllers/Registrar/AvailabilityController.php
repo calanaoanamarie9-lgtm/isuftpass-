@@ -254,12 +254,14 @@ class AvailabilityController extends Controller
     /**
      * The dates in a month that carry an override, each with what was set.
      *
-     * One entry per date — its status and the times behind it, which is
-     * what the calendar prints inside that day's own cell. The month is
-     * bounded rather than running from today onwards so a date earlier in
-     * the month still reads truthfully when the grid is turned back to it.
+     * One entry per date — only the badge naming how that day was set.
+     * The clock times behind it are deliberately left out: the roster
+     * numbers a day's bookings first come, first served, so a cell has no
+     * hour of its own to print. The month is bounded rather than running
+     * from today onwards, so a date earlier in the month still reads
+     * truthfully when the grid is turned back to it.
      *
-     * @return array<int, array{id: string, date: string, status: string, type: string, typeLabel: string, slots: array<int, array{start: string}>}>
+     * @return array<int, array{id: string, date: string, type: string, typeLabel: string}>
      */
     private function buildSchedule(string $month): array
     {
@@ -294,20 +296,15 @@ class AvailabilityController extends Controller
             return [
                 'id' => $date,
                 'date' => Carbon::parse($date)->format('F j, Y'),
-                'status' => $type === 'closed'
-                    ? 'All time slots are blocked.'
-                    : $available->count().' of '.$total.' time slots open.',
                 'type' => $type,
+                // Days set hour by hour can no longer be set that way, so
+                // one that still carries such data reads as partly open
+                // instead of by the hours it used to name.
                 'typeLabel' => [
                     'open' => 'Open Entire Day',
                     'closed' => 'Closed',
-                    'slots' => 'Specific Time Slots',
+                    'slots' => 'Partly Open',
                 ][$type],
-                'slots' => $available
-                    ->sortBy('time_slot')
-                    ->map(fn (SlotAvailability $rule) => ['start' => $rule->time_slot])
-                    ->values()
-                    ->all(),
             ];
         })->values()->all();
     }

@@ -371,12 +371,19 @@ class RegistrarAvailabilityTest extends TestCase
         $this->assertStringContainsString('@click="shiftMonth(1)"', $html);
 
         // Every day gets a cell, and the day that was configured carries
-        // its own setting inside it: the badge naming what was done, a
-        // line saying how much of the day is open, and the times.
+        // its own setting inside it: one badge naming what was done.
         $this->assertStringContainsString('x-text="cell.entry.typeLabel"', $html);
-        $this->assertStringContainsString('x-text="cell.entry.status"', $html);
-        $this->assertStringContainsString('cell.entry.slots.slice(0, 3)', $html);
         $this->assertStringContainsString('Not set', $html);
+        $this->assertStringContainsString('Partly Open', $html);
+
+        // A cell carries no clock times at all. The day's bookings are
+        // numbered first come, first served on the roster below, so there
+        // is no hour to print inside the date.
+        $this->assertDoesNotMatchRegularExpression('/cell\.entry\.status/', $html);
+        $this->assertDoesNotMatchRegularExpression('/cell\.entry\.slots/', $html);
+        $this->assertStringNotContainsString('Specific Time Slots', $html);
+        $this->assertStringNotContainsString('time slots open', $html);
+        $this->assertStringNotContainsString('time slots are blocked', $html);
 
         // Days are clicked where they stand rather than picked out of a
         // list running down the page.
