@@ -35,6 +35,18 @@ class RegistrationTest extends TestCase
         $this->get('/register/form?type=hacker')->assertNotFound();
     }
 
+    public function test_registration_form_with_other_type_renders(): void
+    {
+        $response = $this->get('/register/form?type=other');
+
+        $response->assertOk();
+
+        // The three choices "Other" buyers get instead of a student ID form.
+        $response->assertSee('Alumni');
+        $response->assertSee('Guest');
+        $response->assertSee('Parent/Guardian');
+    }
+
     public function test_new_users_can_register(): void
     {
         $response = $this->post('/register', [

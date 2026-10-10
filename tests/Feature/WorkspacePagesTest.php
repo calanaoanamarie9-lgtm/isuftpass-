@@ -81,6 +81,26 @@ class WorkspacePagesTest extends TestCase
         }
     }
 
+    /**
+     * The dashboard root is the one page the test above never hits - each
+     * group's own controller feeding the shared tiles, plus the generic
+     * workspace any approved office outside the eight built-ins lands in.
+     */
+    public function test_every_workspace_dashboard_renders(): void
+    {
+        foreach (self::WORKSPACES as $prefix => [$office, $role]) {
+            $this->actingAs($this->makeStaff($office, $role))
+                ->get($prefix)
+                ->assertOk()
+                ->assertSee($office);
+        }
+
+        $this->actingAs($this->makeStaff('Micro-Fisheries Extension', 'office'))
+            ->get('/workspace')
+            ->assertOk()
+            ->assertSee('Micro-Fisheries Extension');
+    }
+
     public function test_office_can_save_availability_for_its_own_office(): void
     {
         $office = $this->registerOffice('OSAS');
