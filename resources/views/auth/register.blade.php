@@ -301,7 +301,7 @@
                 <div class="w-full max-w-2xl">
 
                     <!-- TOP BAR -->
-                    <div class="flex items-center justify-between mb-8">
+                    <div class="mb-8">
 
                         <a href="{{ url('/') }}"
                            class="inline-flex items-center gap-2
@@ -329,36 +329,6 @@
                             </svg>
 
                             <span>Back to Home</span>
-
-                        </a>
-
-
-                        <a href="{{ route('login') }}"
-                           class="inline-flex items-center gap-2
-                                  px-4 py-2.5
-                                  rounded-xl
-                                  border border-gray-200
-                                  text-sm font-bold text-gray-600
-                                  hover:border-blue-200
-                                  hover:text-blue-700
-                                  hover:bg-blue-50
-                                  transition">
-
-                            <span>Sign In</span>
-
-                            <svg class="w-4 h-4"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 viewBox="0 0 24 24">
-
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M13 7l5 5m0 0l-5 5m5-5H6"
-                                />
-
-                            </svg>
 
                         </a>
 
@@ -764,39 +734,6 @@
                             </a>
 
                         </p>
-
-                    </div>
-
-
-                    <!-- BACK HOME -->
-                    <div class="mt-5 flex justify-center">
-
-                        <a
-                            href="{{ url('/') }}"
-                            class="inline-flex items-center gap-2
-                                   text-xs font-bold
-                                   text-gray-400
-                                   hover:text-blue-600
-                                   transition">
-
-                            <svg
-                                class="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24">
-
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                                />
-
-                            </svg>
-
-                            Back to Home
-
-                        </a>
 
                     </div>
 
