@@ -93,6 +93,19 @@ services:
         value: https://jcaazdrprcqwiuocirpc.supabase.co/storage/v1/object/public/avatars
       - key: S3_USE_PATH_STYLE_ENDPOINT
         value: "true"
+      # --- Google Sign-In (Laravel Socialite) ------------------------------
+      # OAuth client from Google Cloud Console -> APIs & Services ->
+      # Credentials. The authorized redirect URI registered there must be
+      #   https://<your-domain>/auth/google/callback
+      # Dashboard-only (sync: false): secrets never land in git. While
+      # GOOGLE_CLIENT_ID is empty the "Continue with Google" buttons stay
+      # hidden and the OAuth routes refuse politely - nothing breaks.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
     # Run pending migrations before the new container goes live. A failing
     # migration aborts the deploy instead of shipping a half-updated schema.
     preDeployCommand: php artisan migrate --force

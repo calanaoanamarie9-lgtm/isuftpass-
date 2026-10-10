@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\CompleteProfileController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -30,6 +31,19 @@ Route::middleware(['guest', 'throttle:auth'])->group(function () {
         ->name('login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
+
+    // --- Google sign-in (Laravel Socialite) ------------------------------
+    // Inside the same guest + throttle group: `guest` bounces an already
+    // signed-in visitor to the dashboard, and the shared auth limiter
+    // (10/min per IP) covers both hops of the OAuth round trip. The
+    // callback is a plain GET — no `signed` middleware, because Google
+    // cannot sign our URLs; the controller treats whatever comes back
+    // purely as an identity claim and re-applies the login gates itself.
+    Route::get('auth/google', [GoogleController::class, 'redirect'])
+        ->name('google.redirect');
+
+    Route::get('auth/google/callback', [GoogleController::class, 'callback'])
+        ->name('google.callback');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');

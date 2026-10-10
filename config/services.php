@@ -26,6 +26,18 @@ return [
         'key' => env('BREVO_API_KEY'),
     ],
 
+    // Laravel Socialite - "Continue with Google". The redirect URI must be
+    // the exact URL registered as an authorized redirect URI on the OAuth
+    // client (Google Cloud Console -> APIs & Services -> Credentials):
+    // <APP_URL>/auth/google/callback. Falls back to APP_URL + path so a
+    // deployment only has to set the two secrets. While client_id is empty
+    // the buttons stay hidden and the routes refuse politely.
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', rtrim((string) env('APP_URL'), '/').'/auth/google/callback'),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
