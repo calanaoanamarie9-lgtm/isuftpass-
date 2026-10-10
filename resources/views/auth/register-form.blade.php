@@ -207,20 +207,34 @@
                     <!-- Top Navigation -->
                     <div class="flex items-center justify-between mb-8">
 
-                        <!-- Logo -->
-                        <div class="flex items-center gap-2">
+                        <a href="{{ url('/') }}"
+                           class="inline-flex items-center gap-2
+                                  px-4 py-2.5
+                                  rounded-xl
+                                  border border-gray-200
+                                  text-sm font-bold text-gray-600
+                                  hover:border-blue-200
+                                  hover:text-blue-700
+                                  hover:bg-blue-50
+                                  transition">
 
-                            <img
-                                src="{{ asset('img/isufstpass-logo.png') }}"
-                                alt="ISUFSTPASS"
-                                class="w-9 h-9 object-contain"
-                            >
+                            <svg class="w-4 h-4"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
 
-                            <span class="font-bold text-gray-800">
-                                ISUFSTPASS
-                            </span>
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                                />
 
-                        </div>
+                            </svg>
+
+                            <span>Back to Home</span>
+
+                        </a>
 
 
                         <!-- Change Type -->
@@ -943,35 +957,6 @@
                             </a>
 
                         </p>
-
-                    </div>
-
-
-                    <!-- Back to Home -->
-                    <div class="mt-6 flex justify-center">
-
-                        <a
-                            href="{{ url('/') }}"
-                            class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 transition-colors"
-                        >
-
-                            <svg
-                                class="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                                />
-                            </svg>
-
-                            Back to Home
-
-                        </a>
 
                     </div>
 
