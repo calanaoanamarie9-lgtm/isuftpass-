@@ -1156,7 +1156,10 @@
         >
 
             @php
-                $avatar = Auth::user()->studentProfile?->avatar;
+                // Prefer the student-profile photo, fall back to the one
+                // uploaded during registration (all user types).
+                $avatar = Auth::user()->studentProfile?->avatar_url
+                    ?? Auth::user()->avatar_url;
             @endphp
 
             <div class="w-9 h-9 rounded-full bg-blue-700
@@ -1167,7 +1170,7 @@
                 @if ($avatar)
 
                     <img
-                        src="{{ Storage::url($avatar) }}"
+                        src="{{ $avatar }}"
                         alt="Profile Picture"
                         class="w-full h-full object-cover"
                     >

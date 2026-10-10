@@ -66,7 +66,7 @@ class AppointmentController extends Controller
             'qrCodeDataUri' => (new \Endroid\QrCode\Writer\SvgWriter())->write($qrCode)->getDataUri(),
             'student' => $user,
             'profile' => $user->studentProfile,
-            'avatar' => $user->studentProfile?->avatar ? \Illuminate\Support\Facades\Storage::url($user->studentProfile->avatar) : null,
+            'avatar' => $user->studentProfile?->avatar_url,
         ]);
     }
 

@@ -143,7 +143,7 @@
                         @if ($student->studentProfile?->avatar)
 
                             <img
-                                src="{{ Storage::url($student->studentProfile->avatar) }}"
+                                src="{{ $student->studentProfile->avatar_url }}"
                                 alt="Student Profile"
                                 class="w-full h-full object-cover"
                             >

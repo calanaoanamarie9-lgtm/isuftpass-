@@ -38,7 +38,7 @@
                         <div class="flex items-center gap-3">
                             <div class="w-11 h-11 rounded-full bg-blue-900 overflow-hidden flex items-center justify-center text-yellow-400 font-bold text-sm uppercase shrink-0">
                                 @if ($student->studentProfile?->avatar)
-                                    <img src="{{ Storage::url($student->studentProfile->avatar) }}"
+                                    <img src="{{ $student->studentProfile->avatar_url }}"
                                          alt="Avatar" class="w-full h-full object-cover">
                                 @else
                                     {{ substr($student->name, 0, 1) }}

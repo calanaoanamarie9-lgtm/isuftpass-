@@ -43,7 +43,7 @@ class PassController extends Controller
         return view('student.pass', [
             'student' => $user,
             'profile' => $user->studentProfile,
-            'avatar' => $user->studentProfile?->avatar ? \Illuminate\Support\Facades\Storage::url($user->studentProfile->avatar) : null,
+            'avatar' => $user->studentProfile?->avatar_url,
             'documentRequests' => $documentRequests,
             'appointments' => $appointments,
         ]);

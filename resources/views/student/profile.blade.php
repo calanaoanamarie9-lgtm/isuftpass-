@@ -208,6 +208,15 @@
                     @method('PUT')
 
 
+                    {{-- The photo can live on the student profile (uploaded on
+                         this very card) or on the user record (uploaded during
+                         registration) — render whichever exists so the card
+                         never falls back to the initial while a photo is set. --}}
+                    @php
+                        $avatarUrl = $profile->avatar_url ?? Auth::user()->avatar_url;
+                    @endphp
+
+
                     <div class="flex flex-col sm:flex-row
                                 items-start sm:items-center gap-7">
 
@@ -226,10 +235,10 @@
                                         ring-1 ring-blue-100
                                         shadow-md">
 
-                                @if ($profile->avatar)
+                                @if ($avatarUrl)
 
                                     <img
-                                        src="{{ Storage::url($profile->avatar) }}"
+                                        src="{{ $avatarUrl }}"
                                         alt="Profile Picture"
                                         class="w-full h-full object-cover"
                                     >
@@ -303,7 +312,7 @@
                                 </label>
 
 
-                                @if ($profile->avatar)
+                                @if ($avatarUrl)
 
                                     <button
                                         type="button"
@@ -374,7 +383,7 @@
 
 
                 {{-- Remove Avatar Form --}}
-                @if ($profile->avatar)
+                @if ($avatarUrl)
 
                     <form id="remove-avatar"
                           method="POST"

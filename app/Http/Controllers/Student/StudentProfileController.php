@@ -39,9 +39,19 @@ class StudentProfileController extends Controller
             'remove_avatar' => ['nullable', 'boolean'],
         ]);
 
-        if ($request->boolean('remove_avatar') && $profile->avatar) {
-            \Illuminate\Support\Facades\Storage::disk(config('filesystems.avatar'))->delete($profile->avatar);
-            $profile->update(['avatar' => null]);
+        // Removing clears whichever photo the profile card displays: the
+        // student-profile upload, the registration upload on the user record,
+        // or both — otherwise the card keeps showing the surviving one.
+        if ($request->boolean('remove_avatar')) {
+            if ($profile->avatar) {
+                \Illuminate\Support\Facades\Storage::disk(config('filesystems.avatar'))->delete($profile->avatar);
+                $profile->update(['avatar' => null]);
+            }
+
+            if (Auth::user()->avatar) {
+                \Illuminate\Support\Facades\Storage::disk(config('filesystems.avatar'))->delete(Auth::user()->avatar);
+                Auth::user()->update(['avatar' => null]);
+            }
         } elseif ($request->hasFile('avatar')) {
             if ($profile->avatar) {
                 \Illuminate\Support\Facades\Storage::disk(config('filesystems.avatar'))->delete($profile->avatar);

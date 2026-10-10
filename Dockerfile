@@ -34,7 +34,8 @@ RUN cp .env.example .env \
     && composer run-script post-autoload-dump \
     && npm run build \
     && mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache/data \
-               storage/framework/testing storage/logs bootstrap/cache \
+               storage/framework/testing storage/logs storage/app/public bootstrap/cache \
+    && php artisan storage:link \
     && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 8000

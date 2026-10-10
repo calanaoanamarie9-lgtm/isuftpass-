@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\StudentProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -51,6 +52,13 @@ class CompleteProfileController extends Controller
 
             'contact_number' => ['required', 'string', 'max:20'],
         ]);
+
+        // $validated['avatar'] is the UploadedFile itself, not a stored path.
+        // The student branch merges $validated into the profile update, which
+        // would cast the upload to its TEMP path and save that garbage into
+        // student_profiles.avatar - the profile page would then render the
+        // temp path as the image source. The stored path is handled below.
+        unset($validated['avatar']);
 
         if ($user->studentProfile) {
             $profile = $user->studentProfile ?? $user->studentProfile()->create();
@@ -132,10 +140,17 @@ class CompleteProfileController extends Controller
             $user->update($updateData);
         }
 
-        // Store avatar path if uploaded
+        // Store avatar path if uploaded. Same disk the profile page reads
+        // from (and deletes from on remove), so a path written here is never
+        // resolved against a different disk later.
         if ($request->hasFile('avatar')) {
-            $path = $request->file('avatar')->store('avatars', 'public');
-            $user->update(['avatar' => $path]);
+            $disk = config('filesystems.avatar');
+
+            if ($user->avatar) {
+                Storage::disk($disk)->delete($user->avatar);
+            }
+
+            $user->update(['avatar' => $request->file('avatar')->store('avatars', $disk)]);
         }
 
         return redirect()->route('dashboard');

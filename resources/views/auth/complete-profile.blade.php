@@ -969,7 +969,7 @@
                             @if ($user->avatar)
                                 <div class="mt-3">
                                     <img
-                                        src="{{ Storage::url($user->avatar) }}"
+                                        src="{{ $user->avatar_url }}"
                                         alt="Profile picture"
                                         class="w-24 h-24 rounded-full object-cover mt-2">
                                 </div>

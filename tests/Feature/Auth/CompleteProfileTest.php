@@ -4,17 +4,19 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CompleteProfileTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function registerStudent(): User
+    private function registerStudent(string $email = 'jane@example.com'): User
     {
         $this->post('/register', [
             'name' => 'Jane Student',
-            'email' => 'jane@example.com',
+            'email' => $email,
             'password' => 'password',
             'password_confirmation' => 'password',
             'user_type' => 'student',
@@ -23,11 +25,11 @@ class CompleteProfileTest extends TestCase
         return $this->verified(auth()->user());
     }
 
-    private function registerOther(string $registrationType): User
+    private function registerOther(string $registrationType, string $email = 'john@example.com'): User
     {
         $this->post('/register', [
             'name' => 'John Other',
-            'email' => 'john@example.com',
+            'email' => $email,
             'password' => 'password',
             'password_confirmation' => 'password',
             'user_type' => 'other',
@@ -184,5 +186,87 @@ class CompleteProfileTest extends TestCase
         $this->post('/complete-profile', [
             'contact_number' => '09171234567',
         ])->assertSessionHasErrors(['relationship_to_student', 'student_full_name']);
+    }
+
+    /**
+     * A student's avatar upload used to be merged into the profile update as
+     * the raw UploadedFile, writing the upload's TEMP path into
+     * student_profiles.avatar - which the profile page then rendered as the
+     * image source. The stored path must be the only thing persisted, and the
+     * photo has to render on the profile page (student_profiles first, the
+     * user-record upload as the fallback).
+     */
+    public function test_student_avatar_upload_is_stored_and_renders_on_profile_page(): void
+    {
+        Storage::fake('public');
+
+        $user = $this->registerStudent('avatar-student@example.com');
+
+        $this->post('/complete-profile', [
+            'student_id' => '2024-12345',
+            'course' => 'BSIS',
+            'year_level' => '2nd Year',
+            'contact_number' => '09171234567',
+            'address' => 'Barotac Nuevo, Iloilo',
+            'avatar' => UploadedFile::fake()->image('me.jpg', 200, 200),
+        ])->assertRedirect(route('dashboard', absolute: false));
+
+        $user->refresh();
+
+        $this->assertNotNull($user->avatar, 'the user-record upload did not persist');
+        $this->assertStringStartsWith('avatars/', $user->avatar);
+        Storage::disk('public')->assertExists($user->avatar);
+
+        // A path on the profile may only ever be a stored avatar, never the
+        // temp path of the request's upload.
+        $profilePath = $user->studentProfile?->avatar;
+        $this->assertTrue(
+            $profilePath === null || str_starts_with($profilePath, 'avatars/'),
+            "student_profiles.avatar holds garbage: {$profilePath}"
+        );
+
+        $this->actingAs($user)
+            ->get('/student/profile')
+            ->assertOk()
+            ->assertSee('storage/avatars/');
+    }
+
+    /**
+     * Commit f628145 removed the `$user->avatar` guard that blocked
+     * first-time uploads and claims every registration type can now set a
+     * photo. Prove it for alumni, guests and parents: the file lands on the
+     * avatar disk, the column stores the relative path, and the dashboard
+     * renders it through the sidebar.
+     */
+    public function test_avatar_upload_persists_for_every_other_registration_type(): void
+    {
+        Storage::fake('public');
+
+        $cases = [
+            'alumni' => ['year_graduated' => '2024'],
+            'guest' => ['purpose' => 'inquiry'],
+            'parent' => ['relationship_to_student' => 'mother', 'student_full_name' => 'Jane Student'],
+        ];
+
+        foreach ($cases as $type => $extra) {
+            $user = $this->registerOther($type, "avatar-{$type}@example.com");
+
+            $this->post('/complete-profile', $extra + [
+                'contact_number' => '09171234567',
+                'avatar' => UploadedFile::fake()->image('me.jpg', 200, 200),
+            ])->assertRedirect(route('dashboard', absolute: false));
+
+            $user->refresh();
+
+            $this->assertNotNull($user->avatar, "no avatar persisted for {$type}");
+            $this->assertStringStartsWith('avatars/', $user->avatar);
+            Storage::disk('public')->assertExists($user->avatar);
+            $this->assertStringContainsString('storage/avatars/', $user->avatar_url);
+
+            $this->actingAs($user)
+                ->get('/dashboard')
+                ->assertOk()
+                ->assertSee('storage/avatars/');
+        }
     }
 }
