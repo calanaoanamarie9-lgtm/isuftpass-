@@ -100,7 +100,10 @@ class RegisteredUserController extends Controller
         }
 
         // Office / staff applicants are held at the door until an admin signs
-        // off the account, so don't hand them a session.
+        // off the account, so don't hand them a session - and keep the row
+        // inactive on top of the pending status, so no single gate ever has
+        // to be the only thing standing between a fresh applicant and a
+        // login. approve() is what flips is_active back on.
         if ($request->user_type === 'office') {
             $user->forceFill([
                 'role' => User::ROLE_OFFICE,
@@ -111,7 +114,7 @@ class RegisteredUserController extends Controller
                 'position' => $request->position,
                 'contact_number' => $request->contact_number,
                 'approval_status' => User::APPROVAL_PENDING,
-                'is_active' => true,
+                'is_active' => false,
             ])->save();
 
             return redirect(route('register.pending', absolute: false));

@@ -95,5 +95,44 @@
 
     </div>
 
+
+    {{-- ================= SWEETALERT ================= --}}
+    {{-- The popup is the message; the card behind it is the fallback for
+         a browser that never ran the script. Confirming takes the
+         applicant back to the Registration Page, as promised. --}}
+    <script>
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            if (window.Swal) {
+
+                window.Swal.fire({
+
+                    icon: 'info',
+
+                    title: 'Registration Submitted!',
+
+                    text: 'Your registration is pending administrator approval. You will receive an email notification once your account is approved, after which you may log in to ISUFSTPASS.',
+
+                    confirmButtonText: 'OK',
+
+                    confirmButtonColor: '#123b78',
+
+                    allowOutsideClick: false,
+
+                    allowEscapeKey: false,
+
+                }).then(function () {
+
+                    window.location.href = '{{ route('register') }}';
+
+                });
+
+            }
+
+        });
+
+    </script>
+
 </body>
 </html>

@@ -2,8 +2,12 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Mail\OfficeAccountApproved;
 use App\Models\User;
+use App\Notifications\OfficeAccountApprovedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class OfficeRegistrationApprovalTest extends TestCase
@@ -72,6 +76,10 @@ class OfficeRegistrationApprovalTest extends TestCase
             'position' => 'Librarian II',
             'contact_number' => '09171234567',
             'approval_status' => User::APPROVAL_PENDING,
+            // Inactive as well as pending - two locks, not one. The login
+            // gate already holds the account on the status alone; approve()
+            // is what switches this flag on.
+            'is_active' => false,
         ]);
     }
 
@@ -138,6 +146,19 @@ class OfficeRegistrationApprovalTest extends TestCase
         $this->get('/register/pending')
             ->assertStatus(200)
             ->assertSee('Application Submitted');
+    }
+
+    public function test_the_submission_popup_greets_the_applicant_with_the_promise(): void
+    {
+        $this->get('/register/pending')
+            ->assertStatus(200)
+            // The SweetAlert2 dialog the applicant sees after "Create Account".
+            ->assertSee('Registration Submitted!')
+            ->assertSee('Your registration is pending administrator approval. You will receive an email notification once your account is approved, after which you may log in to ISUFSTPASS.')
+            ->assertSee('window.Swal.fire', false)
+            ->assertSee("confirmButtonText: 'OK'", false)
+            // Confirming takes the applicant back to the Registration Page.
+            ->assertSee("window.location.href = '".route('register')."'", false);
     }
 
     // ------------------------------------------------------------------
@@ -232,6 +253,27 @@ class OfficeRegistrationApprovalTest extends TestCase
         $this->assertNotNull($user->approved_at);
         $this->assertSame($admin->id, $user->approved_by);
         $this->assertTrue($user->is_active);
+    }
+
+    public function test_approving_the_application_notifies_the_applicant_by_email_and_in_app(): void
+    {
+        Notification::fake();
+        Mail::fake();
+
+        $admin = $this->admin();
+        $user = $this->pendingOffice('notify-me@isufst.edu.ph', 'Library');
+
+        $this->actingAs($admin)
+            ->put("/admin/users/{$user->id}/approve")
+            ->assertRedirect();
+
+        // The registration popup promised an email at approval...
+        Mail::assertSent(OfficeAccountApproved::class, function (OfficeAccountApproved $mail) use ($user) {
+            return $mail->hasTo($user->email);
+        });
+
+        // ...and the portal bell lights up for whoever is already around.
+        Notification::assertSentTo($user, OfficeAccountApprovedNotification::class);
     }
 
     public function test_admin_can_reject_a_pending_office_account_with_a_reason(): void

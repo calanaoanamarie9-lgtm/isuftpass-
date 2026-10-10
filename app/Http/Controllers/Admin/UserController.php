@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\OfficeAccountApproved;
 use App\Models\User;
+use App\Notifications\OfficeAccountApprovedNotification;
 use App\Support\AuditLogger;
+use App\Support\SafeMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -48,14 +51,22 @@ class UserController extends Controller
     public function approve(Request $request, User $user): RedirectResponse
     {
         if ($user->isApproved()) {
-            return back()->with('error', $user->email . ' is already approved.');
+            return back()->with('error', $user->email.' is already approved.');
         }
 
         $user->approve($request->user());
 
-        AuditLogger::log('user.approved', 'Approved the ' . ($user->office ?: 'office') . ' account for ' . $user->email . '.', $request->user());
+        AuditLogger::log('user.approved', 'Approved the '.($user->office ?: 'office').' account for '.$user->email.'.', $request->user());
 
-        return back()->with('status', 'Approved the account for ' . $user->email . '. They can now log in.');
+        // The registration popup promises the applicant an email at this
+        // exact moment, so the decision has to send one - plus the in-app
+        // bell entry for whoever is already roaming the portal. Both are
+        // best-effort: SafeMailer keeps a provider outage from failing the
+        // admin's action, and the approval itself is already committed.
+        $user->notify(new OfficeAccountApprovedNotification);
+        SafeMailer::send($user, new OfficeAccountApproved($user));
+
+        return back()->with('status', 'Approved the account for '.$user->email.'. They can now log in.');
     }
 
     /**
@@ -69,9 +80,9 @@ class UserController extends Controller
 
         $user->reject($request->user(), $data['rejection_reason'] ?? null);
 
-        AuditLogger::log('user.rejected', 'Rejected the ' . ($user->office ?: 'office') . ' account for ' . $user->email . '.', $request->user());
+        AuditLogger::log('user.rejected', 'Rejected the '.($user->office ?: 'office').' account for '.$user->email.'.', $request->user());
 
-        return back()->with('status', 'Rejected the account for ' . $user->email . '.');
+        return back()->with('status', 'Rejected the account for '.$user->email.'.');
     }
 
     public function store(Request $request): RedirectResponse
@@ -92,9 +103,9 @@ class UserController extends Controller
             'email_verified_at' => now(),
         ]);
 
-        AuditLogger::log('user.created', 'Created ' . ucfirst($user->role) . ' account for ' . $user->email . '.', $request->user());
+        AuditLogger::log('user.created', 'Created '.ucfirst($user->role).' account for '.$user->email.'.', $request->user());
 
-        return back()->with('status', 'Account created for ' . $user->email . '.');
+        return back()->with('status', 'Account created for '.$user->email.'.');
     }
 
     public function toggle(User $user, Request $request): RedirectResponse
@@ -105,9 +116,9 @@ class UserController extends Controller
 
         $user->update(['is_active' => ! $user->is_active]);
 
-        AuditLogger::log('user.' . ($user->is_active ? 'activated' : 'deactivated'), ($user->is_active ? 'Activated' : 'Deactivated') . ' account for ' . $user->email . '.', $request->user());
+        AuditLogger::log('user.'.($user->is_active ? 'activated' : 'deactivated'), ($user->is_active ? 'Activated' : 'Deactivated').' account for '.$user->email.'.', $request->user());
 
-        return back()->with('status', ($user->is_active ? 'Activated' : 'Deactivated') . ' account for ' . $user->email . '.');
+        return back()->with('status', ($user->is_active ? 'Activated' : 'Deactivated').' account for '.$user->email.'.');
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -125,9 +136,9 @@ class UserController extends Controller
 
         $user->update($data);
 
-        AuditLogger::log('user.updated', 'Updated account details for ' . $user->email . ' (role: ' . ucfirst($user->role) . ').', $request->user());
+        AuditLogger::log('user.updated', 'Updated account details for '.$user->email.' (role: '.ucfirst($user->role).').', $request->user());
 
-        return back()->with('status', 'Account updated for ' . $user->email . '.');
+        return back()->with('status', 'Account updated for '.$user->email.'.');
     }
 
     /**
@@ -149,9 +160,9 @@ class UserController extends Controller
 
         $user->update(['password' => $data['password']]);
 
-        AuditLogger::log('user.password_reset', 'Reset the password for ' . $user->email . '.', $request->user());
+        AuditLogger::log('user.password_reset', 'Reset the password for '.$user->email.'.', $request->user());
 
-        return back()->with('status', 'Password reset for ' . $user->email . '. Give the new password to them securely and have them change it after signing in.');
+        return back()->with('status', 'Password reset for '.$user->email.'. Give the new password to them securely and have them change it after signing in.');
     }
 
     public function destroy(User $user, Request $request): RedirectResponse
@@ -163,8 +174,8 @@ class UserController extends Controller
         $email = $user->email;
         $user->delete();
 
-        AuditLogger::log('user.deleted', 'Deleted account for ' . $email . '.', $request->user());
+        AuditLogger::log('user.deleted', 'Deleted account for '.$email.'.', $request->user());
 
-        return back()->with('status', 'Account deleted for ' . $email . '.');
+        return back()->with('status', 'Account deleted for '.$email.'.');
     }
 }
