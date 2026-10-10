@@ -420,6 +420,8 @@ class EmailVerificationTest extends TestCase
     // The dashboard route is the end of the onboarding road only once the
     // details exist; until then it hands the user back to the form, and the
     // form hands them straight back to the dashboard when it succeeds.
+    // Staff accounts never saw a registration form, so the step does not
+    // exist for them and they go straight through.
 
     public function test_the_dashboard_sends_an_incomplete_profile_back_to_the_form(): void
     {
@@ -441,5 +443,29 @@ class EmailVerificationTest extends TestCase
         // The guard must let them through on the very next request - no
         // second round trip, no bounce back to the form.
         $this->get('/dashboard')->assertOk();
+    }
+
+    public function test_staff_accounts_reach_the_dashboard_without_the_profile_step(): void
+    {
+        // No contact number was ever submitted by either of these - staff
+        // are seeded or admin-created, never registered, so the
+        // personal-details step does not exist for them.
+        $this->actingAs(User::factory()->create(['role' => User::ROLE_REGISTRAR]))
+            ->get('/dashboard')
+            ->assertOk();
+
+        $this->actingAs(User::factory()->create(['role' => User::ROLE_ADMIN]))
+            ->get('/dashboard')
+            ->assertOk();
+    }
+
+    public function test_verifying_sends_a_staff_account_straight_to_the_dashboard(): void
+    {
+        $user = User::factory()->unverified()->create(['role' => User::ROLE_REGISTRAR]);
+
+        $this->get($this->verificationUrlFor($user))
+            ->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertAuthenticatedAs($user);
     }
 }

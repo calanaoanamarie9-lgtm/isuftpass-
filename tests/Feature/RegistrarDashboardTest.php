@@ -15,8 +15,7 @@ class RegistrarDashboardTest extends TestCase
 
     private function makeRegistrar(): User
     {
-        // Dashboard guard: no submitted personal details, no dashboard.
-        return User::factory()->create(['role' => 'registrar', 'contact_number' => '09171234567']);
+        return User::factory()->create(['role' => 'registrar']);
     }
 
     private function makeStudent(string $name): User

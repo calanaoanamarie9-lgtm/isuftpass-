@@ -140,13 +140,30 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * True once the personal-details step has been submitted: students
      * keep their contact number on the profile row, every other type on
-     * the user itself. The dashboard guard loops anyone without it back
-     * to the complete-profile form, and verification aims the freshly
-     * verified user at the form or the dashboard on this basis.
+     * the user itself.
      */
     public function hasCompletedProfile(): bool
     {
         return (bool) ($this->contact_number || $this->studentProfile?->contact_number);
+    }
+
+    /**
+     * True while the personal-details step still stands between this user
+     * and the dashboard.
+     *
+     * The step belongs to the registration flow, so it applies to everyone
+     * who signed up through it — students and the typed registration types
+     * (alumni, guest, parent). Staff accounts are seeded or created by an
+     * admin and never saw a registration form: for them the step does not
+     * exist, complete or not.
+     */
+    public function requiresProfileCompletion(): bool
+    {
+        if (! $this->isStudent() && ! $this->registration_type) {
+            return false;
+        }
+
+        return ! $this->hasCompletedProfile();
     }
 
     /**

@@ -49,17 +49,19 @@ class VerifyEmailController extends Controller
         }
 
         // Verification hands off straight to the next step — no login page
-        // in between. Details missing → the personal-details form,
-        // unconditionally: verifying must never skip the step the gate
-        // protects, and the dashboard would only bounce them there anyway.
-        // Details present → wherever they were headed when the gate
-        // recorded it (`EnsureEmailIsVerified` stores the URL it bounced
-        // them from), or the dashboard by default.
+        // in between. While the registration flow's personal-details step
+        // still stands, the form is the destination, unconditionally:
+        // verifying must never skip the step the gate protects, and the
+        // dashboard would only bounce them there anyway. Otherwise — details
+        // already in, or a staff account the step never applies to — go
+        // wherever they were headed when the gate recorded it
+        // (`EnsureEmailIsVerified` stores the URL it bounced them from), or
+        // the dashboard by default.
         $intended = session()->pull('url.intended');
 
-        $destination = $user->hasCompletedProfile()
-            ? ($intended ?: route('dashboard'))
-            : route('complete-profile');
+        $destination = $user->requiresProfileCompletion()
+            ? route('complete-profile')
+            : ($intended ?: route('dashboard'));
 
         return redirect()->to($destination);
     }

@@ -61,11 +61,12 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $user = Auth::user();
 
-    // The personal-details step is not optional, whatever the role: anyone
-    // who has not submitted it loops back to the form until they do. The
-    // form is the same one for every registration type, and submitting it
-    // lands straight back here.
-    if (! $user->hasCompletedProfile()) {
+    // The personal-details step is not optional for anyone who signed up
+    // through the registration flow: until they submit it they loop back to
+    // the form, whatever the typed registration. Staff accounts are seeded
+    // or admin-created and never saw a registration form — the step does
+    // not exist for them, so they go straight through.
+    if ($user->requiresProfileCompletion()) {
         return redirect()->route('complete-profile');
     }
 

@@ -18,9 +18,7 @@ class AdminModuleTest extends TestCase
 
     private function makeAdmin(): User
     {
-        // The dashboard guard sends any account without submitted personal
-        // details back to the form, so dashboard-bound staff need theirs.
-        return User::factory()->create(['role' => 'admin', 'contact_number' => '09171234567']);
+        return User::factory()->create(['role' => 'admin']);
     }
 
     public function test_admin_can_view_user_management(): void
