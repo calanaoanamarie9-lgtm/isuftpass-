@@ -398,7 +398,7 @@
                                               uppercase tracking-widest
                                               text-blue-500">
 
-                                        Transaction Verification
+                                        Digital Claim Pass
 
                                     </p>
 
@@ -711,6 +711,17 @@
 
                                     </h2>
 
+                                    @if ($appointment->user)
+
+                                        <p class="text-sm font-bold
+                                                  text-blue-950/70">
+
+                                            {{ $appointment->user->name }}
+
+                                        </p>
+
+                                    @endif
+
                                 </div>
 
                             </div>
@@ -871,7 +882,7 @@
                         </div>
 
 
-                        @if ($appointment->user && $student)
+                        @if ($appointment->user)
 
                             <a href="{{ route('registrar.appointments.show', $appointment) }}"
                                class="mt-5 w-full
@@ -913,7 +924,8 @@
             {{-- =========================================================
                 NO STUDENT FOUND
             ========================================================== --}}
-            @if ($query && ! $student)
+            {{-- A found transaction or appointment is a result, not a miss. --}}
+            @if ($query && ! $student && ! $documentRequest && ! $appointment)
 
                 <div class="bg-white rounded-3xl
                             border border-red-100
@@ -1190,8 +1202,12 @@
 
                         {{-- =================================================
                             RECENT TRANSACTIONS
+                            Only a name/email search lists them: a scanned
+                            QR must isolate its single transaction instead.
                         ================================================== --}}
                         <div class="mt-8">
+
+                            @if ($showTransactionLists)
 
                             <div class="flex items-center
                                         justify-between gap-3 mb-3">
@@ -1366,6 +1382,8 @@
                                 @endforelse
 
                             </div>
+
+                            @endif
 
 
                             {{-- STUDENT RECORD --}}

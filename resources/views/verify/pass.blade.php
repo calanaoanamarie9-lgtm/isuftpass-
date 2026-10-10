@@ -268,112 +268,19 @@
                 </div>
 
 
-                <!-- Transactions -->
-                <div class="mt-8">
+                <!-- Single-transaction note -->
+                <div class="mt-8 rounded-2xl border border-blue-200 bg-blue-50 p-5">
 
-                    <div class="flex items-center justify-between mb-4">
+                    <p class="font-extrabold text-blue-900">
+                        Identity pass only
+                    </p>
 
-                        <div>
-
-                            <h3 class="text-lg font-extrabold text-gray-900">
-                                Active Transactions
-                            </h3>
-
-                            <p class="text-xs text-gray-500 mt-1">
-                                Transactions associated with this student.
-                            </p>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="space-y-3">
-
-                        {{-- Appointments --}}
-                        @foreach ($appointments as $appointment)
-
-                            <div class="border border-blue-100 bg-blue-50 rounded-2xl p-4">
-
-                                <div class="flex items-start justify-between gap-3">
-
-                                    <div class="min-w-0">
-
-                                        <p class="font-bold text-gray-900 break-words">
-                                            {{ $appointment->office }}
-                                        </p>
-
-                                        <p class="text-sm text-gray-500 mt-1 break-words">
-
-                                            {{ $appointment->date->format('M d, Y') }}
-
-                                            <span class="mx-1">•</span>
-
-                                            {{ $appointment->timeToCome() }}
-
-                                        </p>
-
-                                    </div>
-
-                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
-                                        Appointment
-                                    </span>
-
-                                </div>
-
-                            </div>
-
-                        @endforeach
-
-
-                        {{-- Document Requests --}}
-                        @foreach ($requests as $request)
-
-                            <div class="border border-indigo-100 bg-indigo-50 rounded-2xl p-4">
-
-                                <div class="flex items-start justify-between gap-3">
-
-                                    <div class="min-w-0">
-
-                                        <p class="font-bold text-gray-900 break-words">
-                                            {{ $request->documentsSummary() }}
-                                        </p>
-
-                                        <p class="text-sm text-gray-500 mt-1">
-                                            Reference:
-                                            {{ $request->request_number }}
-                                        </p>
-
-                                    </div>
-
-                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 shrink-0">
-                                        Document
-                                    </span>
-
-                                </div>
-
-                            </div>
-
-                        @endforeach
-
-
-                        @if ($appointments->isEmpty() && $requests->isEmpty())
-
-                            <div class="text-center py-8 bg-gray-50 rounded-2xl">
-
-                                <p class="font-semibold text-gray-600">
-                                    No active transactions
-                                </p>
-
-                                <p class="text-sm text-gray-400 mt-1">
-                                    There are currently no active transactions on file.
-                                </p>
-
-                            </div>
-
-                        @endif
-
-                    </div>
+                    <p class="text-sm text-blue-700 mt-1 leading-6">
+                        This QR identifies the student. Each document request
+                        and appointment issues its own QR code that opens that
+                        single transaction's pass — scanning one never lists
+                        the student's other requests.
+                    </p>
 
                 </div>
 

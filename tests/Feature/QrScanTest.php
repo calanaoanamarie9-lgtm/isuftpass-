@@ -64,9 +64,11 @@ class QrScanTest extends TestCase
             ->assertSee('Valid Student Pass')
             ->assertSee($student->name)
             ->assertSee('Entry recorded')
-            ->assertSee('Registrar')
             ->assertSee('Main Gate')
-            ->assertSee(today()->format('F j'));
+            ->assertSee(today()->format('F j'))
+            // The pass identifies the student; their transactions are not
+            // dumped onto the verification page.
+            ->assertDontSee('Registrar');
 
         $this->assertDatabaseHas('gate_logs', [
             'user_id' => $student->id,
@@ -80,14 +82,28 @@ class QrScanTest extends TestCase
         $this->assertSame(2, GateLog::where('user_id', $student->id)->where('direction', 'in')->count());
     }
 
-    public function test_pass_page_shows_ready_document_requests(): void
+    /**
+     * The pass QR is the student's identity, not a transaction bundle: a
+     * scan must never dump their document requests and appointments.
+     */
+    public function test_pass_scan_shows_identity_only_without_bulk_transactions(): void
     {
         $student = $this->studentWithPass();
         $request = $this->makeRequest($student);
+        $appointment = $student->appointments()->create([
+            'office' => 'Registrar',
+            'purpose' => 'Enrollment',
+            'date' => today(),
+            'time_slot' => '09:00 AM - 10:00 AM',
+            'status' => 'confirmed',
+        ]);
 
         $this->get($this->passUrl($student))
             ->assertOk()
-            ->assertSee($request->request_number);
+            ->assertSee('Valid Student Pass')
+            ->assertDontSee('Active Transactions')
+            ->assertDontSee($request->request_number)
+            ->assertDontSee($appointment->office);
     }
 
     public function test_invalid_pass_token_shows_not_found(): void
@@ -132,6 +148,159 @@ class QrScanTest extends TestCase
         $this->get(route('verify.document', ['token' => '99999999-8888-7777-6666-555555555555']))
             ->assertNotFound()
             ->assertSee('Invalid QR Code');
+    }
+
+    /**
+     * Every claim QR points at one unique request: the scan must present
+     * that request's Digital Claim Pass and none of the student's other
+     * requests or appointments.
+     */
+    public function test_claim_qr_presents_only_that_requests_digital_claim_pass(): void
+    {
+        $student = $this->studentWithPass();
+        $scanned = $this->makeRequest($student, 'ready_for_pickup');
+        $other = $this->makeRequest($student, 'submitted');
+        $student->appointments()->create([
+            'office' => 'Library',
+            'purpose' => 'Reference',
+            'date' => now()->addDays(3)->toDateString(),
+            'time_slot' => '01:00 PM - 02:00 PM',
+            'status' => 'confirmed',
+        ]);
+
+        $this->get($this->claimUrl($scanned))
+            ->assertOk()
+            ->assertSee('Digital Claim Pass')
+            ->assertSee($scanned->request_number)
+            ->assertDontSee($other->request_number)
+            ->assertDontSee('Active Transactions')
+            ->assertDontSee('Library');
+    }
+
+    /**
+     * An appointment QR is equally unique: only that one appointment's
+     * details are presented, never the student's other transactions.
+     */
+    public function test_appointment_qr_presents_only_that_appointment(): void
+    {
+        $student = $this->studentWithPass();
+        $scanned = $student->appointments()->create([
+            'office' => 'Registrar',
+            'purpose' => 'Enrollment',
+            'date' => now()->addDays(2)->toDateString(),
+            'time_slot' => '09:00 AM - 10:00 AM',
+            'status' => 'confirmed',
+        ]);
+        $other = $student->appointments()->create([
+            'office' => 'Library',
+            'purpose' => 'Reference',
+            'date' => now()->addDays(5)->toDateString(),
+            'time_slot' => '01:00 PM - 02:00 PM',
+            'status' => 'confirmed',
+        ]);
+        $request = $this->makeRequest($student);
+
+        $this->get(route('verify.appointment', ['token' => $scanned->qr_token]))
+            ->assertOk()
+            ->assertSee('Registrar')
+            ->assertSee($scanned->date->format('M j, Y'))
+            ->assertDontSee('Library')
+            ->assertDontSee($other->date->format('M j, Y'))
+            ->assertDontSee($request->request_number);
+    }
+
+    /**
+     * The pass page prints exactly one QR per active transaction - there is
+     * no student-wide identity QR a scanner could resolve into a bulk list.
+     */
+    public function test_pass_page_prints_one_qr_per_transaction(): void
+    {
+        $student = $this->studentWithPass();
+        $this->makeRequest($student);
+        $this->makeRequest($student, 'submitted');
+        $student->appointments()->create([
+            'office' => 'Registrar',
+            'purpose' => 'Enrollment',
+            'date' => now()->addDays(2)->toDateString(),
+            'time_slot' => '09:00 AM - 10:00 AM',
+            'status' => 'confirmed',
+        ]);
+
+        $html = $this->actingAs($student)
+            ->get(route('student.pass.show'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(
+            3,
+            substr_count($html, 'data:image/svg+xml'),
+            'The pass page must print exactly one QR per active transaction.'
+        );
+    }
+
+    /**
+     * The registrar scanner isolates a transaction scan too: the single
+     * card for the scanned item, with no student-wide transaction dump
+     * underneath it.
+     */
+    public function test_staff_scanning_a_transaction_qr_sees_only_that_transaction(): void
+    {
+        $student = $this->studentWithPass();
+        $request = $this->makeRequest($student);
+        $appointment = $student->appointments()->create([
+            'office' => 'Library',
+            'purpose' => 'Reference',
+            'date' => now()->addDays(3)->toDateString(),
+            'time_slot' => '01:00 PM - 02:00 PM',
+            'status' => 'confirmed',
+        ]);
+        $registrar = User::factory()->create(['role' => 'registrar']);
+
+        // Claim QR -> that request's card only.
+        $this->actingAs($registrar)
+            ->get(route('registrar.qr.index', ['q' => $this->claimUrl($request)]))
+            ->assertOk()
+            ->assertSee('Document Request Found')
+            ->assertSee($request->request_number)
+            ->assertDontSee('Verified Student')
+            ->assertDontSee('Recent Transactions')
+            ->assertDontSee('Library')
+            ->assertDontSee('No Student Found');
+
+        // Appointment QR -> that appointment's card only.
+        $this->actingAs($registrar)
+            ->get(route('registrar.qr.index', ['q' => route('verify.appointment', ['token' => $appointment->qr_token])]))
+            ->assertOk()
+            ->assertSee('Appointment Found')
+            ->assertDontSee('Verified Student')
+            ->assertDontSee('Recent Transactions')
+            ->assertDontSee('No Student Found');
+    }
+
+    /**
+     * An identity pass scan shows the student card without a transaction
+     * list; a deliberate name search is the one result that still lists
+     * recent transactions.
+     */
+    public function test_staff_identity_scan_shows_no_lists_while_name_search_still_does(): void
+    {
+        $student = $this->studentWithPass();
+        $this->makeRequest($student);
+        $registrar = User::factory()->create(['role' => 'registrar']);
+
+        $this->actingAs($registrar)
+            ->get(route('registrar.qr.index', ['q' => $this->passUrl($student)]))
+            ->assertOk()
+            ->assertSee('Verified Student')
+            ->assertSee($student->name)
+            ->assertDontSee('Recent Transactions')
+            ->assertDontSee('No recent document requests.');
+
+        $this->actingAs($registrar)
+            ->get(route('registrar.qr.index', ['q' => $student->name]))
+            ->assertOk()
+            ->assertSee($student->name)
+            ->assertSee('Recent Transactions');
     }
 
     public function test_registrar_verification_accepts_urls_bare_tokens_and_legacy_json(): void

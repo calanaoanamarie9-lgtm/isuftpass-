@@ -16,20 +16,20 @@ class QrVerifyController extends Controller
         $result = null;
         $documentRequest = null;
         $appointment = null;
+        $showTransactionLists = false;
         $query = trim((string) $request->query('q'));
 
         if ($query !== '') {
             [$passToken, $claimToken, $appointmentToken] = $this->extractTokens($query);
 
+            // A transaction token resolves to ITS transaction alone: the page
+            // shows that single Digital Claim Pass / appointment card and
+            // nothing else from the student's history.
             if ($claimToken) {
                 $documentRequest = DocumentRequest::query()
                     ->with(['user.studentProfile', 'documents'])
                     ->where('claim_token', $claimToken)
                     ->first();
-
-                if ($documentRequest) {
-                    $result = $documentRequest->user;
-                }
             }
 
             if (! $documentRequest && $appointmentToken) {
@@ -37,19 +37,13 @@ class QrVerifyController extends Controller
                     ->with(['user.studentProfile'])
                     ->where('qr_token', $appointmentToken)
                     ->first();
-
-                if ($appointment) {
-                    $result = $appointment->user;
-                }
             }
 
+            // An identity pass scan shows the student card only - no dump of
+            // their documents and appointments.
             if (! $documentRequest && ! $appointment && $passToken) {
                 $result = User::query()
-                    ->with([
-                        'studentProfile',
-                        'documentRequests' => fn ($q) => $q->latest()->limit(3),
-                        'appointments' => fn ($q) => $q->latest()->limit(3),
-                    ])
+                    ->with('studentProfile')
                     ->where('role', 'student')
                     ->whereHas('studentProfile', fn ($p) => $p->where('pass_token', $passToken))
                     ->first();
@@ -61,14 +55,11 @@ class QrVerifyController extends Controller
                     ->with(['user.studentProfile'])
                     ->where('qr_token', $passToken)
                     ->first();
-
-                if ($appointment) {
-                    $result = $appointment->user;
-                }
             }
 
             if (! $result && ! $claimToken && ! $appointmentToken && ! $passToken) {
-                // Plain text (or unknown payload): treat as a name / email search.
+                // Plain text (or unknown payload): a deliberate name / email
+                // search - the only result that may list recent transactions.
                 $result = User::query()
                     ->with([
                         'studentProfile',
@@ -80,6 +71,7 @@ class QrVerifyController extends Controller
                         ->where('name', 'like', "%{$query}%")
                         ->orWhere('email', 'like', "%{$query}%"))
                     ->first();
+                $showTransactionLists = $result !== null;
             }
         }
 
@@ -88,6 +80,7 @@ class QrVerifyController extends Controller
             'documentRequest' => $documentRequest,
             'appointment' => $appointment,
             'query' => $query,
+            'showTransactionLists' => $showTransactionLists,
         ]);
     }
 

@@ -11,9 +11,13 @@ use Illuminate\Http\Request;
 /**
  * Public scan targets encoded inside QR codes.
  *
- * Any phone camera scanning a pass / claim QR lands here directly:
- *   /verify/pass/{token}      -> student QR pass
- *   /verify/document/{token}  -> document request claim slip
+ * Any phone camera scanning a QR lands here directly, and every QR carries
+ * exactly one unique transaction identifier:
+ *   /verify/pass/{token}         -> student identity pass (identity only, no
+ *                                   transaction list - each document request
+ *                                   and appointment has its own QR)
+ *   /verify/document/{token}     -> that one request's Digital Claim Pass
+ *   /verify/appointment/{token}  -> that one appointment's pass
  * Staff who are logged in are bounced to the registrar verification page.
  */
 class VerifyController extends Controller
@@ -45,24 +49,14 @@ class VerifyController extends Controller
             return redirect()->route('registrar.qr.index', ['q' => $token]);
         }
 
-        $appointments = $student->appointments()
-            ->whereIn('status', \App\Enums\AppointmentStatus::activeValues())
-            ->orderBy('date')
-            ->orderBy('time_slot')
-            ->limit(5)
-            ->get();
-
-        $requests = $student->documentRequests()
-            ->active()
-            ->latest()
-            ->limit(5)
-            ->get();
-
+        // Identity only. The pass QR identifies the student, never a
+        // transaction: listing their documents/appointments here was the
+        // bulk-display bug, because a scan must present the one item its
+        // payload points at. Every transaction carries its own QR that opens
+        // that single item's page instead.
         return view('verify.pass', [
             'student' => $student,
             'profile' => $profile,
-            'appointments' => $appointments,
-            'requests' => $requests,
             'scan' => $gateLog,
         ]);
     }
