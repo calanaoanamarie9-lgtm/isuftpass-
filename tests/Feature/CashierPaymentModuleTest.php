@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\DocumentRequestStatus;
 use App\Models\Document;
 use App\Models\User;
+use App\Notifications\CashierPaymentDueAlert;
 use App\Notifications\DocumentRequestStatusNotification;
 use App\Notifications\RegistrarRequestAlert;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -44,6 +45,60 @@ class CashierPaymentModuleTest extends TestCase
         $request->documents()->attach($document->id);
 
         return [$student, $request];
+    }
+
+    /**
+     * The approval hand-off the cashier actually sees: the registrar signs
+     * off, the alert lands on the cashier's own notifications page, and
+     * opening it lands on the pending queue filtered to that request. No
+     * Notification::fake() here — the database row and the pages it opens
+     * are the product, not the send call.
+     */
+    public function test_a_registrar_approval_reaches_the_cashier_notifications_page(): void
+    {
+        $cashier = $this->makeCashier();
+        $student = User::factory()->create(['role' => 'student']);
+        $document = Document::create(['name' => 'Transcript of Records', 'description' => 'TOR', 'fee' => 100.00]);
+
+        $request = $student->documentRequests()->create([
+            'student_name' => $student->name,
+            'student_address' => 'Iloilo City',
+            'student_contact' => '09170000000',
+            'student_course_year' => 'BSIT 3',
+            'status' => DocumentRequestStatus::SUBMITTED->value,
+            'purpose_type' => 'employment',
+            'educational_status' => 'not_graduated',
+            'educational_level' => 'college',
+            'claim_mode' => 'personal',
+            'submitted_at' => now(),
+        ]);
+        $request->documents()->attach($document->id);
+
+        $this->actingAs(User::factory()->create(['role' => 'registrar']))
+            ->post("/registrar/document-requests/{$request->id}/next")
+            ->assertRedirect();
+
+        // One unread alert, carrying the details the cashier needs.
+        $this->assertSame(1, $cashier->unreadNotifications()->count());
+
+        $alert = $cashier->notifications()->first();
+        $this->assertSame(CashierPaymentDueAlert::class, $alert->type);
+        $this->assertStringContainsString('Approved', $alert->data['title']);
+        $this->assertStringContainsString($request->request_number, $alert->data['message']);
+
+        // The cashier finds it on their own page — the sidebar links there.
+        $this->actingAs($cashier)
+            ->get('/cashier/notifications')
+            ->assertOk()
+            ->assertSee('Approved')
+            ->assertSee($request->request_number);
+
+        // Opening it lands on the pending queue, filtered to this request.
+        $this->actingAs($cashier)
+            ->get('/cashier/notifications/' . $alert->id . '/open')
+            ->assertRedirect(route('cashier.payments.pending', ['q' => $request->request_number]));
+
+        $this->assertSame(0, $cashier->unreadNotifications()->count());
     }
 
     public function test_cashier_can_view_pending_payments(): void

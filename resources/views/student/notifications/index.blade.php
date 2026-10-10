@@ -1,4 +1,10 @@
-@php $notifRoute = Auth::user()->isStudent() ? 'student.notifications.' : 'registrar.notifications.'; @endphp
+@php
+    $notifRoute = match (true) {
+        Auth::user()->isStudent() => 'student.notifications.',
+        Auth::user()->isCashier() => 'cashier.notifications.',
+        default => 'registrar.notifications.',
+    };
+@endphp
 
 <x-app-layout>
     <div class="py-10">

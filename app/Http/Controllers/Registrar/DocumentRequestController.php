@@ -11,6 +11,7 @@ use App\Mail\DocumentRequestStatusUpdate;
 use App\Models\DocumentRequest;
 use App\Notifications\DocumentRequestStatusNotification;
 use App\Support\AuditLogger;
+use App\Support\CashierNotifier;
 use App\Support\SafeMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -90,6 +91,25 @@ class DocumentRequestController extends Controller
             $documentRequest->request_number,
             $action,
         ));
+    }
+
+    /**
+     * Approval hands the request over to the cashier's pending-payments
+     * queue — tell the desk it has arrived instead of making them watch
+     * the registrar's screen. Mirrors RegistrarNotifier: every active,
+     * approved cashier gets one row.
+     */
+    private function alertCashiers(DocumentRequest $documentRequest): void
+    {
+        CashierNotifier::alert(
+            $documentRequest,
+            'Approved — payment pending',
+            sprintf(
+                '%s has been approved and is awaiting payment of ₱%s.',
+                $documentRequest->student_name,
+                number_format($documentRequest->totalFee(), 2),
+            )
+        );
     }
 
     public function next(Request $request, DocumentRequest $documentRequest): RedirectResponse
@@ -174,6 +194,12 @@ class DocumentRequestController extends Controller
             );
         }
 
+        // Approval is the hand-off to the cashier: the request now waits
+        // in their pending-payments queue, so tell the desk it arrived.
+        if ($status === DocumentRequestStatus::FOR_SIGNATURE->value) {
+            $this->alertCashiers($documentRequest);
+        }
+
         return redirect()
             ->back()
             ->with('status', "Request {$label}. The student has been notified by email and in the system.");
@@ -238,6 +264,12 @@ class DocumentRequestController extends Controller
             SafeMailer::send($documentRequest->user, 
                 new DocumentRequestStatusUpdate($documentRequest, $target->label(), "Your document request {$message}.")
             );
+        }
+
+        // Approval is the hand-off to the cashier: the request now waits
+        // in their pending-payments queue, so tell the desk it arrived.
+        if ($target === DocumentRequestStatus::FOR_SIGNATURE) {
+            $this->alertCashiers($documentRequest);
         }
 
         return redirect()

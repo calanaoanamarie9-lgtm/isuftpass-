@@ -463,6 +463,12 @@ Route::middleware(['auth', 'verified', 'role:cashier'])->prefix('cashier')->name
     // Student Ledger (financial records)
     Route::get('/ledger', [LedgerController::class, 'index'])->name('ledger.index');
     Route::get('/ledger/{user}', [LedgerController::class, 'show'])->name('ledger.show');
+
+    // Notifications (shared controller, role-agnostic)
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{notification}/open', [NotificationController::class, 'open'])->name('notifications.open');
+    Route::put('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::put('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
 });
 
 /*

@@ -748,6 +748,26 @@
 
                 <div class="space-y-1">
 
+                    <a href="{{ route('cashier.notifications.index') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+
+                        <span>🔔</span>
+
+                        <span class="flex-1">
+                            Notifications
+                        </span>
+
+                        @if (Auth::user()->unreadNotifications->count() > 0)
+                            <span class="min-w-[20px] h-5 px-1.5 rounded-full
+                                         bg-red-500 text-white text-[10px]
+                                         font-bold flex items-center justify-center">
+                                {{ Auth::user()->unreadNotifications->count() }}
+                            </span>
+                        @endif
+
+                    </a>
+
                     <a href="{{ route('profile.edit') }}"
                        @click="open = false"
                        class="{{ $navClass }}">

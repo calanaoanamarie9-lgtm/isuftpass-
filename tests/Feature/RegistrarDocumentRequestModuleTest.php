@@ -7,9 +7,11 @@ use App\Mail\DocumentRequestReadyForPickup;
 use App\Models\Appointment;
 use App\Models\Document;
 use App\Models\User;
+use App\Notifications\CashierPaymentDueAlert;
 use App\Notifications\DocumentRequestStatusNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class RegistrarDocumentRequestModuleTest extends TestCase
@@ -42,6 +44,83 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $request->documents()->attach($document->id);
 
         return [$student, $request];
+    }
+
+    public function test_approving_a_request_notifies_the_student_and_every_cashier(): void
+    {
+        Notification::fake();
+
+        $cashierOne = User::factory()->create(['role' => 'cashier']);
+        $cashierTwo = User::factory()->create(['role' => 'cashier']);
+        $registrarDesk = User::factory()->create(['role' => 'registrar']);
+        [$student, $request] = $this->makeStudentWithRequest();
+
+        $this->actingAs($this->makeRegistrar())
+            ->post("/registrar/document-requests/{$request->id}/next")
+            ->assertRedirect();
+
+        $this->assertEquals('for_signature', $request->fresh()->status);
+
+        Notification::assertSentToTimes($student, DocumentRequestStatusNotification::class, 1);
+
+        // Approval is the cashiers' cue: the request now waits in their
+        // pending queue, so every desk account is told it arrived.
+        Notification::assertSentTo($cashierOne, CashierPaymentDueAlert::class);
+        Notification::assertSentTo($cashierTwo, CashierPaymentDueAlert::class);
+
+        // The registrar desk acted on it — the alert is the cashier's.
+        Notification::assertNotSentTo($registrarDesk, CashierPaymentDueAlert::class);
+    }
+
+    public function test_the_cashier_alert_opens_the_pending_queue_filtered_to_the_request(): void
+    {
+        Notification::fake();
+
+        $cashier = User::factory()->create(['role' => 'cashier']);
+        [, $request] = $this->makeStudentWithRequest();
+
+        $this->actingAs($this->makeRegistrar())
+            ->post("/registrar/document-requests/{$request->id}/next");
+
+        Notification::assertSentTo(
+            $cashier,
+            CashierPaymentDueAlert::class,
+            fn ($notification) => $notification->toArray($cashier)['url']
+                === route('cashier.payments.pending', ['q' => $request->request_number]),
+        );
+    }
+
+    public function test_setting_the_status_to_approved_directly_also_alerts_cashiers(): void
+    {
+        Notification::fake();
+
+        $cashier = User::factory()->create(['role' => 'cashier']);
+        [, $request] = $this->makeStudentWithRequest();
+
+        $this->actingAs($this->makeRegistrar())
+            ->patch("/registrar/document-requests/{$request->id}/status", ['status' => 'for_signature'])
+            ->assertRedirect();
+
+        Notification::assertSentTo($cashier, CashierPaymentDueAlert::class);
+    }
+
+    public function test_steps_past_approval_do_not_alert_cashiers(): void
+    {
+        Notification::fake();
+
+        $cashier = User::factory()->create(['role' => 'cashier']);
+        [$student, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::READY_FOR_PICKUP->value);
+
+        $this->actingAs($this->makeRegistrar())
+            ->post("/registrar/document-requests/{$request->id}/next")
+            ->assertRedirect();
+
+        $this->assertEquals('completed', $request->fresh()->status);
+
+        // Releasing and completing are the registrar's own steps — only the
+        // approval hands anything to the cashier.
+        Notification::assertSentToTimes($student, DocumentRequestStatusNotification::class, 1);
+        Notification::assertNotSentTo($cashier, CashierPaymentDueAlert::class);
     }
 
     public function test_registrar_can_view_document_requests_pipeline(): void
