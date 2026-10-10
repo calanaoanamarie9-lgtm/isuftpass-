@@ -351,6 +351,7 @@ class OfficeRegistrationApprovalTest extends TestCase
             'position' => 'Administrative Aide III',
             'approval_status' => User::APPROVAL_PENDING,
             'is_active' => true,
+            'contact_number' => '09171234567',
         ]);
     }
 }

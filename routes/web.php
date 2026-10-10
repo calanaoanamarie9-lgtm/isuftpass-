@@ -61,6 +61,14 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $user = Auth::user();
 
+    // The personal-details step is not optional, whatever the role: anyone
+    // who has not submitted it loops back to the form until they do. The
+    // form is the same one for every registration type, and submitting it
+    // lands straight back here.
+    if (! $user->hasCompletedProfile()) {
+        return redirect()->route('complete-profile');
+    }
+
     if ($user->registration_type === 'alumni') {
         $recentActivity = collect()
             ->merge(

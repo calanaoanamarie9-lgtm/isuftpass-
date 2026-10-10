@@ -138,6 +138,18 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * True once the personal-details step has been submitted: students
+     * keep their contact number on the profile row, every other type on
+     * the user itself. The dashboard guard loops anyone without it back
+     * to the complete-profile form, and verification aims the freshly
+     * verified user at the form or the dashboard on this basis.
+     */
+    public function hasCompletedProfile(): bool
+    {
+        return (bool) ($this->contact_number || $this->studentProfile?->contact_number);
+    }
+
+    /**
      * Apply an admin decision to this office / staff account.
      */
     public function approve(User $admin): void

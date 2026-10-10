@@ -6,20 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class VerifyEmailController extends Controller
 {
     /**
-     * Confirm the address and show the success screen.
+     * Confirm the address, sign the holder in, and send them straight on
+     * to the next onboarding step.
      *
-     * There is no Auth::login() here on purpose. The route sits behind the
-     * `auth` middleware, and the pending / rejected / deactivated checks only
-     * exist in the login form — logging the holder of a link in from this
-     * controller would let an unapproved office account walk straight past
-     * the approval gate.
+     * The link is usually clicked on the phone that reads the inbox — a
+     * device with no session — so requiring `auth` on the route would drop
+     * every fresh signup on the login page mid-flow. Logging in from here
+     * is therefore deliberate, and safe only because the same pending /
+     * rejected / deactivated gates the login form applies are re-checked
+     * below: a signed link alone must never walk an unapproved office
+     * account past the approval gate.
      */
-    public function __invoke(string $id, string $hash): RedirectResponse|View
+    public function __invoke(Request $request, string $id, string $hash): RedirectResponse
     {
         $user = User::findOrFail($id);
 
@@ -29,37 +33,56 @@ class VerifyEmailController extends Controller
             abort(403, 'Invalid verification link.');
         }
 
-        if ($user->hasVerifiedEmail()) {
-            return redirect()->route('dashboard');
+        // Same gates as AuthenticatedSessionController::store(), in the
+        // same order: pending and rejected first, because a rejected
+        // account is also deactivated and the applicant deserves to see
+        // why it was turned down.
+        if ($block = $this->loginBlock($user)) {
+            return redirect()->route('login')->withErrors(['email' => $block]);
         }
 
-        if ($user->markEmailAsVerified()) {
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        if (! $user->hasVerifiedEmail() && $user->markEmailAsVerified()) {
             event(new Verified($user));
         }
 
-        // Where they were headed wins: `EnsureEmailIsVerified` stores the URL
-        // it bounced them from, which is complete-profile for a fresh signup
-        // and a dashboard for everyone else. Without that (the link was opened
-        // on another device), send whoever has not filled in their personal
-        // details to the form - otherwise verifying would skip the very step
-        // this gate protects - and everyone else on to the dashboard.
-        $destination = session()->pull('url.intended')
-            ?: ($this->hasPersonalDetails($user) ? route('dashboard') : route('complete-profile'));
+        // Verification hands off straight to the next step — no login page
+        // in between. Details missing → the personal-details form,
+        // unconditionally: verifying must never skip the step the gate
+        // protects, and the dashboard would only bounce them there anyway.
+        // Details present → wherever they were headed when the gate
+        // recorded it (`EnsureEmailIsVerified` stores the URL it bounced
+        // them from), or the dashboard by default.
+        $intended = session()->pull('url.intended');
 
-        return view('auth.email-verified', [
-            'destination' => $destination,
-            'label' => $destination === route('complete-profile')
-                ? 'Complete Your Profile'
-                : 'Continue to Dashboard',
-        ]);
+        $destination = $user->hasCompletedProfile()
+            ? ($intended ?: route('dashboard'))
+            : route('complete-profile');
+
+        return redirect()->to($destination);
     }
 
     /**
-     * Students keep their contact number on the profile row; alumni, guests
-     * and parents fill it on the user itself.
+     * The account-state gates the login form applies, as messages. Null
+     * means this holder may hold a session.
      */
-    private function hasPersonalDetails(User $user): bool
+    private function loginBlock(User $user): ?string
     {
-        return (bool) ($user->contact_number || $user->studentProfile?->contact_number);
+        if ($user->isPendingApproval()) {
+            return 'Your office account is still pending administrator approval. Please check back later.';
+        }
+
+        if ($user->isRejected()) {
+            return 'Your office account application was declined.'
+                . ($user->rejection_reason ? ' Reason: ' . $user->rejection_reason : ' Contact the administrator for details.');
+        }
+
+        if (! $user->is_active) {
+            return 'This account has been deactivated. Contact the administrator.';
+        }
+
+        return null;
     }
 }

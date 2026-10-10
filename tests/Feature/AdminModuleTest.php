@@ -18,7 +18,9 @@ class AdminModuleTest extends TestCase
 
     private function makeAdmin(): User
     {
-        return User::factory()->create(['role' => 'admin']);
+        // The dashboard guard sends any account without submitted personal
+        // details back to the form, so dashboard-bound staff need theirs.
+        return User::factory()->create(['role' => 'admin', 'contact_number' => '09171234567']);
     }
 
     public function test_admin_can_view_user_management(): void
@@ -288,7 +290,7 @@ class AdminModuleTest extends TestCase
         Setting::query()->updateOrCreate(['key' => 'banner_enabled'], ['value' => 'true']);
         Setting::query()->updateOrCreate(['key' => 'banner_text'], ['value' => 'Offices closed on Aug 25-26.']);
 
-        $student = User::factory()->create(['role' => 'student']);
+        $student = User::factory()->create(['role' => 'student', 'contact_number' => '09171234567']);
 
         $this->actingAs($student)
             ->get('/dashboard')

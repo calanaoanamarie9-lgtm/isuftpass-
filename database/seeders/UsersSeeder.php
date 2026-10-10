@@ -17,6 +17,7 @@ class UsersSeeder extends Seeder
                 'role' => 'admin',
                 'password' => 'password123',
                 'email_verified_at' => now(),
+                'contact_number' => '09171234567',
             ]
         );
 
@@ -27,6 +28,7 @@ class UsersSeeder extends Seeder
                 'role' => 'registrar',
                 'password' => 'password123',
                 'email_verified_at' => now(),
+                'contact_number' => '09171234567',
             ]
         );
 
@@ -37,6 +39,7 @@ class UsersSeeder extends Seeder
                 'role' => 'cashier',
                 'password' => 'password123',
                 'email_verified_at' => now(),
+                'contact_number' => '09171234567',
             ]
         );
 

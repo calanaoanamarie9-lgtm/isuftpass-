@@ -18,7 +18,8 @@ class CashierPaymentModuleTest extends TestCase
 
     private function makeCashier(): User
     {
-        return User::factory()->create(['role' => 'cashier']);
+        // Dashboard guard: no submitted personal details, no dashboard.
+        return User::factory()->create(['role' => 'cashier', 'contact_number' => '09171234567']);
     }
 
     /**

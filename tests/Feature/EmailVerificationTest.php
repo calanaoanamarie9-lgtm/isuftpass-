@@ -73,27 +73,81 @@ class EmailVerificationTest extends TestCase
         Notification::assertSentTo($user, VerifyEmailNotification::class);
     }
 
-    public function test_the_signed_link_verifies_the_address(): void
+    public function test_the_signed_link_verifies_the_address_and_signs_the_holder_in(): void
     {
         $user = User::factory()->unverified()->create();
 
-        $this->actingAs($user)
-            ->get($this->verificationUrlFor($user))
-            ->assertOk()
-            ->assertViewIs('auth.email-verified');
+        // No actingAs: the inbox usually lives on the phone, a device with
+        // no session. The link itself must carry the holder in - requirement
+        // of the flow, no login page in between.
+        $this->get($this->verificationUrlFor($user))
+            ->assertRedirect(route('complete-profile', absolute: false));
 
+        $this->assertAuthenticatedAs($user);
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
-    public function test_following_the_link_twice_takes_the_user_to_the_dashboard(): void
+    public function test_following_the_link_twice_keeps_the_user_verified_and_signed_in(): void
     {
         $user = User::factory()->unverified()->create();
         $url = $this->verificationUrlFor($user);
 
-        $this->actingAs($user)->get($url)->assertOk();
+        $this->get($url)->assertRedirect(route('complete-profile', absolute: false));
 
-        $this->actingAs($user->refresh())->get($url)
-            ->assertRedirect(route('dashboard', absolute: false));
+        // Close the session entirely - the second click is another device
+        // with nothing cached, and it must work the same way.
+        $this->post('/logout');
+
+        $this->get($url)->assertRedirect(route('complete-profile', absolute: false));
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertNotNull($user->refresh()->email_verified_at);
+    }
+
+    public function test_a_pending_office_account_is_turned_back_to_the_login_page(): void
+    {
+        $user = User::factory()->unverified()->create([
+            'role' => User::ROLE_OFFICE,
+            'approval_status' => User::APPROVAL_PENDING,
+        ]);
+
+        // Signing the holder in is only safe because the same gates the
+        // login form applies are re-checked here. A signed link alone must
+        // not be a way past the approval desk.
+        $this->get($this->verificationUrlFor($user))
+            ->assertRedirect(route('login', absolute: false))
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+        $this->assertNull($user->refresh()->email_verified_at, 'A signed link must not verify what the login form would refuse.');
+    }
+
+    public function test_a_rejected_office_account_is_turned_back_to_the_login_page(): void
+    {
+        $user = User::factory()->unverified()->create([
+            'role' => User::ROLE_OFFICE,
+            'approval_status' => User::APPROVAL_REJECTED,
+            'rejection_reason' => 'Incomplete requirements.',
+        ]);
+
+        $this->get($this->verificationUrlFor($user))
+            ->assertRedirect(route('login', absolute: false))
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+        $this->assertNull($user->refresh()->email_verified_at);
+    }
+
+    public function test_a_deactivated_account_is_turned_back_to_the_login_page(): void
+    {
+        $user = User::factory()->unverified()->create(['is_active' => false]);
+
+        $this->get($this->verificationUrlFor($user))
+            ->assertRedirect(route('login', absolute: false))
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+        $this->assertNull($user->refresh()->email_verified_at);
     }
 
     public function test_an_unsigned_link_is_rejected(): void
@@ -297,23 +351,28 @@ class EmailVerificationTest extends TestCase
     {
         // role is NOT NULL DEFAULT 'student' in production, so this is the
         // shape of every account that will ever reach these two routes.
-        $user = User::factory()->create(['role' => User::ROLE_STUDENT]);
+        // The contact number is what makes the profile "complete" - the
+        // dashboard guard (The profile guard, below) would otherwise send
+        // the second request back to the form.
+        $user = User::factory()->create([
+            'role' => User::ROLE_STUDENT,
+            'contact_number' => '09170001111',
+        ]);
 
         $this->actingAs($user)->get('/complete-profile')->assertOk();
         $this->actingAs($user)->get('/dashboard')->assertOk();
     }
 
     // --- Where verification leaves you ---------------------------------------
+    // Straight into the next step: the personal-details form while details
+    // are missing, the dashboard once they exist. Never a login page.
 
     public function test_verifying_continues_to_the_profile_form_when_details_are_missing(): void
     {
         $user = User::factory()->unverified()->create();
 
-        $this->actingAs($user)
-            ->get($this->verificationUrlFor($user))
-            ->assertOk()
-            ->assertViewHas('destination', route('complete-profile'))
-            ->assertViewHas('label', 'Complete Your Profile');
+        $this->get($this->verificationUrlFor($user))
+            ->assertRedirect(route('complete-profile', absolute: false));
 
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
@@ -322,15 +381,13 @@ class EmailVerificationTest extends TestCase
     {
         $user = User::factory()->unverified()->create(['contact_number' => '09170001111']);
 
-        $this->actingAs($user)
-            ->get($this->verificationUrlFor($user))
-            ->assertViewHas('destination', route('dashboard'))
-            ->assertViewHas('label', 'Continue to Dashboard');
+        $this->get($this->verificationUrlFor($user))
+            ->assertRedirect(route('dashboard', absolute: false));
     }
 
-    public function test_verification_returns_to_where_the_gate_interrupted(): void
+    public function test_verification_returns_to_where_the_gate_interrupted_once_details_exist(): void
     {
-        $user = User::factory()->unverified()->create();
+        $user = User::factory()->unverified()->create(['contact_number' => '09170001111']);
 
         // This is the bounce EnsureEmailIsVerified performs; the link click
         // must land back on the interrupted URL, not on a default.
@@ -340,6 +397,49 @@ class EmailVerificationTest extends TestCase
 
         $this->actingAs($user->refresh())
             ->get($this->verificationUrlFor($user))
-            ->assertViewHas('destination', route('dashboard'));
+            ->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_verification_sends_missing_details_on_to_the_form_instead_of_the_interrupted_dashboard(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertRedirect(route('verification.notice', absolute: false));
+
+        // The dashboard would only bounce them on to the form anyway (see
+        // The profile guard) - hand off directly instead of taking the
+        // detour. Requirement: verification goes to the form, not past it.
+        $this->actingAs($user->refresh())
+            ->get($this->verificationUrlFor($user))
+            ->assertRedirect(route('complete-profile', absolute: false));
+    }
+
+    // --- The profile guard ----------------------------------------------------
+    // The dashboard route is the end of the onboarding road only once the
+    // details exist; until then it hands the user back to the form, and the
+    // form hands them straight back to the dashboard when it succeeds.
+
+    public function test_the_dashboard_sends_an_incomplete_profile_back_to_the_form(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_STUDENT]);
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertRedirect(route('complete-profile', absolute: false));
+    }
+
+    public function test_submitting_the_details_lands_straight_on_the_dashboard(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_STUDENT]);
+
+        $this->actingAs($user)
+            ->post('/complete-profile', ['contact_number' => '09171234567'])
+            ->assertRedirect(route('dashboard', absolute: false));
+
+        // The guard must let them through on the very next request - no
+        // second round trip, no bounce back to the form.
+        $this->get('/dashboard')->assertOk();
     }
 }

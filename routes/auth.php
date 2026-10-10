@@ -45,6 +45,7 @@ Route::middleware(['guest', 'throttle:auth'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    // --- Email verification ------------------------------------------------
     // Registration lands here, so `verified` is the gate that sits between
     // "Create Account" and the personal-details form: an unverified signup is
     // bounced to verification.notice and stays there until the signed link is
@@ -68,28 +69,33 @@ Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
 
-    // --- Email verification ------------------------------------------------
-    // Deliberately behind `auth`: VerifyEmailController would otherwise hand a
-    // session to whoever holds the link, and the pending / rejected / inactive
-    // checks live in the login form only. A signed URL alone cannot tell an
-    // office applicant apart from an approved account.
     Route::get('email/verify', EmailVerificationPromptController::class)
         ->name('verification.notice');
-
-    Route::get('email/verify/{id}/{hash}', VerifyEmailController::class)
-        ->middleware(['signed', 'throttle:6,1'])
-        ->name('verification.verify');
 
     Route::post('email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
         ->middleware('throttle:6,1')
         ->name('verification.send');
 });
 
+// The signed verification link lives OUTSIDE `auth`: it is usually clicked
+// on the phone that reads the inbox, a device with no session, and `auth`
+// would drop the freshly verified user on the login page mid-flow. The
+// controller signs the holder in itself — only after re-applying the same
+// pending / rejected / deactivated gates the login form uses, so a signed
+// link alone can never walk an unapproved office account past the approval
+// gate. `signed` + throttle are what authenticate the request instead.
+Route::get('email/verify/{id}/{hash}', VerifyEmailController::class)
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('verification.verify');
+
 // NOTE: this is enforced. Every authenticated group in routes/web.php carries
 // `verified`, and `complete-profile` carries it above, so a fresh signup can
 // neither finish nor use an account until the signed link has been clicked.
-// An unverified session may still reach login, logout, these verification
-// routes, confirm-password and password.update - never a dashboard.
+// Clicking that link is what completes both: VerifyEmailController verifies
+// the address, signs the holder in (gates permitting) and hands off straight
+// to the profile form or the dashboard - no login page in between. An
+// unverified session may still reach login, logout, these verification routes,
+// confirm-password and password.update - never a dashboard.
 //
 // Delivery runs over Brevo (render.yaml: MAIL_MAILER=brevo), proven end to
 // end before this gate went in. The migration
