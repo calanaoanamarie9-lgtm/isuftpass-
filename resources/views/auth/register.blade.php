@@ -304,35 +304,31 @@
                     <div class="flex items-center justify-between mb-8">
 
                         <a href="{{ url('/') }}"
-                           class="flex items-center gap-3 group">
+                           class="inline-flex items-center gap-2
+                                  px-4 py-2.5
+                                  rounded-xl
+                                  border border-gray-200
+                                  text-sm font-bold text-gray-600
+                                  hover:border-blue-200
+                                  hover:text-blue-700
+                                  hover:bg-blue-50
+                                  transition">
 
-                            <div class="w-11 h-11 rounded-xl
-                                        bg-blue-50
-                                        flex items-center justify-center
-                                        border border-blue-100
-                                        group-hover:bg-blue-100
-                                        transition">
+                            <svg class="w-4 h-4"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
 
-                                <img
-                                    src="{{ asset('img/isufstpass-logo.png') }}"
-                                    alt="ISUFSTPASS"
-                                    class="w-8 h-8 object-contain"
-                                >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                                />
 
-                            </div>
+                            </svg>
 
-                            <div class="hidden sm:block">
-
-                                <p class="font-extrabold text-gray-900 leading-none">
-                                    ISUFSTPASS
-                                </p>
-
-                                <p class="text-[10px] uppercase tracking-wider
-                                          text-gray-400 mt-1">
-                                    Transaction Portal
-                                </p>
-
-                            </div>
+                            <span>Back to Home</span>
 
                         </a>
 

@@ -16,6 +16,10 @@ class RegistrationTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Create Your Account');
         $response->assertSee('Choose the account type that best describes you');
+
+        // The top bar leads home instead of repeating the brand block.
+        $response->assertSee('Back to Home');
+        $response->assertSee('href="' . url('/') . '"', false);
     }
 
     public function test_registration_form_with_student_type_renders(): void
