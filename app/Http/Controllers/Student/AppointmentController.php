@@ -196,6 +196,27 @@ class AppointmentController extends Controller
         SafeMailer::send($appointment->user, new AppointmentBooked($appointment));
         $appointment->user->notify(new AppointmentBookedNotification($appointment));
 
+        // The registrar owns the appointment pipeline: a new booking is
+        // their cue to confirm — or to move it when the slot overflowed.
+        \App\Support\RegistrarNotifier::appointment(
+            $appointment,
+            $overflow ? 'Appointment needs rescheduling' : 'New appointment booked',
+            $overflow
+                ? sprintf(
+                    "%s's booking with %s on %s could not fit the chosen slot and needs rescheduling.",
+                    $appointment->user->name,
+                    $appointment->office,
+                    $appointment->date->format('M j, Y'),
+                )
+                : sprintf(
+                    '%s booked with %s on %s at %s. It is waiting for your confirmation.',
+                    $appointment->user->name,
+                    $appointment->office,
+                    $appointment->date->format('M j, Y'),
+                    $appointment->timeToCome(),
+                )
+        );
+
         return redirect()
             ->route('student.appointments.index')
             ->with(

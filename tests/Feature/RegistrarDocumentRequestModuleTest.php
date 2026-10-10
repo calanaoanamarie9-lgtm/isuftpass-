@@ -9,6 +9,7 @@ use App\Models\Document;
 use App\Models\User;
 use App\Notifications\CashierPaymentDueAlert;
 use App\Notifications\DocumentRequestStatusNotification;
+use App\Notifications\PaymentPendingNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
@@ -63,6 +64,15 @@ class RegistrarDocumentRequestModuleTest extends TestCase
 
         Notification::assertSentToTimes($student, DocumentRequestStatusNotification::class, 1);
 
+        // The student also learns what approval now costs them: the
+        // payment step is its own notification, not buried in the status.
+        Notification::assertSentTo(
+            $student,
+            PaymentPendingNotification::class,
+            fn ($notification) => str_contains($notification->toArray($student)['message'], '₱100.00')
+                && str_contains($notification->toArray($student)['message'], $request->request_number),
+        );
+
         // Approval is the cashiers' cue: the request now waits in their
         // pending queue, so every desk account is told it arrived.
         Notification::assertSentTo($cashierOne, CashierPaymentDueAlert::class);
@@ -87,6 +97,25 @@ class RegistrarDocumentRequestModuleTest extends TestCase
             CashierPaymentDueAlert::class,
             fn ($notification) => $notification->toArray($cashier)['url']
                 === route('cashier.payments.pending', ['q' => $request->request_number]),
+        );
+    }
+
+    public function test_the_payment_pending_alert_opens_the_students_own_request_page(): void
+    {
+        Notification::fake();
+
+        [$student, $request] = $this->makeStudentWithRequest();
+
+        $this->actingAs($this->makeRegistrar())
+            ->post("/registrar/document-requests/{$request->id}/next");
+
+        Notification::assertSentTo(
+            $student,
+            PaymentPendingNotification::class,
+            // The student's own request page — behind role:student — is
+            // where the claim QR and payment details live.
+            fn ($notification) => $notification->toArray($student)['url']
+                === route('student.documents.show', $request),
         );
     }
 
@@ -118,9 +147,11 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $this->assertEquals('completed', $request->fresh()->status);
 
         // Releasing and completing are the registrar's own steps — only the
-        // approval hands anything to the cashier.
+        // approval hands anything to the cashier or costs the student
+        // anything.
         Notification::assertSentToTimes($student, DocumentRequestStatusNotification::class, 1);
         Notification::assertNotSentTo($cashier, CashierPaymentDueAlert::class);
+        Notification::assertNotSentTo($student, PaymentPendingNotification::class);
     }
 
     public function test_registrar_can_view_document_requests_pipeline(): void
@@ -297,10 +328,13 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $this->assertEquals(DocumentRequestStatus::COMPLETED->value, $request->status);
         $this->assertNotNull($request->completed_at);
 
-        // Approve, the cashier's payment, release and claim — the blocked
-        // attempt notified nobody.
-        $this->assertEquals(4, $student->notifications()->count());
-        $this->assertEquals(DocumentRequestStatusNotification::class, $student->notifications()->first()->type);
+        // Approve (status + the payment now due), the cashier's payment,
+        // release and claim — the blocked attempt notified nobody.
+        $this->assertEquals(5, $student->notifications()->count());
+        $this->assertEquals(
+            4,
+            $student->notifications()->where('type', DocumentRequestStatusNotification::class)->count(),
+        );
     }
 
     public function test_completed_request_cannot_be_advanced(): void
@@ -326,7 +360,14 @@ class RegistrarDocumentRequestModuleTest extends TestCase
 
         $this->assertEquals(DocumentRequestStatus::FOR_SIGNATURE->value, $request->status);
         $this->assertNotNull($request->for_signature_at);
-        $this->assertEquals(1, $student->notifications()->count());
+
+        // The approval status, plus the payment the approval now asks of
+        // the student.
+        $this->assertEquals(2, $student->notifications()->count());
+        $this->assertEquals(
+            1,
+            $student->notifications()->where('type', PaymentPendingNotification::class)->count(),
+        );
     }
 
     public function test_registrar_cannot_advance_past_approved_until_it_is_paid(): void

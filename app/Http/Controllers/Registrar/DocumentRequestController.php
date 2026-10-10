@@ -10,6 +10,7 @@ use App\Mail\DocumentRequestRejected;
 use App\Mail\DocumentRequestStatusUpdate;
 use App\Models\DocumentRequest;
 use App\Notifications\DocumentRequestStatusNotification;
+use App\Notifications\PaymentPendingNotification;
 use App\Support\AuditLogger;
 use App\Support\CashierNotifier;
 use App\Support\SafeMailer;
@@ -95,12 +96,15 @@ class DocumentRequestController extends Controller
 
     /**
      * Approval hands the request over to the cashier's pending-payments
-     * queue — tell the desk it has arrived instead of making them watch
-     * the registrar's screen. Mirrors RegistrarNotifier: every active,
-     * approved cashier gets one row.
+     * queue — tell the desk it has arrived, and tell the student what is
+     * now due of them. Approval and payment are two statuses apart, so
+     * the payment step gets its own student notification, paired with
+     * the "Payment recorded" status the cashier sends when it settles.
      */
-    private function alertCashiers(DocumentRequest $documentRequest): void
+    private function onApproved(DocumentRequest $documentRequest): void
     {
+        $documentRequest->user->notify(new PaymentPendingNotification($documentRequest));
+
         CashierNotifier::alert(
             $documentRequest,
             'Approved — payment pending',
@@ -194,10 +198,10 @@ class DocumentRequestController extends Controller
             );
         }
 
-        // Approval is the hand-off to the cashier: the request now waits
-        // in their pending-payments queue, so tell the desk it arrived.
+        // Approval is the hand-off: the cashier's queue gains the request
+        // and the student learns what payment is now due.
         if ($status === DocumentRequestStatus::FOR_SIGNATURE->value) {
-            $this->alertCashiers($documentRequest);
+            $this->onApproved($documentRequest);
         }
 
         return redirect()
@@ -266,10 +270,10 @@ class DocumentRequestController extends Controller
             );
         }
 
-        // Approval is the hand-off to the cashier: the request now waits
-        // in their pending-payments queue, so tell the desk it arrived.
+        // Approval is the hand-off: the cashier's queue gains the request
+        // and the student learns what payment is now due.
         if ($target === DocumentRequestStatus::FOR_SIGNATURE) {
-            $this->alertCashiers($documentRequest);
+            $this->onApproved($documentRequest);
         }
 
         return redirect()

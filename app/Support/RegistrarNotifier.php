@@ -2,8 +2,10 @@
 
 namespace App\Support;
 
+use App\Models\Appointment;
 use App\Models\DocumentRequest;
 use App\Models\User;
+use App\Notifications\RegistrarAppointmentAlert;
 use App\Notifications\RegistrarRequestAlert;
 use Illuminate\Support\Facades\Notification;
 
@@ -36,6 +38,32 @@ class RegistrarNotifier
         Notification::send(
             $recipients,
             new RegistrarRequestAlert($documentRequest, $title, $message),
+        );
+    }
+
+    /**
+     * Send one appointment alert to every registrar account.
+     *
+     * Booking is open to every office, but the registrar owns the
+     * appointment pipeline — confirming, rescheduling, cancelling — so a
+     * new booking is their cue, broadcast on the same all-accounts rule:
+     * whoever is at the desk sees it.
+     */
+    public static function appointment(Appointment $appointment, string $title, string $message): void
+    {
+        $recipients = User::query()
+            ->where('role', User::ROLE_REGISTRAR)
+            ->where('is_active', true)
+            ->where('approval_status', User::APPROVAL_APPROVED)
+            ->get();
+
+        if ($recipients->isEmpty()) {
+            return;
+        }
+
+        Notification::send(
+            $recipients,
+            new RegistrarAppointmentAlert($appointment, $title, $message),
         );
     }
 }
