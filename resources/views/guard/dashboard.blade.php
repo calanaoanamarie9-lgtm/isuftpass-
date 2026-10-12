@@ -628,6 +628,11 @@
                     tick();
                     setInterval(tick, 1000);
 
+                    // Auto-start the camera for immediate scanning on login
+                    // (matches the original "immediate QR scanner" requirement)
+                    // Small delay lets the CDN library load and the DOM settle.
+                    setTimeout(() => this.startCamera(), 500);
+
                     this.$nextTick(() => this.$refs.token?.focus());
                 },
 
