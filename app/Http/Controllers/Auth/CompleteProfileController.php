@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\StudentProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -45,13 +45,21 @@ class CompleteProfileController extends Controller
     {
         $user = $request->user();
 
+        // The browser posts the avatar input even when no photo is chosen:
+        // an unselected <input type="file"> sends an empty part that PHP
+        // records as UPLOAD_ERR_NO_FILE. Laravel's file rules fail that
+        // instantly with "failed to upload" - before `nullable` can treat
+        // it as absent - which bounced every save made without a photo
+        // and left students stuck on this page. Only hand the validator a
+        // real upload; otherwise the optional avatar stays absent.
+        $data = $request->post();
+        $data['avatar'] = $request->hasFile('avatar') ? $request->file('avatar') : null;
+
         // Validate avatar (optional) and contact_number (required for all)
-        $validated = $request->validate([
-
-            'avatar' => ['sometimes', 'image', 'max:2048'],
-
+        $validated = Validator::make($data, [
+            'avatar' => ['nullable', 'image', 'max:2048'],
             'contact_number' => ['required', 'string', 'max:20'],
-        ]);
+        ])->validate();
 
         // $validated['avatar'] is the UploadedFile itself, not a stored path.
         // The student branch merges $validated into the profile update, which

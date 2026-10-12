@@ -51,6 +51,53 @@ class CompleteProfileTest extends TestCase
         return $user;
     }
 
+    /**
+     * The browser always posts the avatar input, even when no photo is
+     * chosen: an unselected <input type="file"> arrives as an empty upload
+     * (UPLOAD_ERR_NO_FILE) that the request reports as null. The old
+     * `sometimes` rule still ran `image` against that null and bounced the
+     * save with "The avatar field must be an image." - which left every
+     * student who skipped the photo stuck on this page. The untouched photo
+     * field must stay optional and land on the dashboard.
+     */
+    public function test_saving_without_a_photo_reaches_the_dashboard(): void
+    {
+        $user = $this->registerStudent();
+
+        $this->post('/complete-profile', [
+            'student_id' => '2024-12345',
+            'course' => 'BSIS',
+            'year_level' => '2nd Year',
+            'contact_number' => '09171234567',
+            'address' => 'Barotac Nuevo, Iloilo',
+            // exactly what the browser posts for an untouched file input
+            'avatar' => new UploadedFile('', '', null, UPLOAD_ERR_NO_FILE, true),
+        ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertDatabaseHas('student_profiles', [
+            'user_id' => $user->id,
+            'contact_number' => '09171234567',
+        ]);
+        $this->assertNull($user->fresh()->avatar, 'a skipped photo must not write anything');
+    }
+
+    /**
+     * The form must post as multipart. Without the enctype the browser
+     * submits the whole form urlencoded: a chosen photo is never uploaded
+     * (it goes through as garbage text) and the empty avatar field bounces
+     * the save - so Save & Continue could never work.
+     */
+    public function test_the_complete_profile_form_posts_multipart(): void
+    {
+        $this->registerStudent();
+
+        $this->get('/complete-profile')
+            ->assertOk()
+            ->assertSee('enctype="multipart/form-data"', false);
+    }
+
     public function test_student_can_complete_personal_details(): void
     {
         $this->registerStudent();

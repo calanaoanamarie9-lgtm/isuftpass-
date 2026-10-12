@@ -284,6 +284,7 @@
                     <form
                         method="POST"
                         action="{{ route('complete-profile') }}"
+                        enctype="multipart/form-data"
                         class="space-y-5"
                     >
 
