@@ -9,6 +9,7 @@
             position: absolute;
             inset: 0;
             background: #020617;
+            z-index: 10;
         }
 
         #gate-reader video {
@@ -239,7 +240,7 @@
                             {{-- Camera-off placeholder --}}
                             <div x-show="!cameraOn"
                                  x-transition.opacity
-                                 class="absolute inset-0 z-20 flex flex-col
+                                 class="absolute inset-0 z-0 flex flex-col
                                         items-center justify-center gap-4
                                         text-center px-6">
 
