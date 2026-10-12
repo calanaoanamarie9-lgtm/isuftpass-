@@ -549,6 +549,11 @@
                                 Administrator
                             </option>
 
+                            <option value="{{ \App\Models\User::ROLE_GUARD }}"
+                                    @selected($roleFilter === \App\Models\User::ROLE_GUARD)>
+                                Guard / Security
+                            </option>
+
                         </select>
 
                     </div>
@@ -912,6 +917,9 @@
 
                                         \App\Models\User::ROLE_ADMIN =>
                                             'bg-gray-100 text-gray-700',
+
+                                        \App\Models\User::ROLE_GUARD =>
+                                            'bg-red-50 text-red-700',
 
                                         default =>
                                             'bg-gray-100 text-gray-600',

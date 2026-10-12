@@ -16,6 +16,7 @@ use App\Http\Controllers\Department\CbmsdController;
 use App\Http\Controllers\Department\CiciController;
 use App\Http\Controllers\Department\CoagController;
 use App\Http\Controllers\Department\CoedController;
+use App\Http\Controllers\Guard\GateController;
 use App\Http\Controllers\Offices\AccountingController;
 use App\Http\Controllers\Offices\AlumniController;
 use App\Http\Controllers\Offices\GuidanceController;
@@ -256,6 +257,12 @@ Route::get('/dashboard', function () {
     // workspace — appointments only, no document requests.
     if ($user->role === 'office') {
         return redirect()->route('workspace.dashboard');
+    }
+
+    // The security desk is a scanner before it is a dashboard: a guard who
+    // logs in should be looking at the camera, not at a home page.
+    if ($user->role === User::ROLE_GUARD) {
+        return redirect()->route('guard.dashboard');
     }
 
     if (in_array($user->role, ['department', 'osas', 'accounting', 'library', 'guidance'], true)) {
@@ -670,6 +677,25 @@ Route::middleware(['auth', 'verified', 'role:department,office'])->prefix('works
     Route::get('/help', [OfficeWorkspaceController::class, 'help'])->name('help');
 
     $workspaceRoutes();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Campus security desk (guard)
+|--------------------------------------------------------------------------
+| The guard owns one job: scan a pass, verify it, and log the person in or
+| out. The scanner lives on the dashboard itself, so there is no separate
+| landing page to click past. Visitor passes have no public verification
+| route by design — the desk is the only thing that ever resolves one.
+*/
+Route::middleware(['auth', 'verified', 'role:guard'])->prefix('guard')->name('guard.')->group(function () {
+    Route::get('/', [GateController::class, 'dashboard'])->name('dashboard');
+    Route::post('/scan', [GateController::class, 'scan'])->name('scan');
+
+    Route::get('/visitors', [GateController::class, 'visitors'])->name('visitors.index');
+    Route::post('/visitors', [GateController::class, 'storeVisitor'])->name('visitors.store');
+    Route::get('/visitors/{visitor}', [GateController::class, 'showVisitor'])->name('visitors.show');
+    Route::post('/visitors/{visitor}/revoke', [GateController::class, 'revokeVisitor'])->name('visitors.revoke');
 });
 
 // Consultation services — every office / department manages only its own rows.

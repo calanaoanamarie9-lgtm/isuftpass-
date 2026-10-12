@@ -49,6 +49,7 @@ class ProfileSettingsParityTest extends TestCase
             'alumni' => ['role' => 'student', 'registration_type' => 'alumni'],
             'guest' => ['role' => 'student', 'registration_type' => 'guest'],
             'parent' => ['role' => 'student', 'registration_type' => 'parent'],
+            'guard' => ['role' => 'guard', 'office' => 'Main Gate'],
         ];
 
         foreach ($cases as $label => $attributes) {

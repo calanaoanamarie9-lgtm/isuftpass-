@@ -10,6 +10,7 @@
         $role === 'registrar' => ($user->office ?? null) ? $user->office . ' Profile' : 'Registrar Profile',
         $role === 'department' => ($user->office ?? null) ? $user->office . ' Department' : 'Department Profile',
         $role === 'office' => ($user->office ?? null) ? $user->office . ' Office' : 'Office Profile',
+        $role === 'guard' => ($user->office ?? null) ? $user->office . ' Security' : 'Campus Security',
         $role === 'osas' => 'OSAS Office',
         $role === 'accounting' => 'Accounting Office',
         $role === 'library' => 'Library Office',
@@ -767,6 +768,53 @@
                         @endif
 
                     </a>
+
+                    <a href="{{ route('profile.edit') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+                        <span>⚙️</span>
+                        <span>Profile Settings</span>
+                    </a>
+
+                </div>
+            </div>
+
+        @endif
+
+
+
+        {{-- =====================================================
+            GUARD / CAMPUS SECURITY
+        ====================================================== --}}
+        @if ($role === 'guard')
+
+            <div>
+                <p class="{{ $sectionClass }}">Gate Desk</p>
+
+                <div class="space-y-1">
+
+                    <a href="{{ route('guard.dashboard') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+                        <span>🎥</span>
+                        <span>Scanner &amp; Check-in</span>
+                    </a>
+
+                    <a href="{{ route('guard.visitors.index') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+                        <span>🧾</span>
+                        <span>Visitor Gate Passes</span>
+                    </a>
+
+                </div>
+            </div>
+
+
+            <div>
+                <p class="{{ $sectionClass }}">Account</p>
+
+                <div class="space-y-1">
 
                     <a href="{{ route('profile.edit') }}"
                        @click="open = false"

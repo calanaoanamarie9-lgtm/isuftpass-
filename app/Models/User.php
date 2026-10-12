@@ -31,6 +31,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public const ROLE_OFFICE = 'office';
 
     /**
+     * Campus security desk. A guard is not a bookable office, which is why
+     * this is a real role and not an office account wearing a "Guard" label:
+     * Office::registeredOffices() would otherwise offer the guard hut as a
+     * destination students can book.
+     */
+    public const ROLE_GUARD = 'guard';
+
+    /**
      * Approval states for accounts created through the office / staff
      * self-registration form. Everything else defaults to APPROVED so the
      * seeded and admin-created accounts are never gated.
@@ -116,6 +124,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isDepartment(): bool
     {
         return $this->role === self::ROLE_DEPARTMENT;
+    }
+
+    public function isGuard(): bool
+    {
+        return $this->role === self::ROLE_GUARD;
     }
 
     /**
