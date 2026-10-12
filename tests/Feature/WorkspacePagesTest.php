@@ -73,10 +73,39 @@ class WorkspacePagesTest extends TestCase
 
             foreach (['/appointments', '/availability', '/qr'] as $page) {
                 $this->actingAs($staff)
-                    ->get($prefix . $page)
+                    ->get($prefix.$page)
                     ->assertOk()
                     ->assertDontSee('will appear here', false)
                     ->assertSee($office);
+            }
+        }
+    }
+
+    /**
+     * Every workspace page is a shared view that owns the <x-app-layout>,
+     * plus a per-office wrapper that only includes it. When a wrapper
+     * wrapped its include in the layout too, the page rendered two
+     * sidebars — invisible to assertOk(), very visible to the user.
+     */
+    public function test_each_workspace_page_renders_exactly_one_sidebar(): void
+    {
+        $pages = array_merge(self::WORKSPACES, [
+            '/workspace' => ['Registrar Extension', 'office'],
+        ]);
+
+        foreach ($pages as $prefix => [$office, $role]) {
+            $staff = $this->makeStaff($office, $role);
+
+            foreach (['/appointments', '/availability', '/qr'] as $page) {
+                $response = $this->actingAs($staff)
+                    ->get($prefix.$page)
+                    ->assertOk();
+
+                $this->assertSame(
+                    1,
+                    substr_count($response->getContent(), '<aside'),
+                    "{$prefix}{$page} must render exactly one sidebar."
+                );
             }
         }
     }
@@ -164,7 +193,7 @@ class WorkspacePagesTest extends TestCase
         $appointment = $this->makeAppointment('Guidance');
 
         $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->putJson('/osas/appointments/' . $appointment->id . '/reschedule', [
+            ->putJson('/osas/appointments/'.$appointment->id.'/reschedule', [
                 'date' => now()->addDays(5)->toDateString(),
                 'time_slot' => Appointment::TIME_SLOTS[2],
                 'reschedule_reason' => 'Class conflict',
@@ -186,7 +215,7 @@ class WorkspacePagesTest extends TestCase
         $newDate = now()->addDays(5)->toDateString();
 
         $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->put('/osas/appointments/' . $appointment->id . '/reschedule', [
+            ->put('/osas/appointments/'.$appointment->id.'/reschedule', [
                 'date' => $newDate,
                 'time_slot' => Appointment::TIME_SLOTS[3],
                 'reschedule_reason' => 'Student request',
@@ -203,7 +232,7 @@ class WorkspacePagesTest extends TestCase
         $appointment = $this->makeAppointment('Registrar');
 
         $this->actingAs(User::factory()->create(['role' => 'registrar']))
-            ->put('/registrar/appointments/' . $appointment->id . '/reschedule', [
+            ->put('/registrar/appointments/'.$appointment->id.'/reschedule', [
                 'date' => now()->addDays(5)->toDateString(),
                 'time_slot' => Appointment::TIME_SLOTS[3],
                 'reschedule_reason' => 'Slot limit reached',
@@ -223,10 +252,10 @@ class WorkspacePagesTest extends TestCase
             ->postJson('/osas/availability/save', ['date' => now()->addDays(3)->toDateString(), 'type' => 'open'])
             ->assertForbidden();
         $this->actingAs($student)
-            ->getJson('/osas/appointments/slots?office=OSAS&date=' . now()->addDays(3)->toDateString())
+            ->getJson('/osas/appointments/slots?office=OSAS&date='.now()->addDays(3)->toDateString())
             ->assertForbidden();
         $this->actingAs($student)
-            ->putJson('/osas/appointments/' . $appointment->id . '/reschedule', [
+            ->putJson('/osas/appointments/'.$appointment->id.'/reschedule', [
                 'date' => now()->addDays(5)->toDateString(),
                 'time_slot' => Appointment::TIME_SLOTS[3],
                 'reschedule_reason' => 'Nope',

@@ -52,14 +52,39 @@ class WorkspaceQrCheckInTest extends TestCase
     {
         foreach (self::WORKSPACES as $prefix => [$office, $role]) {
             $this->actingAs($this->makeStaff($office, $role))
-                ->get($prefix . '/qr')
+                ->get($prefix.'/qr')
                 ->assertOk()
                 ->assertSee('QR Scanner & Check-in')
                 ->assertSee('Start camera')
                 ->assertSee('Checked in today')
                 // @js() prints the URL with escaped slashes: \/cici\/qr\/check-in.
-                ->assertSee(str_replace('/', '\/', $prefix . '/qr/check-in'), false)
+                ->assertSee(str_replace('/', '\/', $prefix.'/qr/check-in'), false)
                 ->assertSee($office);
+        }
+    }
+
+    /**
+     * The eight office and department wrappers each put an <x-app-layout>
+     * around a shared view that already has one, so those desks rendered
+     * two sidebars. The wrappers are plain includes now — one page, one
+     * layout, at every desk including the generic office workspace.
+     */
+    public function test_the_scanner_page_renders_exactly_one_sidebar(): void
+    {
+        $pages = array_merge(self::WORKSPACES, [
+            '/workspace' => ['Registrar Extension', 'office'],
+        ]);
+
+        foreach ($pages as $prefix => [$office, $role]) {
+            $response = $this->actingAs($this->makeStaff($office, $role))
+                ->get($prefix.'/qr')
+                ->assertOk();
+
+            $this->assertSame(
+                1,
+                substr_count($response->getContent(), '<aside'),
+                "The scanner page at {$prefix}/qr must render exactly one sidebar."
+            );
         }
     }
 
@@ -69,7 +94,7 @@ class WorkspaceQrCheckInTest extends TestCase
             $appointment = $this->makeAppointment($office);
 
             $this->actingAs($this->makeStaff($office, $role))
-                ->postJson($prefix . '/qr/check-in', ['token' => $appointment->qr_token])
+                ->postJson($prefix.'/qr/check-in', ['token' => $appointment->qr_token])
                 ->assertOk()
                 ->assertJsonPath('valid', true)
                 ->assertJsonPath('checkedIn', true)
@@ -87,7 +112,7 @@ class WorkspaceQrCheckInTest extends TestCase
     public function test_a_pasted_verification_url_is_reduced_to_its_token(): void
     {
         $appointment = $this->makeAppointment('OSAS');
-        $printed = 'https://isuftpass-9atj.onrender.com/verify/appointment/' . $appointment->qr_token;
+        $printed = 'https://isuftpass-9atj.onrender.com/verify/appointment/'.$appointment->qr_token;
 
         $this->actingAs($this->makeStaff('OSAS', 'osas'))
             ->postJson('/osas/qr/check-in', ['token' => $printed])
@@ -115,7 +140,7 @@ class WorkspaceQrCheckInTest extends TestCase
             ->assertOk()
             ->assertJsonPath('valid', true)
             ->assertJsonPath('checkedIn', true)
-            ->assertJsonPath('message', 'Already checked in at ' . $arrivedAt->format('g:i A') . '.');
+            ->assertJsonPath('message', 'Already checked in at '.$arrivedAt->format('g:i A').'.');
 
         $this->assertTrue(
             $appointment->fresh()->checked_in_at->equalTo($arrivedAt),
@@ -167,7 +192,7 @@ class WorkspaceQrCheckInTest extends TestCase
             ->assertOk()
             ->assertJsonPath('valid', false)
             ->assertJsonPath('checkedIn', false)
-            ->assertJsonPath('message', $appointment->user->name . ' has no appointment with OSAS today.');
+            ->assertJsonPath('message', $appointment->user->name.' has no appointment with OSAS today.');
 
         $this->assertSame(AppointmentStatus::CONFIRMED->value, $appointment->fresh()->status);
     }
