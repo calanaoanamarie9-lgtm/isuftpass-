@@ -3,21 +3,25 @@
 namespace App\Http\Controllers\Offices;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\ConsultationService;
+use App\Support\CheckInList;
+use App\Support\TimeSlots;
+use App\Support\WorkspaceDashboard;
 use Illuminate\View\View;
 
 class AccountingController extends Controller
 {
     public function dashboard(): View
     {
-        return view('Offices.Accounting.dashboard', \App\Support\WorkspaceDashboard::data('Accounting'));
+        return view('Offices.Accounting.dashboard', WorkspaceDashboard::data('Accounting'));
     }
 
     public function appointments(): View
     {
         return view('Offices.Accounting.appointments', [
             'office' => 'Accounting',
-            'appointments' => \App\Models\Appointment::with('user')
+            'appointments' => Appointment::with('user')
                 ->where('office', 'Accounting')
                 ->firstComeFirstServed()
                 ->paginate(12),
@@ -28,7 +32,7 @@ class AccountingController extends Controller
     {
         return view('Offices.Accounting.availability', [
             'office' => 'Accounting',
-            'timeSlots' => \App\Support\TimeSlots::forOffice('Accounting'),
+            'timeSlots' => TimeSlots::forOffice('Accounting'),
         ]);
     }
 
@@ -36,7 +40,7 @@ class AccountingController extends Controller
     {
         return view('Offices.Accounting.qr', [
             'office' => 'Accounting',
-            'checkIns' => \App\Support\CheckInList::today('Accounting'),
+            'checkIns' => CheckInList::today('Accounting'),
         ]);
     }
 
@@ -45,14 +49,6 @@ class AccountingController extends Controller
         return view('Offices.Accounting.consultations', [
             'office' => 'Accounting',
             'services' => ConsultationService::forOffice('Accounting')->ordered()->get(),
-        ]);
-    }
-
-    public function profile(): View
-    {
-        return view('Offices.Accounting.profile', [
-            'user' => auth()->user(),
-            'office' => 'Accounting',
         ]);
     }
 

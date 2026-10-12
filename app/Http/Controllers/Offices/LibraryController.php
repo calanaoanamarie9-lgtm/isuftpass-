@@ -3,21 +3,25 @@
 namespace App\Http\Controllers\Offices;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\ConsultationService;
+use App\Support\CheckInList;
+use App\Support\TimeSlots;
+use App\Support\WorkspaceDashboard;
 use Illuminate\View\View;
 
 class LibraryController extends Controller
 {
     public function dashboard(): View
     {
-        return view('Offices.Library.dashboard', \App\Support\WorkspaceDashboard::data('Library'));
+        return view('Offices.Library.dashboard', WorkspaceDashboard::data('Library'));
     }
 
     public function appointments(): View
     {
         return view('Offices.Library.appointments', [
             'office' => 'Library',
-            'appointments' => \App\Models\Appointment::with('user')
+            'appointments' => Appointment::with('user')
                 ->where('office', 'Library')
                 ->firstComeFirstServed()
                 ->paginate(12),
@@ -28,7 +32,7 @@ class LibraryController extends Controller
     {
         return view('Offices.Library.availability', [
             'office' => 'Library',
-            'timeSlots' => \App\Support\TimeSlots::forOffice('Library'),
+            'timeSlots' => TimeSlots::forOffice('Library'),
         ]);
     }
 
@@ -36,7 +40,7 @@ class LibraryController extends Controller
     {
         return view('Offices.Library.qr', [
             'office' => 'Library',
-            'checkIns' => \App\Support\CheckInList::today('Library'),
+            'checkIns' => CheckInList::today('Library'),
         ]);
     }
 
@@ -45,14 +49,6 @@ class LibraryController extends Controller
         return view('Offices.Library.consultations', [
             'office' => 'Library',
             'services' => ConsultationService::forOffice('Library')->ordered()->get(),
-        ]);
-    }
-
-    public function profile(): View
-    {
-        return view('Offices.Library.profile', [
-            'user' => auth()->user(),
-            'office' => 'Library',
         ]);
     }
 

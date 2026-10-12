@@ -37,7 +37,6 @@ use App\Http\Controllers\Student\HelpController;
 use App\Http\Controllers\Student\NotificationController;
 use App\Http\Controllers\Student\PassController;
 use App\Http\Controllers\Student\RequestController;
-use App\Http\Controllers\Student\StudentProfileController;
 use App\Http\Controllers\VerifyController;
 use App\Http\Controllers\Workspace\OfficeWorkspaceController;
 use App\Http\Controllers\Workspace\QrCheckInController;
@@ -334,9 +333,9 @@ Route::middleware(['auth', 'verified', 'role:student'])->prefix('student')->name
     // 0. New Request Hub
     Route::get('/requests/new', [RequestController::class, 'newRequest'])->name('requests.new');
 
-    // 1. Profile & Account Settings
-    Route::get('/profile', [StudentProfileController::class, 'show'])->name('profile.show');
-    Route::put('/profile', [StudentProfileController::class, 'update'])->name('profile.update');
+    // 1. Profile & Account Settings — the same shared page every role uses.
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.show');
+    Route::match(['put', 'patch'], '/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     // 2. Appointment Booking
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
@@ -561,7 +560,7 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('cici')->name
     Route::get('/availability', [CiciController::class, 'availability'])->name('availability');
     Route::get('/qr', [CiciController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [CiciController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [CiciController::class, 'profile'])->name('profile');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/help', [CiciController::class, 'help'])->name('help');
 
     $workspaceRoutes();
@@ -573,7 +572,7 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('cbmsd')->nam
     Route::get('/availability', [CbmsdController::class, 'availability'])->name('availability');
     Route::get('/qr', [CbmsdController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [CbmsdController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [CbmsdController::class, 'profile'])->name('profile');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/help', [CbmsdController::class, 'help'])->name('help');
 
     $workspaceRoutes();
@@ -585,7 +584,7 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('coag')->name
     Route::get('/availability', [CoagController::class, 'availability'])->name('availability');
     Route::get('/qr', [CoagController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [CoagController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [CoagController::class, 'profile'])->name('profile');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/help', [CoagController::class, 'help'])->name('help');
 
     $workspaceRoutes();
@@ -597,7 +596,7 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('coed')->name
     Route::get('/availability', [CoedController::class, 'availability'])->name('availability');
     Route::get('/qr', [CoedController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [CoedController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [CoedController::class, 'profile'])->name('profile');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/help', [CoedController::class, 'help'])->name('help');
 
     $workspaceRoutes();
@@ -609,7 +608,7 @@ Route::middleware(['auth', 'verified', 'role:department,osas'])->prefix('osas')-
     Route::get('/availability', [OsasController::class, 'availability'])->name('availability');
     Route::get('/qr', [OsasController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [OsasController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [OsasController::class, 'profile'])->name('profile');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/help', [OsasController::class, 'help'])->name('help');
 
     $workspaceRoutes();
@@ -621,7 +620,7 @@ Route::middleware(['auth', 'verified', 'role:department,accounting'])->prefix('a
     Route::get('/availability', [AccountingController::class, 'availability'])->name('availability');
     Route::get('/qr', [AccountingController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [AccountingController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [AccountingController::class, 'profile'])->name('profile');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/help', [AccountingController::class, 'help'])->name('help');
 
     $workspaceRoutes();
@@ -633,7 +632,7 @@ Route::middleware(['auth', 'verified', 'role:department,library'])->prefix('libr
     Route::get('/availability', [LibraryController::class, 'availability'])->name('availability');
     Route::get('/qr', [LibraryController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [LibraryController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [LibraryController::class, 'profile'])->name('profile');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/help', [LibraryController::class, 'help'])->name('help');
 
     $workspaceRoutes();
@@ -645,7 +644,7 @@ Route::middleware(['auth', 'verified', 'role:department,guidance'])->prefix('gui
     Route::get('/availability', [GuidanceController::class, 'availability'])->name('availability');
     Route::get('/qr', [GuidanceController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [GuidanceController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [GuidanceController::class, 'profile'])->name('profile');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/help', [GuidanceController::class, 'help'])->name('help');
 
     $workspaceRoutes();
@@ -667,7 +666,7 @@ Route::middleware(['auth', 'verified', 'role:department,office'])->prefix('works
     Route::get('/availability', [OfficeWorkspaceController::class, 'availability'])->name('availability');
     Route::get('/qr', [OfficeWorkspaceController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [OfficeWorkspaceController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [OfficeWorkspaceController::class, 'profile'])->name('profile');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/help', [OfficeWorkspaceController::class, 'help'])->name('help');
 
     $workspaceRoutes();
@@ -727,9 +726,9 @@ Route::middleware(['auth', 'verified', 'role:student'])->prefix('alumni')->name(
     // QR Pass
     Route::get('/pass', [AlumniController::class, 'pass'])->name('pass.show');
 
-    // Profile & Account Settings
-    Route::get('/profile', [AlumniController::class, 'profile'])->name('profile.show');
-    Route::put('/profile', [AlumniController::class, 'updateProfile'])->name('profile.update');
+    // Profile & Account Settings — the same shared page every role uses.
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.show');
+    Route::match(['put', 'patch'], '/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     // Help & FAQs
     Route::get('/help', [AlumniController::class, 'help'])->name('help');
@@ -737,7 +736,7 @@ Route::middleware(['auth', 'verified', 'role:student'])->prefix('alumni')->name(
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::match(['put', 'patch'], '/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 

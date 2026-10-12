@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers\Offices;
 
-use App\Http\Controllers\Controller;
 use App\Enums\AppointmentStatus;
+use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\DocumentRequest;
 use App\Models\Setting;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -25,7 +23,7 @@ class AlumniController extends Controller
             ->merge(
                 $user->appointments()->latest()->limit(3)->get()->map(fn (Appointment $a) => [
                     'type' => 'appointment',
-                    'title' => 'Visit with ' . $a->office,
+                    'title' => 'Visit with '.$a->office,
                     'date' => $a->created_at,
                     'badge' => match ($a->status) {
                         'confirmed' => ['label' => 'Confirmed', 'class' => 'bg-green-50 text-green-700'],
@@ -96,28 +94,10 @@ class AlumniController extends Controller
 
         return view('alumni.pass', [
             'qrCode' => $user->studentProfile?->pass_token
-                ? 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode(route('alumni.pass.show', ['token' => $user->studentProfile->pass_token]))
+                ? 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data='.urlencode(route('alumni.pass.show', ['token' => $user->studentProfile->pass_token]))
                 : null,
             'user' => $user,
         ]);
-    }
-
-    /**
-     * Alumni profile settings.
-     */
-    public function profile(): View
-    {
-        return view('alumni.profile', ['user' => Auth::user()]);
-    }
-
-    /**
-     * Alumni profile update (placeholder — persists nothing).
-     */
-    public function updateProfile(Request $request): RedirectResponse
-    {
-        return redirect()
-            ->route('alumni.profile.show')
-            ->with('status', 'Profile updated successfully.');
     }
 
     /**

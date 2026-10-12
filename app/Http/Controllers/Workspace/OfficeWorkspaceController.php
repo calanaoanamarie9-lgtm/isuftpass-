@@ -75,14 +75,6 @@ class OfficeWorkspaceController extends Controller
         ]);
     }
 
-    public function profile(): View
-    {
-        return view('workspace.profile', [
-            'user' => auth()->user(),
-            'office' => auth()->user()->officeScope(),
-        ]);
-    }
-
     public function help(): View
     {
         return view('workspace.help', [

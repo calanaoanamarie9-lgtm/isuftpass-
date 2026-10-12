@@ -3,15 +3,18 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\ConsultationService;
-use Illuminate\Http\Request;
+use App\Support\CheckInList;
+use App\Support\TimeSlots;
+use App\Support\WorkspaceDashboard;
 use Illuminate\View\View;
 
 class CiciController extends Controller
 {
     public function dashboard(): View
     {
-        return view('departments.CICI.dashboard', \App\Support\WorkspaceDashboard::data(
+        return view('departments.CICI.dashboard', WorkspaceDashboard::data(
             auth()->user()->officeScope()
         ));
     }
@@ -21,7 +24,7 @@ class CiciController extends Controller
         $user = auth()->user();
         $office = $user->officeScope();
 
-        $appointments = \App\Models\Appointment::with('user')
+        $appointments = Appointment::with('user')
             ->where('office', $office)
             ->firstComeFirstServed()
             ->paginate(12);
@@ -37,7 +40,7 @@ class CiciController extends Controller
         $user = auth()->user();
         $office = $user->officeScope();
 
-        $timeSlots = \App\Support\TimeSlots::forOffice($office);
+        $timeSlots = TimeSlots::forOffice($office);
 
         return view('departments.CICI.availability', [
             'office' => $office,
@@ -52,7 +55,7 @@ class CiciController extends Controller
 
         return view('departments.CICI.qr', [
             'office' => $office,
-            'checkIns' => \App\Support\CheckInList::today($office),
+            'checkIns' => CheckInList::today($office),
         ]);
     }
 
@@ -64,17 +67,6 @@ class CiciController extends Controller
         return view('departments.CICI.consultations', [
             'office' => $office,
             'services' => ConsultationService::forOffice($office)->ordered()->get(),
-        ]);
-    }
-
-    public function profile(): View
-    {
-        $user = auth()->user();
-        $office = $user->officeScope();
-
-        return view('departments.CICI.profile', [
-            'user' => $user,
-            'office' => $office,
         ]);
     }
 

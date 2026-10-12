@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\ConsultationService;
+use App\Support\CheckInList;
+use App\Support\TimeSlots;
+use App\Support\WorkspaceDashboard;
 use Illuminate\View\View;
 
 class CbmsdController extends Controller
 {
     public function dashboard(): View
     {
-        return view('departments.CBMSD.dashboard', \App\Support\WorkspaceDashboard::data(
+        return view('departments.CBMSD.dashboard', WorkspaceDashboard::data(
             auth()->user()->officeScope()
         ));
     }
@@ -20,7 +24,7 @@ class CbmsdController extends Controller
         $user = auth()->user();
         $office = $user->officeScope();
 
-        $appointments = \App\Models\Appointment::with('user')
+        $appointments = Appointment::with('user')
             ->where('office', $office)
             ->firstComeFirstServed()
             ->paginate(12);
@@ -36,7 +40,7 @@ class CbmsdController extends Controller
         $user = auth()->user();
         $office = $user->officeScope();
 
-        $timeSlots = \App\Support\TimeSlots::forOffice($office);
+        $timeSlots = TimeSlots::forOffice($office);
 
         return view('departments.CBMSD.availability', [
             'office' => $office,
@@ -51,7 +55,7 @@ class CbmsdController extends Controller
 
         return view('departments.CBMSD.qr', [
             'office' => $office,
-            'checkIns' => \App\Support\CheckInList::today($office),
+            'checkIns' => CheckInList::today($office),
         ]);
     }
 
@@ -63,17 +67,6 @@ class CbmsdController extends Controller
         return view('departments.CBMSD.consultations', [
             'office' => $office,
             'services' => ConsultationService::forOffice($office)->ordered()->get(),
-        ]);
-    }
-
-    public function profile(): View
-    {
-        $user = auth()->user();
-        $office = $user->officeScope();
-
-        return view('departments.CBMSD.profile', [
-            'user' => $user,
-            'office' => $office,
         ]);
     }
 

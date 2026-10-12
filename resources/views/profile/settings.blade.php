@@ -200,7 +200,7 @@
 
                 {{-- Profile Content --}}
                 <form method="POST"
-                      action="{{ route('student.profile.update') }}"
+                      action="{{ route('profile.update') }}"
                       enctype="multipart/form-data"
                       class="p-6 sm:p-8">
 
@@ -210,10 +210,12 @@
 
                     {{-- The photo can live on the student profile (uploaded on
                          this very card) or on the user record (uploaded during
-                         registration) — render whichever exists so the card
-                         never falls back to the initial while a photo is set. --}}
+                         registration or by staff) — render whichever exists so
+                         the card never falls back to the initial while a photo
+                         is set. --}}
                     @php
-                        $avatarUrl = $profile->avatar_url ?? Auth::user()->avatar_url;
+                        $avatarUrl = Auth::user()->studentProfile?->avatar_url
+                            ?? Auth::user()->avatar_url;
                     @endphp
 
 
@@ -293,9 +295,9 @@
                                               d="M4 16l4.586-4.586a2 2 0
                                                  012.828 0L16 16m-2-2l1.586-1.586a2
                                                  2 0 012.828 0L20 14m-6-6h.01
-                                                 M6 20h12a2 2 0 002-2V6a2
-                                                 2 0 00-2-2H6a2 2 0
-                                                 00-2 2v12a2 2 0 002 2z"/>
+                                                 M6 20h12a2 2 0 002-2V6a2 2 0
+                                                 00-2-2H6a2 2 0 00-2 2v12a2 2 0
+                                                 002 2z"/>
 
                                     </svg>
 
@@ -339,8 +341,8 @@
                                                   d="M19 7l-.867 12.142A2 2
                                                      0 0116.138 21H7.862a2
                                                      2 0 01-1.995-1.858L5
-                                                     7m5 4v6m4-6v6M9 7V4a1
-                                                     1 0 011-1h4a1 1 0 011
+                                                     7m5 4v6m4-6v6M9 7V4a1 1
+                                                     0 011-1h4a1 1 0 011
                                                      1v3m-7 0h8"/>
 
                                         </svg>
@@ -387,7 +389,7 @@
 
                     <form id="remove-avatar"
                           method="POST"
-                          action="{{ route('student.profile.update') }}"
+                          action="{{ route('profile.update') }}"
                           class="hidden">
 
                         @csrf
@@ -431,8 +433,8 @@
                                       stroke-width="2"
                                       d="M16 7a4 4 0 11-8 0 4 4 0
                                          018 0z
-                                         M12 14a7 7 0 00-7 7h14a7
-                                         7 0 00-7-7z"/>
+                                         M12 14a7 7 0 00-7 7h14a7 7
+                                         0 00-7-7z"/>
 
                             </svg>
 
@@ -492,8 +494,7 @@
                                       stroke-width="2"
                                       d="M12 15v2m-6 4h12a2 2 0
                                          002-2v-6a2 2 0 00-2-2H6a2
-                                         2 0 00-2 2v6a2 2 0
-                                         002 2zm10-10V7a4 4 0
+                                         2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0
                                          00-8 0v4h8z"/>
 
                             </svg>

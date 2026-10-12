@@ -3,21 +3,25 @@
 namespace App\Http\Controllers\Offices;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\ConsultationService;
+use App\Support\CheckInList;
+use App\Support\TimeSlots;
+use App\Support\WorkspaceDashboard;
 use Illuminate\View\View;
 
 class OsasController extends Controller
 {
     public function dashboard(): View
     {
-        return view('Offices.OSAS.dashboard', \App\Support\WorkspaceDashboard::data('OSAS'));
+        return view('Offices.OSAS.dashboard', WorkspaceDashboard::data('OSAS'));
     }
 
     public function appointments(): View
     {
         return view('Offices.OSAS.appointments', [
             'office' => 'OSAS',
-            'appointments' => \App\Models\Appointment::with('user')
+            'appointments' => Appointment::with('user')
                 ->where('office', 'OSAS')
                 ->firstComeFirstServed()
                 ->paginate(12),
@@ -28,7 +32,7 @@ class OsasController extends Controller
     {
         return view('Offices.OSAS.availability', [
             'office' => 'OSAS',
-            'timeSlots' => \App\Support\TimeSlots::forOffice('OSAS'),
+            'timeSlots' => TimeSlots::forOffice('OSAS'),
         ]);
     }
 
@@ -36,7 +40,7 @@ class OsasController extends Controller
     {
         return view('Offices.OSAS.qr', [
             'office' => 'OSAS',
-            'checkIns' => \App\Support\CheckInList::today('OSAS'),
+            'checkIns' => CheckInList::today('OSAS'),
         ]);
     }
 
@@ -45,14 +49,6 @@ class OsasController extends Controller
         return view('Offices.OSAS.consultations', [
             'office' => 'OSAS',
             'services' => ConsultationService::forOffice('OSAS')->ordered()->get(),
-        ]);
-    }
-
-    public function profile(): View
-    {
-        return view('Offices.OSAS.profile', [
-            'user' => auth()->user(),
-            'office' => 'OSAS',
         ]);
     }
 

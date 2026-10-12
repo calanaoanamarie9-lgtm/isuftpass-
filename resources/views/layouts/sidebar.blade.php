@@ -351,7 +351,7 @@
 
                 <div class="space-y-1">
 
-                    <a href="{{ route('osas.profile') }}"
+                    <a href="{{ route('profile.edit') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>⚙️</span>
@@ -435,7 +435,7 @@
 
                 <div class="space-y-1">
 
-                    <a href="{{ route('accounting.profile') }}"
+                    <a href="{{ route('profile.edit') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>⚙️</span>
@@ -519,7 +519,7 @@
 
                 <div class="space-y-1">
 
-                    <a href="{{ route('library.profile') }}"
+                    <a href="{{ route('profile.edit') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>⚙️</span>
@@ -603,7 +603,7 @@
 
                 <div class="space-y-1">
 
-                    <a href="{{ route('guidance.profile') }}"
+                    <a href="{{ route('profile.edit') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>⚙️</span>
@@ -687,7 +687,7 @@
 
                 <div class="space-y-1">
 
-                    <a href="{{ route($dept . '.profile') }}"
+                    <a href="{{ route('profile.edit') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>⚙️</span>
@@ -856,7 +856,7 @@
 
                     </a>
 
-                    <a href="{{ route('alumni.profile.show') }}"
+                    <a href="{{ route('profile.edit') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>⚙️</span>
@@ -944,7 +944,7 @@
 
                     </a>
 
-                    <a href="{{ route('student.profile.show') }}"
+                    <a href="{{ route('profile.edit') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>⚙️</span>
@@ -1032,7 +1032,7 @@
 
                     </a>
 
-                    <a href="{{ route('student.profile.show') }}"
+                    <a href="{{ route('profile.edit') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>⚙️</span>
@@ -1134,7 +1134,7 @@
 
                     </a>
 
-                    <a href="{{ route('student.profile.show') }}"
+                    <a href="{{ route('profile.edit') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>⚙️</span>
@@ -1162,15 +1162,7 @@
     <div class="border-t border-white/10 p-3 shrink-0">
 
         <a
-            href="{{
-                $role === 'alumni'
-                    ? route('alumni.profile.show')
-                    : (
-                        in_array($role, ['student', 'parent', 'guest'], true)
-                            ? route('student.profile.show')
-                            : route('profile.edit')
-                    )
-            }}"
+            href="{{ route('profile.edit') }}"
             @click="open = false"
             class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/10 transition"
         >
