@@ -133,6 +133,73 @@ class CompleteProfileTest extends TestCase
         ])->assertSessionHasErrors('contact_number');
     }
 
+    /**
+     * Address, course and year level are required for students - the school
+     * needs them to know who it is dealing with. Only the student form shows
+     * these three fields, so only the student form may demand them: the
+     * alumni, guest and parent forms never submit them, and a blanket
+     * `required` would bounce every one of those saves.
+     */
+    public function test_student_requires_address_course_and_year_level(): void
+    {
+        $this->registerStudent();
+
+        $this->post('/complete-profile', [
+            'contact_number' => '09171234567',
+            'student_id' => '2024-12345',
+        ])->assertSessionHasErrors(['address', 'course', 'year_level']);
+    }
+
+    /**
+     * The three fields must be marked required in the markup too, so the
+     * browser stops the student before the round trip instead of after it,
+     * and the labels may no longer promise a field is optional.
+     */
+    public function test_the_student_form_marks_address_course_and_year_level_required(): void
+    {
+        $this->registerStudent();
+
+        $html = $this->get('/complete-profile')->assertOk()->getContent();
+
+        foreach (['address', 'course', 'year_level'] as $field) {
+            $this->assertMatchesRegularExpression(
+                '/name="'.$field.'"[^>]*\srequired\b[^>]*>/s',
+                $html,
+                "the student form's {$field} field must carry required"
+            );
+        }
+
+        foreach (['Address', 'Course', 'Year Level'] as $label) {
+            $this->assertStringNotContainsString(
+                $label.' <span class="text-gray-400 font-normal">(optional)</span>',
+                $html,
+                "{$label} must no longer be labelled optional"
+            );
+        }
+    }
+
+    /**
+     * The other three registration types must keep their own forms, which
+     * submit none of these fields - proof that scoping the rule to students
+     * did not accidentally make them required for everyone.
+     */
+    public function test_address_course_and_year_level_stay_optional_for_other_types(): void
+    {
+        foreach (['alumni' => ['year_graduated' => '2024'], 'guest' => ['purpose' => 'inquiry'], 'parent' => ['relationship_to_student' => 'mother', 'student_full_name' => 'Jane Student']] as $type => $extra) {
+            // /register sits behind `guest`: signing out first is what makes
+            // each pass of the loop register the type it names.
+            $this->post('/logout');
+
+            $this->registerOther($type, "optional-{$type}@example.com");
+
+            $this->post('/complete-profile', $extra + [
+                'contact_number' => '09171234567',
+            ])
+                ->assertSessionHasNoErrors()
+                ->assertRedirect(route('dashboard', absolute: false));
+        }
+    }
+
     public function test_alumni_can_complete_personal_details(): void
     {
         $this->registerOther('alumni');

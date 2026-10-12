@@ -55,10 +55,21 @@ class CompleteProfileController extends Controller
         $data = $request->post();
         $data['avatar'] = $request->hasFile('avatar') ? $request->file('avatar') : null;
 
+        // Address, course and year level are required — but only for the
+        // student form, the only one that shows them. The alumni, guest and
+        // parent forms never submit these fields, so a blanket `required`
+        // would bounce every one of those saves. This draws the same line
+        // the view draws: it renders the student fields whenever a student
+        // profile exists.
+        $isStudent = $user->studentProfile !== null;
+
         // Validate avatar (optional) and contact_number (required for all)
         $validated = Validator::make($data, [
             'avatar' => ['nullable', 'image', 'max:2048'],
             'contact_number' => ['required', 'string', 'max:20'],
+            'address' => $isStudent ? ['required', 'string', 'max:255'] : ['nullable', 'string', 'max:255'],
+            'course' => $isStudent ? ['required', 'string', 'max:100'] : ['nullable', 'string', 'max:100'],
+            'year_level' => $isStudent ? ['required', 'string', 'max:20'] : ['nullable', 'string', 'max:20'],
         ])->validate();
 
         // $validated['avatar'] is the UploadedFile itself, not a stored path.

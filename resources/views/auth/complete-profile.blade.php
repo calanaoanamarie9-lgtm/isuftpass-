@@ -407,7 +407,7 @@
                                     for="address"
                                     class="block text-sm font-semibold text-gray-800 mb-2"
                                 >
-                                    Address <span class="text-gray-400 font-normal">(optional)</span>
+                                    Address
                                 </label>
 
                                 <input
@@ -415,6 +415,7 @@
                                     name="address"
                                     type="text"
                                     value="{{ old('address', $profile->address) }}"
+                                    required
                                     autocomplete="street-address"
                                     placeholder="e.g. Barotac Nuevo, Iloilo"
                                     class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
@@ -438,7 +439,7 @@
                                     for="course"
                                     class="block text-sm font-semibold text-gray-800 mb-2"
                                 >
-                                    Course <span class="text-gray-400 font-normal">(optional)</span>
+                                    Course
                                 </label>
 
                                 <div class="relative">
@@ -447,6 +448,7 @@
                                         id="course"
                                         name="course"
                                         autocomplete="off"
+                                        required
                                         class="block w-full px-4 pr-10 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none appearance-none"
                                     >
                                         <option value="" {{ old('course', $profile->course) ? '' : 'selected' }}>
@@ -488,7 +490,7 @@
                                     for="year_level"
                                     class="block text-sm font-semibold text-gray-800 mb-2"
                                 >
-                                    Year Level <span class="text-gray-400 font-normal">(optional)</span>
+                                    Year Level
                                 </label>
 
                                 <div class="relative">
@@ -496,6 +498,7 @@
                                     <select
                                         id="year_level"
                                         name="year_level"
+                                        required
                                         class="block w-full px-4 pr-10 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none appearance-none"
                                     >
                                         <option value="" {{ old('year_level', $profile->year_level) ? '' : 'selected' }}>
