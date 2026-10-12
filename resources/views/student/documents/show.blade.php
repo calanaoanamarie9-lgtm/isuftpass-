@@ -49,6 +49,9 @@
             'payment_pending' =>
                 'bg-red-100 text-red-800 border-red-200',
 
+            'awaiting_or_validation' =>
+                'bg-amber-100 text-amber-800 border-amber-200',
+
             'paid',
             'processing' =>
                 'bg-blue-100 text-blue-800 border-blue-200',
@@ -82,6 +85,9 @@
             'pending',
             'payment_pending' =>
                 'bg-red-600',
+
+            'awaiting_or_validation' =>
+                'bg-amber-500',
 
             'paid',
             'processing' =>
@@ -122,11 +128,14 @@
             'paid' =>
                 'Your payment has been recorded and your request is being processed.',
 
+            'awaiting_or_validation' =>
+                'Your payment has been recorded. Present your Official Receipt to the Registrar\'s Office for validation.',
+
             'processing' =>
-                'Your payment has been recorded. The office is preparing your document for release.',
+                'Your Official Receipt has been validated. The office is preparing your document for release.',
 
             'for_signature' =>
-                'Your document request has been approved. Settle your payment at the Cashier to continue.',
+                'Your document request has been approved and an Order of Payment has been issued. Settle your payment at the Cashier to continue.',
 
             'ready_for_pickup' =>
                 'Your document is ready for pickup at the claiming office.',
@@ -1049,6 +1058,350 @@
 
 
             {{-- ============================================================
+                 ORDER OF PAYMENT (issued at approval)
+            ============================================================= --}}
+            @if ($documentRequest->status === 'for_signature' && $documentRequest->op_number)
+
+                <div
+                    class="mt-4
+                           bg-white
+                           border border-amber-200
+                           rounded-2xl
+                           p-5 sm:p-6
+                           shadow-sm"
+                >
+
+                    <div class="flex flex-col sm:flex-row
+                                sm:items-center
+                                justify-between
+                                gap-4">
+
+                        <div class="min-w-0">
+
+                            <p class="text-xs
+                                      font-black
+                                      uppercase
+                                      tracking-wider
+                                      text-amber-600">
+                                Order of Payment
+                            </p>
+
+                            <p class="mt-1
+                                      text-sm
+                                      text-gray-600
+                                      leading-relaxed">
+                                Your request is approved.
+                                <b>{{ $documentRequest->op_number }}</b>
+                                is your official billing statement — settle
+                                it at the Cashier's Office, then submit your
+                                Official Receipt here for validation.
+                            </p>
+
+                        </div>
+
+                        <a
+                            href="{{ route('student.documents.order-of-payment', $documentRequest) }}"
+                            class="inline-flex
+                                   items-center
+                                   justify-center
+                                   gap-2
+                                   px-5 py-3
+                                   rounded-xl
+                                   bg-amber-500
+                                   hover:bg-amber-600
+                                   text-white
+                                   text-sm
+                                   font-bold
+                                   transition
+                                   whitespace-nowrap"
+                        >
+
+                            <svg
+                                class="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H7a2 2 0 00-2 2v4a2 2 0 002 2zm4-12V9a4 4 0 018 0v2"
+                                />
+                            </svg>
+
+                            Print Order of Payment
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            @endif
+
+
+            {{-- ============================================================
+                 OFFICIAL RECEIPT — SUBMIT FOR VALIDATION
+            ============================================================= --}}
+            @can('submitOr', $documentRequest)
+
+                <div
+                    class="mt-4
+                           bg-white
+                           border border-blue-200
+                           rounded-2xl
+                           p-5 sm:p-6
+                           shadow-sm"
+                >
+
+                    <div class="flex items-center
+                                gap-3 mb-5">
+
+                        <div
+                            class="w-9 h-9
+                                   rounded-xl
+                                   bg-blue-100
+                                   text-blue-800
+                                   flex items-center
+                                   justify-center"
+                        >
+
+                            <svg
+                                class="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                            </svg>
+
+                        </div>
+
+                        <div>
+
+                            <h3 class="font-extrabold
+                                       text-[#123b78]">
+                                Official Receipt for Validation
+                            </h3>
+
+                            <p class="text-xs
+                                      text-gray-500
+                                      mt-0.5">
+                                Step 4 of the release process — present
+                                your Official Receipt to the Registrar's
+                                Office for validation.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    {{-- The registrar sent the details back --}}
+                    @if ($documentRequest->or_validation_note && ! $documentRequest->hasSubmittedOr())
+
+                        <div class="mb-5 rounded-xl
+                                    border border-red-200
+                                    bg-red-50
+                                    px-4 py-3
+                                    text-sm text-red-700">
+
+                            <b>The Registrar returned your Official Receipt details:</b>
+                            {{ $documentRequest->or_validation_note }}
+                            Please re-check the values below and submit them again.
+
+                        </div>
+
+                    @endif
+
+                    {{-- Already submitted — waiting on the registrar --}}
+                    @if ($documentRequest->hasSubmittedOr())
+
+                        <div class="rounded-xl
+                                    border border-amber-200
+                                    bg-amber-50
+                                    px-4 py-3.5">
+
+                            <p class="text-sm
+                                      font-bold
+                                      text-amber-800">
+                                Submitted — awaiting validation by the Registrar's Office
+                            </p>
+
+                            <p class="mt-1.5
+                                      text-xs
+                                      text-amber-700
+                                      leading-relaxed">
+                                OR No. <b>{{ $documentRequest->submitted_or_number }}</b>
+                                dated <b>{{ $documentRequest->submitted_or_date?->format('F j, Y') }}</b>
+                                for <b>₱{{ number_format((float) $documentRequest->submitted_or_amount, 2) }}</b>,
+                                submitted {{ $documentRequest->or_submitted_at->diffForHumans() }}.
+                                Your request moves to processing once the receipt is validated.
+                            </p>
+
+                        </div>
+
+                    @else
+
+                        <form
+                            method="POST"
+                            action="{{ route('student.documents.submit-or', $documentRequest) }}"
+                            class="grid grid-cols-1
+                                   sm:grid-cols-3
+                                   gap-4"
+                        >
+
+                            @csrf
+
+                            <div>
+
+                                <label
+                                    for="submitted_or_number"
+                                    class="block
+                                           text-xs
+                                           font-bold
+                                           text-gray-500
+                                           mb-1.5"
+                                >
+                                    Official Receipt No.
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="submitted_or_number"
+                                    name="submitted_or_number"
+                                    value="{{ old('submitted_or_number', $documentRequest->submitted_or_number) }}"
+                                    required
+                                    maxlength="50"
+                                    placeholder="e.g. OR-2026-00123"
+                                    class="w-full
+                                           rounded-xl
+                                           border-gray-300
+                                           shadow-sm
+                                           focus:border-blue-500
+                                           focus:ring-blue-500
+                                           text-sm"
+                                >
+
+                            </div>
+
+                            <div>
+
+                                <label
+                                    for="submitted_or_date"
+                                    class="block
+                                           text-xs
+                                           font-bold
+                                           text-gray-500
+                                           mb-1.5"
+                                >
+                                    OR Date
+                                </label>
+
+                                <input
+                                    type="date"
+                                    id="submitted_or_date"
+                                    name="submitted_or_date"
+                                    value="{{ old('submitted_or_date', $documentRequest->submitted_or_date?->format('Y-m-d')) }}"
+                                    required
+                                    max="{{ now()->toDateString() }}"
+                                    class="w-full
+                                           rounded-xl
+                                           border-gray-300
+                                           shadow-sm
+                                           focus:border-blue-500
+                                           focus:ring-blue-500
+                                           text-sm"
+                                >
+
+                            </div>
+
+                            <div>
+
+                                <label
+                                    for="submitted_or_amount"
+                                    class="block
+                                           text-xs
+                                           font-bold
+                                           text-gray-500
+                                           mb-1.5"
+                                >
+                                    Amount Paid (₱)
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="submitted_or_amount"
+                                    name="submitted_or_amount"
+                                    value="{{ old('submitted_or_amount', $documentRequest->submitted_or_amount ?? number_format($totalFee, 2, '.', '')) }}"
+                                    required
+                                    min="0"
+                                    step="0.01"
+                                    class="w-full
+                                           rounded-xl
+                                           border-gray-300
+                                           shadow-sm
+                                           focus:border-blue-500
+                                           focus:ring-blue-500
+                                           text-sm"
+                                >
+
+                            </div>
+
+                            @if ($errors->any())
+
+                                <div class="sm:col-span-3
+                                            text-xs
+                                            text-red-600">
+
+                                    @foreach ($errors->all() as $error)
+
+                                        <p>{{ $error }}</p>
+
+                                    @endforeach
+
+                                </div>
+
+                            @endif
+
+                            <div class="sm:col-span-3">
+
+                                <button
+                                    type="submit"
+                                    class="inline-flex
+                                           items-center
+                                           gap-2
+                                           px-5 py-3
+                                           rounded-xl
+                                           bg-blue-800
+                                           hover:bg-blue-900
+                                           text-white
+                                           text-sm
+                                           font-bold
+                                           transition"
+                                >
+
+                                    Submit Official Receipt for Validation
+
+                                </button>
+
+                            </div>
+
+                        </form>
+
+                    @endif
+
+                </div>
+
+            @endcan
+
+
+            {{-- ============================================================
                  REMINDERS
             ============================================================= --}}
             <div
@@ -1371,11 +1724,18 @@
                                         Your request has been received.
 
                                     @elseif (
-                                        str_contains($stepLabelNormalized, 'payment')
+                                        str_contains($stepLabelNormalized, 'validation')
+                                    )
+
+                                        Your Official Receipt is validated before processing begins.
+
+                                    @elseif (
+                                        str_contains($stepLabelNormalized, 'processing')
+                                        || str_contains($stepLabelNormalized, 'payment')
                                         || $stepLabelNormalized === 'paid'
                                     )
 
-                                        Payment for your request has been recorded.
+                                        Your credential is being prepared for release.
 
                                     @elseif (
                                         str_contains($stepLabelNormalized, 'approved')

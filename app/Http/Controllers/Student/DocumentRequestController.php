@@ -12,10 +12,11 @@ use App\Http\Controllers\Controller;
 use App\Mail\DocumentRequestReceived;
 use App\Models\Document;
 use App\Models\DocumentRequest;
-use App\Models\User;
 use App\Notifications\DocumentRequestReceivedNotification;
 use App\Notifications\DocumentRequestStatusNotification;
 use App\Support\AuditLogger;
+use App\Support\QrPassCard;
+use App\Support\QrUrl;
 use App\Support\RegistrarNotifier;
 use App\Support\SafeMailer;
 use Endroid\QrCode\QrCode;
@@ -26,6 +27,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class DocumentRequestController extends Controller
 {
@@ -72,7 +74,7 @@ class DocumentRequestController extends Controller
             'student_name' => Auth::user()->name,
             'student_address' => $profile?->address ?? 'Not provided',
             'student_contact' => $profile?->contact_number ?? 'Not provided',
-            'student_course_year' => trim(($profile?->course ?? '') . ' ' . ($profile?->year_level ?? '')) ?: 'Not provided',
+            'student_course_year' => trim(($profile?->course ?? '').' '.($profile?->year_level ?? '')) ?: 'Not provided',
             'purpose_type' => $validated['purpose_type'],
             'transfer_to' => $validated['transfer_to'] ?? null,
             'educational_status' => $validated['educational_status'],
@@ -94,7 +96,7 @@ class DocumentRequestController extends Controller
         RegistrarNotifier::alert(
             $documentRequest,
             'New document request',
-            $documentRequest->student_name . ' submitted a request for ' . $documentRequest->documentsSummary() . '. It is waiting in your queue.'
+            $documentRequest->student_name.' submitted a request for '.$documentRequest->documentsSummary().'. It is waiting in your queue.'
         );
 
         return redirect()
@@ -141,7 +143,7 @@ class DocumentRequestController extends Controller
 
         $documentRequest->documents()->sync($validated['document_ids']);
 
-        AuditLogger::log('request.updated', 'Student updated request ' . $documentRequest->request_number . '.');
+        AuditLogger::log('request.updated', 'Student updated request '.$documentRequest->request_number.'.');
 
         return redirect()
             ->route('student.documents.show', $documentRequest)
@@ -157,7 +159,7 @@ class DocumentRequestController extends Controller
             'cancelled_at' => now(),
         ])->save();
 
-        AuditLogger::log('request.cancelled', 'Student cancelled request ' . $documentRequest->request_number . '.');
+        AuditLogger::log('request.cancelled', 'Student cancelled request '.$documentRequest->request_number.'.');
 
         $documentRequest->user->notify(
             new DocumentRequestStatusNotification(
@@ -176,7 +178,7 @@ class DocumentRequestController extends Controller
     {
         Gate::authorize('delete', $documentRequest);
 
-        AuditLogger::log('request.deleted', 'Student deleted request ' . $documentRequest->request_number . '.');
+        AuditLogger::log('request.deleted', 'Student deleted request '.$documentRequest->request_number.'.');
 
         $documentRequest->documents()->detach();
         $documentRequest->delete();
@@ -221,6 +223,65 @@ class DocumentRequestController extends Controller
     }
 
     /**
+     * Step 4 of the release flow: the student (or their representative)
+     * presents the Official Receipt back to the Registrar's Office for
+     * validation. Resubmission is allowed — the registrar may send the
+     * details back for correction.
+     */
+    public function submitOr(Request $request, DocumentRequest $documentRequest): RedirectResponse
+    {
+        Gate::authorize('submitOr', $documentRequest);
+
+        $data = $request->validate([
+            'submitted_or_number' => ['required', 'string', 'max:50'],
+            'submitted_or_date' => ['required', 'date', 'before_or_equal:today'],
+            'submitted_or_amount' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+        ]);
+
+        $documentRequest->forceFill([
+            'submitted_or_number' => strtoupper(trim($data['submitted_or_number'])),
+            'submitted_or_date' => $data['submitted_or_date'],
+            'submitted_or_amount' => $data['submitted_or_amount'],
+            'or_submitted_at' => now(),
+            'or_validation_note' => null,
+        ])->save();
+
+        AuditLogger::log('or.submitted', sprintf(
+            'Submitted Official Receipt OR No. %s dated %s (₱%s) for request %s.',
+            $documentRequest->submitted_or_number,
+            $documentRequest->submitted_or_date->format('Y-m-d'),
+            number_format((float) $documentRequest->submitted_or_amount, 2),
+            $documentRequest->request_number,
+        ));
+
+        // The registrar cannot act on a receipt nobody told them about.
+        RegistrarNotifier::alert(
+            $documentRequest,
+            'Official Receipt presented for validation',
+            $documentRequest->student_name.' submitted OR No. '.$documentRequest->submitted_or_number.' (₱'.number_format((float) $documentRequest->submitted_or_amount, 2).') for '.$documentRequest->request_number.'. Validate it to release the request for processing.'
+        );
+
+        return redirect()
+            ->route('student.documents.show', $documentRequest)
+            ->with('status', 'Official Receipt submitted. The Registrar\'s Office will validate it and your request will move to processing.');
+    }
+
+    /**
+     * The Order of Payment issued upon approval — the official billing
+     * statement the student settles at the Cashier's Office.
+     */
+    public function orderOfPayment(DocumentRequest $documentRequest): View
+    {
+        Gate::authorize('view', $documentRequest);
+
+        abort_if($documentRequest->op_number === null, 404);
+
+        return view('documents.order-of-payment', [
+            'request' => $documentRequest->load(['user.studentProfile', 'documents']),
+        ]);
+    }
+
+    /**
      * Show the tracking pipeline for a single request.
      */
     public function show(DocumentRequest $documentRequest): View
@@ -228,9 +289,9 @@ class DocumentRequestController extends Controller
         Gate::authorize('view', $documentRequest);
 
         // Encode a LAN-reachable URL so scanning the claim slip opens its tracking page.
-        $payload = \App\Support\QrUrl::to('/verify/document/' . $documentRequest->claim_token);
+        $payload = QrUrl::to('/verify/document/'.$documentRequest->claim_token);
 
-        $qrCode = (new SvgWriter())->write(new QrCode($payload));
+        $qrCode = (new SvgWriter)->write(new QrCode($payload));
 
         return view('student.documents.show', [
             'documentRequest' => $documentRequest->load('documents'),
@@ -247,7 +308,7 @@ class DocumentRequestController extends Controller
      *
      * ?format=svg still returns the vector original for print and scaling.
      */
-    public function downloadQr(Request $request, DocumentRequest $documentRequest): \Symfony\Component\HttpFoundation\Response
+    public function downloadQr(Request $request, DocumentRequest $documentRequest): Response
     {
         Gate::authorize('view', $documentRequest);
 
@@ -262,21 +323,21 @@ class DocumentRequestController extends Controller
             'studentId' => $profile?->student_id ?? '',
             'course' => $profile?->course ?? '',
             'yearLevel' => $profile?->year_level ?? '',
-            'qrPayload' => \App\Support\QrUrl::to('/verify/document/' . $documentRequest->claim_token),
+            'qrPayload' => QrUrl::to('/verify/document/'.$documentRequest->claim_token),
         ];
 
         if ($request->query('format') === 'svg') {
-            return response(\App\Support\QrPassCard::svg($options))
+            return response(QrPassCard::svg($options))
                 ->header('Content-Type', 'image/svg+xml')
-                ->header('Content-Disposition', 'attachment; filename="isufstpass-document-' . $documentRequest->request_number . '.svg"');
+                ->header('Content-Disposition', 'attachment; filename="isufstpass-document-'.$documentRequest->request_number.'.svg"');
         }
 
-        $png = \App\Support\QrPassCard::png($options);
+        $png = QrPassCard::png($options);
 
         return response($png)
             ->header('Content-Type', 'image/png')
             ->header('Content-Length', (string) strlen($png))
-            ->header('Content-Disposition', 'attachment; filename="isufstpass-document-' . $documentRequest->request_number . '.png"');
+            ->header('Content-Disposition', 'attachment; filename="isufstpass-document-'.$documentRequest->request_number.'.png"');
     }
 
     /**

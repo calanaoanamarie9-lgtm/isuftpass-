@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\AppointmentStatus;
+use App\Enums\DocumentRequestStatus;
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Admin\ConfigController;
@@ -8,6 +10,17 @@ use App\Http\Controllers\Admin\SlotCapacityController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Cashier\LedgerController;
 use App\Http\Controllers\Cashier\PaymentController as CashierPaymentController;
+use App\Http\Controllers\Consultation\ConsultationServiceController;
+use App\Http\Controllers\CronController;
+use App\Http\Controllers\Department\CbmsdController;
+use App\Http\Controllers\Department\CiciController;
+use App\Http\Controllers\Department\CoagController;
+use App\Http\Controllers\Department\CoedController;
+use App\Http\Controllers\Offices\AccountingController;
+use App\Http\Controllers\Offices\AlumniController;
+use App\Http\Controllers\Offices\GuidanceController;
+use App\Http\Controllers\Offices\LibraryController;
+use App\Http\Controllers\Offices\OsasController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Registrar\AppointmentController as RegistrarAppointmentController;
 use App\Http\Controllers\Registrar\AvailabilityController;
@@ -17,6 +30,7 @@ use App\Http\Controllers\Registrar\QrVerifyController;
 use App\Http\Controllers\Registrar\StudentLookupController;
 use App\Http\Controllers\Student\AnnouncementController;
 use App\Http\Controllers\Student\AppointmentController;
+use App\Http\Controllers\Student\ConsultationCatalogController;
 use App\Http\Controllers\Student\DocumentRequestController;
 use App\Http\Controllers\Student\FeedbackController;
 use App\Http\Controllers\Student\HelpController;
@@ -25,15 +39,18 @@ use App\Http\Controllers\Student\PassController;
 use App\Http\Controllers\Student\RequestController;
 use App\Http\Controllers\Student\StudentProfileController;
 use App\Http\Controllers\VerifyController;
-use App\Enums\AppointmentStatus;
-use App\Enums\DocumentRequestStatus;
+use App\Http\Controllers\Workspace\OfficeWorkspaceController;
+use App\Http\Controllers\Workspace\QrCheckInController;
 use App\Models\Appointment;
 use App\Models\DocumentRequest;
-use Illuminate\Support\Facades\Auth;
+use App\Models\GateLog;
+use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/cron/reminders', [App\Http\Controllers\CronController::class, 'reminders']);
+Route::get('/cron/reminders', [CronController::class, 'reminders']);
 
 Route::get('/', function () {
     $settings = [
@@ -46,13 +63,13 @@ Route::get('/', function () {
 
     try {
         $settings = [
-            'name' => \App\Models\Setting::get('institution_name') ?? $settings['name'],
-            'address' => \App\Models\Setting::get('institution_address') ?? $settings['address'],
-            'academic_term' => \App\Models\Setting::get('academic_term') ?? $settings['academic_term'],
-            'email' => \App\Models\Setting::get('support_email') ?? $settings['email'],
-            'phone' => \App\Models\Setting::get('support_phone') ?? $settings['phone'],
+            'name' => Setting::get('institution_name') ?? $settings['name'],
+            'address' => Setting::get('institution_address') ?? $settings['address'],
+            'academic_term' => Setting::get('academic_term') ?? $settings['academic_term'],
+            'email' => Setting::get('support_email') ?? $settings['email'],
+            'phone' => Setting::get('support_phone') ?? $settings['phone'],
         ];
-    } catch (\Throwable) {
+    } catch (Throwable) {
     }
 
     return view('welcome', ['institution' => $settings]);
@@ -75,7 +92,7 @@ Route::get('/dashboard', function () {
             ->merge(
                 $user->appointments()->latest()->limit(3)->get()->map(fn (Appointment $a) => [
                     'type' => 'appointment',
-                    'title' => 'Appointment with ' . $a->office,
+                    'title' => 'Appointment with '.$a->office,
                     'date' => $a->created_at,
                     'badge' => match ($a->status) {
                         'confirmed' => ['label' => 'Confirmed', 'class' => 'bg-green-50 text-green-700'],
@@ -106,8 +123,8 @@ Route::get('/dashboard', function () {
                 ->count() + $user->appointments()->where('status', AppointmentStatus::COMPLETED->value)->count(),
             'hasPass' => (bool) $user->studentProfile?->pass_token,
             'recentActivity' => $recentActivity,
-            'bannerEnabled' => \App\Models\Setting::get('banner_enabled') === 'true',
-            'bannerText' => \App\Models\Setting::get('banner_text'),
+            'bannerEnabled' => Setting::get('banner_enabled') === 'true',
+            'bannerText' => Setting::get('banner_text'),
         ]);
     }
 
@@ -115,7 +132,7 @@ Route::get('/dashboard', function () {
         $recentActivity = $user->appointments()->latest()->limit(3)->get()
             ->map(fn (Appointment $a) => [
                 'type' => 'appointment',
-                'title' => 'Visit with ' . $a->office,
+                'title' => 'Visit with '.$a->office,
                 'date' => $a->created_at,
                 'badge' => match ($a->status) {
                     'confirmed' => ['label' => 'Confirmed', 'class' => 'bg-green-50 text-green-700'],
@@ -137,7 +154,7 @@ Route::get('/dashboard', function () {
         $recentActivity = $user->appointments()->latest()->limit(3)->get()
             ->map(fn (Appointment $a) => [
                 'type' => 'appointment',
-                'title' => 'Visit with ' . $a->office,
+                'title' => 'Visit with '.$a->office,
                 'date' => $a->created_at,
                 'badge' => match ($a->status) {
                     'confirmed' => ['label' => 'Confirmed', 'class' => 'bg-green-50 text-green-700'],
@@ -162,7 +179,7 @@ Route::get('/dashboard', function () {
             ->merge(
                 $user->appointments()->latest()->limit(3)->get()->map(fn (Appointment $a) => [
                     'type' => 'appointment',
-                    'title' => 'Appointment with ' . $a->office,
+                    'title' => 'Appointment with '.$a->office,
                     'date' => $a->created_at,
                     'badge' => match ($a->status) {
                         'confirmed' => ['label' => 'Confirmed', 'class' => 'bg-green-50 text-green-700'],
@@ -193,22 +210,22 @@ Route::get('/dashboard', function () {
                 ->count() + $user->appointments()->where('status', AppointmentStatus::COMPLETED->value)->count(),
             'hasPass' => (bool) $profile->pass_token,
             'recentActivity' => $recentActivity,
-            'bannerEnabled' => \App\Models\Setting::get('banner_enabled') === 'true',
-            'bannerText' => \App\Models\Setting::get('banner_text'),
+            'bannerEnabled' => Setting::get('banner_enabled') === 'true',
+            'bannerText' => Setting::get('banner_text'),
         ]);
     }
 
     if ($user->role === 'admin') {
         return view('admin.dashboard', [
-            'totalUsers' => \App\Models\User::count(),
+            'totalUsers' => User::count(),
             'roleCounts' => [
-                'students' => \App\Models\User::where('role', 'student')->count(),
-                'admins' => \App\Models\User::where('role', 'admin')->count(),
-                'registrars' => \App\Models\User::where('role', 'registrar')->count(),
-                'cashiers' => \App\Models\User::where('role', 'cashier')->count(),
-                'departments' => \App\Models\User::where('role', 'department')->count(),
+                'students' => User::where('role', 'student')->count(),
+                'admins' => User::where('role', 'admin')->count(),
+                'registrars' => User::where('role', 'registrar')->count(),
+                'cashiers' => User::where('role', 'cashier')->count(),
+                'departments' => User::where('role', 'department')->count(),
             ],
-            'departmentOffices' => \App\Models\User::where('role', 'department')
+            'departmentOffices' => User::where('role', 'department')
                 ->selectRaw('office, count(*) as total')
                 ->groupBy('office')
                 ->orderBy('office')
@@ -216,7 +233,7 @@ Route::get('/dashboard', function () {
                 ->pluck('total', 'office'),
             'totalTransactions' => DocumentRequest::count() + Appointment::count(),
             'activeRequests' => DocumentRequest::query()->active()->count(),
-            'qrVerifications' => \App\Models\GateLog::count(),
+            'qrVerifications' => GateLog::count(),
             'totalCollections' => (float) DocumentRequest::query()
                 ->whereNotNull('paid_at')
                 ->with('documents')
@@ -258,7 +275,8 @@ Route::get('/dashboard', function () {
             'COED' => 'coed',
             default => 'workspace',
         };
-        return redirect()->route($dept . '.dashboard');
+
+        return redirect()->route($dept.'.dashboard');
     }
 
     if ($user->role === 'cashier') {
@@ -334,7 +352,7 @@ Route::middleware(['auth', 'verified', 'role:student'])->prefix('student')->name
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
 
     // 2b. Consultation Services Catalogue (pick a service → booking form pre-filled)
-    Route::get('/consultations', [\App\Http\Controllers\Student\ConsultationCatalogController::class, 'index'])->name('consultations.index');
+    Route::get('/consultations', [ConsultationCatalogController::class, 'index'])->name('consultations.index');
 
     // 3. Document Requests
     Route::get('/document-requests', [DocumentRequestController::class, 'index'])->name('documents.index');
@@ -343,6 +361,8 @@ Route::middleware(['auth', 'verified', 'role:student'])->prefix('student')->name
     Route::get('/document-requests/{documentRequest}', [DocumentRequestController::class, 'show'])->name('documents.show');
     Route::get('/document-requests/{documentRequest}/qr/download', [DocumentRequestController::class, 'downloadQr'])->name('documents.qr.download');
     Route::get('/document-requests/{documentRequest}/requisition', [DocumentRequestController::class, 'requisition'])->name('documents.requisition');
+    Route::get('/document-requests/{documentRequest}/order-of-payment', [DocumentRequestController::class, 'orderOfPayment'])->name('documents.order-of-payment');
+    Route::post('/document-requests/{documentRequest}/official-receipt', [DocumentRequestController::class, 'submitOr'])->name('documents.submit-or');
     Route::get('/document-requests/{documentRequest}/edit', [DocumentRequestController::class, 'edit'])->name('documents.edit');
     Route::put('/document-requests/{documentRequest}', [DocumentRequestController::class, 'update'])->name('documents.update');
     Route::post('/document-requests/{documentRequest}/cancel', [DocumentRequestController::class, 'cancel'])->name('documents.cancel');
@@ -395,7 +415,10 @@ Route::middleware(['auth', 'verified', 'role:registrar,department'])->prefix('re
     // Document Requests (pipeline management)
     Route::get('/document-requests', [RegistrarDocumentRequestController::class, 'index'])->name('document-requests.index');
     Route::get('/document-requests/{documentRequest}', [RegistrarDocumentRequestController::class, 'show'])->name('document-requests.show');
+    Route::get('/document-requests/{documentRequest}/order-of-payment', [RegistrarDocumentRequestController::class, 'orderOfPayment'])->name('document-requests.order-of-payment');
     Route::post('/document-requests/{documentRequest}/next', [RegistrarDocumentRequestController::class, 'next'])->name('document-requests.next');
+    Route::post('/document-requests/{documentRequest}/validate-or', [RegistrarDocumentRequestController::class, 'validateOr'])->name('document-requests.validate-or');
+    Route::post('/document-requests/{documentRequest}/or-correction', [RegistrarDocumentRequestController::class, 'requestOrCorrection'])->name('document-requests.or-correction');
     Route::patch('/document-requests/{documentRequest}/status', [RegistrarDocumentRequestController::class, 'updateStatus'])->name('document-requests.status');
     Route::post('/document-requests/{documentRequest}/cancel', [RegistrarDocumentRequestController::class, 'cancel'])->name('document-requests.cancel');
     Route::delete('/document-requests/{documentRequest}', [RegistrarDocumentRequestController::class, 'destroy'])->name('document-requests.destroy');
@@ -467,6 +490,7 @@ Route::middleware(['auth', 'verified', 'role:cashier'])->prefix('cashier')->name
     // Pending Payments & Payment History
     Route::get('/payments', [CashierPaymentController::class, 'pending'])->name('payments.pending');
     Route::post('/payments/{documentRequest}/record', [CashierPaymentController::class, 'record'])->name('payments.record');
+    Route::get('/payments/{documentRequest}/receipt', [CashierPaymentController::class, 'receipt'])->name('payments.receipt');
     Route::get('/payments/history', [CashierPaymentController::class, 'history'])->name('payments.history');
 
     // Student Ledger (financial records)
@@ -502,127 +526,127 @@ $workspaceRoutes = function (): void {
     // One handler serves all eight desks: it reads the office from
     // officeScope(), so /cici/qr/check-in and /osas/qr/check-in are the same
     // scan endpoint wearing each group's role middleware.
-    Route::post('/qr/check-in', [\App\Http\Controllers\Workspace\QrCheckInController::class, 'checkIn'])
+    Route::post('/qr/check-in', [QrCheckInController::class, 'checkIn'])
         ->name('qr.check-in');
 
-    Route::post('/availability/save', [\App\Http\Controllers\Registrar\AvailabilityController::class, 'save'])
+    Route::post('/availability/save', [AvailabilityController::class, 'save'])
         ->name('availability.save');
 
     // The office's own opening and closing time — the slot list of the whole
     // system is built from these two values.
-    Route::post('/availability/hours', [\App\Http\Controllers\Registrar\AvailabilityController::class, 'saveHours'])
+    Route::post('/availability/hours', [AvailabilityController::class, 'saveHours'])
         ->name('availability.hours');
 
-    Route::get('/availability/schedule', [\App\Http\Controllers\Registrar\AvailabilityController::class, 'schedule'])
+    Route::get('/availability/schedule', [AvailabilityController::class, 'schedule'])
         ->name('availability.schedule');
 
-    Route::get('/availability/settings/{date}', [\App\Http\Controllers\Registrar\AvailabilityController::class, 'settings'])
+    Route::get('/availability/settings/{date}', [AvailabilityController::class, 'settings'])
         ->where('date', '[0-9]{4}-[0-9]{2}-[0-9]{2}')
         ->name('availability.settings');
 
-    Route::get('/appointments/slots', [\App\Http\Controllers\Registrar\AppointmentController::class, 'slots'])
+    Route::get('/appointments/slots', [RegistrarAppointmentController::class, 'slots'])
         ->name('appointments.slots');
 
-    Route::put('/appointments/{appointment}/reschedule', [\App\Http\Controllers\Registrar\AppointmentController::class, 'updateReschedule'])
+    Route::put('/appointments/{appointment}/reschedule', [RegistrarAppointmentController::class, 'updateReschedule'])
         ->name('appointments.reschedule.update');
 
     // Approve (confirm) a pending / for-reschedule appointment of this office.
-    Route::post('/appointments/{appointment}/confirm', [\App\Http\Controllers\Registrar\AppointmentController::class, 'confirm'])
+    Route::post('/appointments/{appointment}/confirm', [RegistrarAppointmentController::class, 'confirm'])
         ->name('appointments.confirm');
 };
 
 Route::middleware(['auth', 'verified', 'role:department'])->prefix('cici')->name('cici.')->group(function () use ($workspaceRoutes) {
-    Route::get('/', [\App\Http\Controllers\Department\CiciController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [\App\Http\Controllers\Department\CiciController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [\App\Http\Controllers\Department\CiciController::class, 'availability'])->name('availability');
-    Route::get('/qr', [\App\Http\Controllers\Department\CiciController::class, 'qrScanner'])->name('qr.index');
-    Route::get('/consultations', [\App\Http\Controllers\Department\CiciController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [\App\Http\Controllers\Department\CiciController::class, 'profile'])->name('profile');
-    Route::get('/help', [\App\Http\Controllers\Department\CiciController::class, 'help'])->name('help');
+    Route::get('/', [CiciController::class, 'dashboard'])->name('dashboard');
+    Route::get('/appointments', [CiciController::class, 'appointments'])->name('appointments');
+    Route::get('/availability', [CiciController::class, 'availability'])->name('availability');
+    Route::get('/qr', [CiciController::class, 'qrScanner'])->name('qr.index');
+    Route::get('/consultations', [CiciController::class, 'consultations'])->name('consultations');
+    Route::get('/profile', [CiciController::class, 'profile'])->name('profile');
+    Route::get('/help', [CiciController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
 
 Route::middleware(['auth', 'verified', 'role:department'])->prefix('cbmsd')->name('cbmsd.')->group(function () use ($workspaceRoutes) {
-    Route::get('/', [\App\Http\Controllers\Department\CbmsdController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [\App\Http\Controllers\Department\CbmsdController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [\App\Http\Controllers\Department\CbmsdController::class, 'availability'])->name('availability');
-    Route::get('/qr', [\App\Http\Controllers\Department\CbmsdController::class, 'qrScanner'])->name('qr.index');
-    Route::get('/consultations', [\App\Http\Controllers\Department\CbmsdController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [\App\Http\Controllers\Department\CbmsdController::class, 'profile'])->name('profile');
-    Route::get('/help', [\App\Http\Controllers\Department\CbmsdController::class, 'help'])->name('help');
+    Route::get('/', [CbmsdController::class, 'dashboard'])->name('dashboard');
+    Route::get('/appointments', [CbmsdController::class, 'appointments'])->name('appointments');
+    Route::get('/availability', [CbmsdController::class, 'availability'])->name('availability');
+    Route::get('/qr', [CbmsdController::class, 'qrScanner'])->name('qr.index');
+    Route::get('/consultations', [CbmsdController::class, 'consultations'])->name('consultations');
+    Route::get('/profile', [CbmsdController::class, 'profile'])->name('profile');
+    Route::get('/help', [CbmsdController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
 
 Route::middleware(['auth', 'verified', 'role:department'])->prefix('coag')->name('coag.')->group(function () use ($workspaceRoutes) {
-    Route::get('/', [\App\Http\Controllers\Department\CoagController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [\App\Http\Controllers\Department\CoagController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [\App\Http\Controllers\Department\CoagController::class, 'availability'])->name('availability');
-    Route::get('/qr', [\App\Http\Controllers\Department\CoagController::class, 'qrScanner'])->name('qr.index');
-    Route::get('/consultations', [\App\Http\Controllers\Department\CoagController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [\App\Http\Controllers\Department\CoagController::class, 'profile'])->name('profile');
-    Route::get('/help', [\App\Http\Controllers\Department\CoagController::class, 'help'])->name('help');
+    Route::get('/', [CoagController::class, 'dashboard'])->name('dashboard');
+    Route::get('/appointments', [CoagController::class, 'appointments'])->name('appointments');
+    Route::get('/availability', [CoagController::class, 'availability'])->name('availability');
+    Route::get('/qr', [CoagController::class, 'qrScanner'])->name('qr.index');
+    Route::get('/consultations', [CoagController::class, 'consultations'])->name('consultations');
+    Route::get('/profile', [CoagController::class, 'profile'])->name('profile');
+    Route::get('/help', [CoagController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
 
 Route::middleware(['auth', 'verified', 'role:department'])->prefix('coed')->name('coed.')->group(function () use ($workspaceRoutes) {
-    Route::get('/', [\App\Http\Controllers\Department\CoedController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [\App\Http\Controllers\Department\CoedController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [\App\Http\Controllers\Department\CoedController::class, 'availability'])->name('availability');
-    Route::get('/qr', [\App\Http\Controllers\Department\CoedController::class, 'qrScanner'])->name('qr.index');
-    Route::get('/consultations', [\App\Http\Controllers\Department\CoedController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [\App\Http\Controllers\Department\CoedController::class, 'profile'])->name('profile');
-    Route::get('/help', [\App\Http\Controllers\Department\CoedController::class, 'help'])->name('help');
+    Route::get('/', [CoedController::class, 'dashboard'])->name('dashboard');
+    Route::get('/appointments', [CoedController::class, 'appointments'])->name('appointments');
+    Route::get('/availability', [CoedController::class, 'availability'])->name('availability');
+    Route::get('/qr', [CoedController::class, 'qrScanner'])->name('qr.index');
+    Route::get('/consultations', [CoedController::class, 'consultations'])->name('consultations');
+    Route::get('/profile', [CoedController::class, 'profile'])->name('profile');
+    Route::get('/help', [CoedController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
 
 Route::middleware(['auth', 'verified', 'role:department,osas'])->prefix('osas')->name('osas.')->group(function () use ($workspaceRoutes) {
-    Route::get('/', [\App\Http\Controllers\Offices\OsasController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [\App\Http\Controllers\Offices\OsasController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [\App\Http\Controllers\Offices\OsasController::class, 'availability'])->name('availability');
-    Route::get('/qr', [\App\Http\Controllers\Offices\OsasController::class, 'qrScanner'])->name('qr.index');
-    Route::get('/consultations', [\App\Http\Controllers\Offices\OsasController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [\App\Http\Controllers\Offices\OsasController::class, 'profile'])->name('profile');
-    Route::get('/help', [\App\Http\Controllers\Offices\OsasController::class, 'help'])->name('help');
+    Route::get('/', [OsasController::class, 'dashboard'])->name('dashboard');
+    Route::get('/appointments', [OsasController::class, 'appointments'])->name('appointments');
+    Route::get('/availability', [OsasController::class, 'availability'])->name('availability');
+    Route::get('/qr', [OsasController::class, 'qrScanner'])->name('qr.index');
+    Route::get('/consultations', [OsasController::class, 'consultations'])->name('consultations');
+    Route::get('/profile', [OsasController::class, 'profile'])->name('profile');
+    Route::get('/help', [OsasController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
 
 Route::middleware(['auth', 'verified', 'role:department,accounting'])->prefix('accounting')->name('accounting.')->group(function () use ($workspaceRoutes) {
-    Route::get('/', [\App\Http\Controllers\Offices\AccountingController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [\App\Http\Controllers\Offices\AccountingController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [\App\Http\Controllers\Offices\AccountingController::class, 'availability'])->name('availability');
-    Route::get('/qr', [\App\Http\Controllers\Offices\AccountingController::class, 'qrScanner'])->name('qr.index');
-    Route::get('/consultations', [\App\Http\Controllers\Offices\AccountingController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [\App\Http\Controllers\Offices\AccountingController::class, 'profile'])->name('profile');
-    Route::get('/help', [\App\Http\Controllers\Offices\AccountingController::class, 'help'])->name('help');
+    Route::get('/', [AccountingController::class, 'dashboard'])->name('dashboard');
+    Route::get('/appointments', [AccountingController::class, 'appointments'])->name('appointments');
+    Route::get('/availability', [AccountingController::class, 'availability'])->name('availability');
+    Route::get('/qr', [AccountingController::class, 'qrScanner'])->name('qr.index');
+    Route::get('/consultations', [AccountingController::class, 'consultations'])->name('consultations');
+    Route::get('/profile', [AccountingController::class, 'profile'])->name('profile');
+    Route::get('/help', [AccountingController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
 
 Route::middleware(['auth', 'verified', 'role:department,library'])->prefix('library')->name('library.')->group(function () use ($workspaceRoutes) {
-    Route::get('/', [\App\Http\Controllers\Offices\LibraryController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [\App\Http\Controllers\Offices\LibraryController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [\App\Http\Controllers\Offices\LibraryController::class, 'availability'])->name('availability');
-    Route::get('/qr', [\App\Http\Controllers\Offices\LibraryController::class, 'qrScanner'])->name('qr.index');
-    Route::get('/consultations', [\App\Http\Controllers\Offices\LibraryController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [\App\Http\Controllers\Offices\LibraryController::class, 'profile'])->name('profile');
-    Route::get('/help', [\App\Http\Controllers\Offices\LibraryController::class, 'help'])->name('help');
+    Route::get('/', [LibraryController::class, 'dashboard'])->name('dashboard');
+    Route::get('/appointments', [LibraryController::class, 'appointments'])->name('appointments');
+    Route::get('/availability', [LibraryController::class, 'availability'])->name('availability');
+    Route::get('/qr', [LibraryController::class, 'qrScanner'])->name('qr.index');
+    Route::get('/consultations', [LibraryController::class, 'consultations'])->name('consultations');
+    Route::get('/profile', [LibraryController::class, 'profile'])->name('profile');
+    Route::get('/help', [LibraryController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
 
 Route::middleware(['auth', 'verified', 'role:department,guidance'])->prefix('guidance')->name('guidance.')->group(function () use ($workspaceRoutes) {
-    Route::get('/', [\App\Http\Controllers\Offices\GuidanceController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [\App\Http\Controllers\Offices\GuidanceController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [\App\Http\Controllers\Offices\GuidanceController::class, 'availability'])->name('availability');
-    Route::get('/qr', [\App\Http\Controllers\Offices\GuidanceController::class, 'qrScanner'])->name('qr.index');
-    Route::get('/consultations', [\App\Http\Controllers\Offices\GuidanceController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [\App\Http\Controllers\Offices\GuidanceController::class, 'profile'])->name('profile');
-    Route::get('/help', [\App\Http\Controllers\Offices\GuidanceController::class, 'help'])->name('help');
+    Route::get('/', [GuidanceController::class, 'dashboard'])->name('dashboard');
+    Route::get('/appointments', [GuidanceController::class, 'appointments'])->name('appointments');
+    Route::get('/availability', [GuidanceController::class, 'availability'])->name('availability');
+    Route::get('/qr', [GuidanceController::class, 'qrScanner'])->name('qr.index');
+    Route::get('/consultations', [GuidanceController::class, 'consultations'])->name('consultations');
+    Route::get('/profile', [GuidanceController::class, 'profile'])->name('profile');
+    Route::get('/help', [GuidanceController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
@@ -638,13 +662,13 @@ Route::middleware(['auth', 'verified', 'role:department,guidance'])->prefix('gui
 | Everything is scoped server-side to auth()->user()->officeScope().
 */
 Route::middleware(['auth', 'verified', 'role:department,office'])->prefix('workspace')->name('workspace.')->group(function () use ($workspaceRoutes) {
-    Route::get('/', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'availability'])->name('availability');
-    Route::get('/qr', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'qrScanner'])->name('qr.index');
-    Route::get('/consultations', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'profile'])->name('profile');
-    Route::get('/help', [\App\Http\Controllers\Workspace\OfficeWorkspaceController::class, 'help'])->name('help');
+    Route::get('/', [OfficeWorkspaceController::class, 'dashboard'])->name('dashboard');
+    Route::get('/appointments', [OfficeWorkspaceController::class, 'appointments'])->name('appointments');
+    Route::get('/availability', [OfficeWorkspaceController::class, 'availability'])->name('availability');
+    Route::get('/qr', [OfficeWorkspaceController::class, 'qrScanner'])->name('qr.index');
+    Route::get('/consultations', [OfficeWorkspaceController::class, 'consultations'])->name('consultations');
+    Route::get('/profile', [OfficeWorkspaceController::class, 'profile'])->name('profile');
+    Route::get('/help', [OfficeWorkspaceController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
@@ -663,19 +687,19 @@ foreach ([
     'guidance' => 'department,guidance',
     'workspace' => 'department,office',
 ] as $consultationPrefix => $consultationRoles) {
-    Route::middleware(['auth', 'verified', 'role:' . $consultationRoles])
+    Route::middleware(['auth', 'verified', 'role:'.$consultationRoles])
         ->prefix($consultationPrefix)
-        ->name($consultationPrefix . '.')
+        ->name($consultationPrefix.'.')
         ->group(function () {
-            Route::get('/consultations/create', [\App\Http\Controllers\Consultation\ConsultationServiceController::class, 'create'])
+            Route::get('/consultations/create', [ConsultationServiceController::class, 'create'])
                 ->name('consultations.create');
-            Route::post('/consultations', [\App\Http\Controllers\Consultation\ConsultationServiceController::class, 'store'])
+            Route::post('/consultations', [ConsultationServiceController::class, 'store'])
                 ->name('consultations.store');
-            Route::get('/consultations/{consultationService}/edit', [\App\Http\Controllers\Consultation\ConsultationServiceController::class, 'edit'])
+            Route::get('/consultations/{consultationService}/edit', [ConsultationServiceController::class, 'edit'])
                 ->name('consultations.edit');
-            Route::put('/consultations/{consultationService}', [\App\Http\Controllers\Consultation\ConsultationServiceController::class, 'update'])
+            Route::put('/consultations/{consultationService}', [ConsultationServiceController::class, 'update'])
                 ->name('consultations.update');
-            Route::delete('/consultations/{consultationService}', [\App\Http\Controllers\Consultation\ConsultationServiceController::class, 'destroy'])
+            Route::delete('/consultations/{consultationService}', [ConsultationServiceController::class, 'destroy'])
                 ->name('consultations.destroy');
         });
 }
@@ -686,10 +710,10 @@ foreach ([
 Route::middleware(['auth', 'verified', 'role:student'])->prefix('alumni')->name('alumni.')->group(function () {
 
     // Alumni Dashboard
-    Route::get('/dashboard', [\App\Http\Controllers\Offices\AlumniController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard', [AlumniController::class, 'dashboard'])->name('dashboard');
 
     // Document Requests (reuse student document routes; alumni store in studentProfile)
-    Route::get('/documents', [\App\Http\Controllers\Offices\AlumniController::class, 'documents'])->name('documents.index');
+    Route::get('/documents', [AlumniController::class, 'documents'])->name('documents.index');
     // "New Request" must open the creation hub rather than the list. AlumniController has
     // no newRequest() method, so this route used to point at documents() and the sidebar's
     // New Request link silently reloaded the request list — same destination as My Requests.
@@ -698,17 +722,17 @@ Route::middleware(['auth', 'verified', 'role:student'])->prefix('alumni')->name(
     Route::get('/documents/new', [RequestController::class, 'newRequest'])->name('documents.new');
 
     // Appointments (reuse appointments; alumni book against offices)
-    Route::get('/appointments', [\App\Http\Controllers\Offices\AlumniController::class, 'appointments'])->name('appointments.index');
+    Route::get('/appointments', [AlumniController::class, 'appointments'])->name('appointments.index');
 
     // QR Pass
-    Route::get('/pass', [\App\Http\Controllers\Offices\AlumniController::class, 'pass'])->name('pass.show');
+    Route::get('/pass', [AlumniController::class, 'pass'])->name('pass.show');
 
     // Profile & Account Settings
-    Route::get('/profile', [\App\Http\Controllers\Offices\AlumniController::class, 'profile'])->name('profile.show');
-    Route::put('/profile', [\App\Http\Controllers\Offices\AlumniController::class, 'updateProfile'])->name('profile.update');
+    Route::get('/profile', [AlumniController::class, 'profile'])->name('profile.show');
+    Route::put('/profile', [AlumniController::class, 'updateProfile'])->name('profile.update');
 
     // Help & FAQs
-    Route::get('/help', [\App\Http\Controllers\Offices\AlumniController::class, 'help'])->name('help');
+    Route::get('/help', [AlumniController::class, 'help'])->name('help');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

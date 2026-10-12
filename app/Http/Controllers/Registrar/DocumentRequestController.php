@@ -16,7 +16,7 @@ use App\Support\CashierNotifier;
 use App\Support\SafeMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -44,6 +44,7 @@ class DocumentRequestController extends Controller
         } else {
             $query->whereIn('status', [
                 DocumentRequestStatus::SUBMITTED->value,
+                DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
                 DocumentRequestStatus::PROCESSING->value,
                 DocumentRequestStatus::FOR_SIGNATURE->value,
                 DocumentRequestStatus::READY_FOR_PICKUP->value,
@@ -97,12 +98,14 @@ class DocumentRequestController extends Controller
     /**
      * Approval hands the request over to the cashier's pending-payments
      * queue — tell the desk it has arrived, and tell the student what is
-     * now due of them. Approval and payment are two statuses apart, so
-     * the payment step gets its own student notification, paired with
-     * the "Payment recorded" status the cashier sends when it settles.
+     * now due of them. It is also where the Order of Payment is issued:
+     * the official billing statement the student settles at the Cashier's
+     * Office, per the Release of Credentials flow.
      */
     private function onApproved(DocumentRequest $documentRequest): void
     {
+        $documentRequest->issueOrderOfPayment();
+
         $documentRequest->user->notify(new PaymentPendingNotification($documentRequest));
 
         CashierNotifier::alert(
@@ -120,14 +123,29 @@ class DocumentRequestController extends Controller
     {
         abort_if(! $documentRequest->isActive(), 404);
 
-        // Hand-off point: the registrar has approved, and moving it to "Paid"
-        // is the cashier's write. There is nothing left for the registrar to
-        // advance until that payment lands.
+        // Hand-off point: the registrar has approved, and moving it further
+        // is the cashier's write. There is nothing left for the registrar
+        // to advance until that payment lands.
         if ($documentRequest->status === DocumentRequestStatus::FOR_SIGNATURE->value) {
             return back()->with('error', sprintf(
                 '%s is approved and waiting for the cashier to record the payment.',
                 $documentRequest->request_number,
             ));
+        }
+
+        // Second hand-off: payment is in, but the student has to present
+        // the Official Receipt for validation before credential processing
+        // can begin. Advancing happens through validateOr(), not here.
+        if ($documentRequest->status === DocumentRequestStatus::AWAITING_OR_VALIDATION->value) {
+            return back()->with('error', $documentRequest->hasSubmittedOr()
+                ? sprintf(
+                    '%s has an Official Receipt awaiting validation. Use the Validate OR button on this page to move it to processing.',
+                    $documentRequest->request_number,
+                )
+                : sprintf(
+                    '%s has been paid, but the student has not yet presented the Official Receipt for validation.',
+                    $documentRequest->request_number,
+                ));
         }
 
         $next = match ($documentRequest->status) {
@@ -168,7 +186,7 @@ class DocumentRequestController extends Controller
             ]);
 
             $attributes[$timestamp] = isset($data['release_date'])
-                ? \Illuminate\Support\Carbon::parse($data['release_date'] . ' ' . ($data['release_time'] ?? '08:00'))
+                ? Carbon::parse($data['release_date'].' '.($data['release_time'] ?? '08:00'))
                 : now();
         } else {
             $attributes[$timestamp] = now();
@@ -178,22 +196,22 @@ class DocumentRequestController extends Controller
 
         $label = DocumentRequestStatus::from($status)->label();
 
-        AuditLogger::log('request.advanced', 'Advanced request ' . $documentRequest->request_number . ' to ' . $label . '.');
+        AuditLogger::log('request.advanced', 'Advanced request '.$documentRequest->request_number.' to '.$label.'.');
 
         $documentRequest->user->notify(
             new DocumentRequestStatusNotification($documentRequest, $label, "Your document request {$message}.")
         );
 
         if ($status === DocumentRequestStatus::READY_FOR_PICKUP->value) {
-            SafeMailer::send($documentRequest->user, 
+            SafeMailer::send($documentRequest->user,
                 new DocumentRequestReadyForPickup($documentRequest)
             );
         } elseif ($status === DocumentRequestStatus::COMPLETED->value) {
-            SafeMailer::send($documentRequest->user, 
+            SafeMailer::send($documentRequest->user,
                 new DocumentRequestCompleted($documentRequest)
             );
         } else {
-            SafeMailer::send($documentRequest->user, 
+            SafeMailer::send($documentRequest->user,
                 new DocumentRequestStatusUpdate($documentRequest, $label, "Your document request {$message}.")
             );
         }
@@ -217,6 +235,7 @@ class DocumentRequestController extends Controller
             'status' => ['required', Rule::in([
                 DocumentRequestStatus::PROCESSING->value,
                 DocumentRequestStatus::FOR_SIGNATURE->value,
+                DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
                 DocumentRequestStatus::READY_FOR_PICKUP->value,
                 DocumentRequestStatus::COMPLETED->value,
             ])],
@@ -235,26 +254,32 @@ class DocumentRequestController extends Controller
             return $blocked;
         }
 
+        // Awaiting OR Validation carries no stamp of its own: the payment
+        // timestamp is the cashier's write, set when the OR was issued.
         [$timestamp, $message] = match ($target) {
-            DocumentRequestStatus::PROCESSING => ['processing_at', 'payment has been recorded'],
+            DocumentRequestStatus::PROCESSING => ['processing_at', 'is now being processed'],
             DocumentRequestStatus::FOR_SIGNATURE => ['for_signature_at', 'has been approved'],
+            DocumentRequestStatus::AWAITING_OR_VALIDATION => [null, 'has been paid — the Official Receipt now needs validation'],
             DocumentRequestStatus::READY_FOR_PICKUP => ['ready_at', 'is now ready for pick-up'],
             DocumentRequestStatus::COMPLETED => ['completed_at', 'has been completed'],
             default => [null, null],
         };
 
-        abort_if($timestamp === null, 400, 'This status cannot be applied.');
+        abort_if($message === null, 400, 'This status cannot be applied.');
 
         $attributes = [
             'status' => $target->value,
-            $timestamp => $target === DocumentRequestStatus::READY_FOR_PICKUP && isset($data['release_date'])
-                ? \Illuminate\Support\Carbon::parse($data['release_date'] . ' ' . ($data['release_time'] ?? '08:00'))
-                : now(),
         ];
+
+        if ($timestamp !== null) {
+            $attributes[$timestamp] = $target === DocumentRequestStatus::READY_FOR_PICKUP && isset($data['release_date'])
+                ? Carbon::parse($data['release_date'].' '.($data['release_time'] ?? '08:00'))
+                : now();
+        }
 
         $documentRequest->forceFill($attributes)->save();
 
-        AuditLogger::log('request.status_updated', 'Set request ' . $documentRequest->request_number . ' to ' . $target->label() . '.');
+        AuditLogger::log('request.status_updated', 'Set request '.$documentRequest->request_number.' to '.$target->label().'.');
 
         $documentRequest->user->notify(
             new DocumentRequestStatusNotification($documentRequest, $target->label(), "Your document request {$message}.")
@@ -265,7 +290,7 @@ class DocumentRequestController extends Controller
         } elseif ($target === DocumentRequestStatus::COMPLETED) {
             SafeMailer::send($documentRequest->user, new DocumentRequestCompleted($documentRequest));
         } else {
-            SafeMailer::send($documentRequest->user, 
+            SafeMailer::send($documentRequest->user,
                 new DocumentRequestStatusUpdate($documentRequest, $target->label(), "Your document request {$message}.")
             );
         }
@@ -279,6 +304,112 @@ class DocumentRequestController extends Controller
         return redirect()
             ->back()
             ->with('status', "Request {$target->label()}. The student has been notified by email and in the system.");
+    }
+
+    /**
+     * Step 4 → 5: the student has presented their Official Receipt, and
+     * the registrar has checked it against the cashier's record. Validating
+     * it releases the request into credential processing.
+     */
+    public function validateOr(Request $request, DocumentRequest $documentRequest): RedirectResponse
+    {
+        if ($documentRequest->status !== DocumentRequestStatus::AWAITING_OR_VALIDATION->value) {
+            return back()->with('error', sprintf(
+                '%s is not awaiting Official Receipt validation.',
+                $documentRequest->request_number,
+            ));
+        }
+
+        if (! $documentRequest->hasSubmittedOr()) {
+            return back()->with('error', sprintf(
+                'The student has not submitted Official Receipt details for %s yet. Ask them to present the receipt through their portal first.',
+                $documentRequest->request_number,
+            ));
+        }
+
+        $documentRequest->forceFill([
+            'status' => DocumentRequestStatus::PROCESSING->value,
+            'processing_at' => $documentRequest->processing_at ?? now(),
+            'or_validated_at' => now(),
+            'or_validation_note' => null,
+        ])->save();
+
+        AuditLogger::log('or.validated', sprintf(
+            'Validated Official Receipt OR No. %s (submitted) against the cashier record OR No. %s for request %s.',
+            $documentRequest->submitted_or_number,
+            $documentRequest->or_number,
+            $documentRequest->request_number,
+        ));
+
+        $message = 'Your Official Receipt has been validated by the Registrar\'s Office. Your credential is now being prepared for release.';
+
+        $documentRequest->user->notify(
+            new DocumentRequestStatusNotification($documentRequest, 'OR Validated', $message)
+        );
+
+        SafeMailer::send($documentRequest->user,
+            new DocumentRequestStatusUpdate($documentRequest, 'OR Validated', $message)
+        );
+
+        return redirect()
+            ->back()
+            ->with('status', 'Official Receipt validated. The request is now under processing.');
+    }
+
+    /**
+     * The OR the student presented does not check out — a wrong number, an
+     * amount that does not match. Send it back with a note; the student's
+     * form reopens (prefilled with the old entries) so they can correct it.
+     */
+    public function requestOrCorrection(Request $request, DocumentRequest $documentRequest): RedirectResponse
+    {
+        if ($documentRequest->status !== DocumentRequestStatus::AWAITING_OR_VALIDATION->value
+            || ! $documentRequest->hasSubmittedOr()) {
+            return back()->with('error', sprintf(
+                '%s has no submitted Official Receipt to send back.',
+                $documentRequest->request_number,
+            ));
+        }
+
+        $data = $request->validate([
+            'note' => ['required', 'string', 'max:500'],
+        ]);
+
+        $documentRequest->forceFill([
+            'or_submitted_at' => null,
+            'or_validation_note' => $data['note'],
+        ])->save();
+
+        AuditLogger::log('or.correction_requested', sprintf(
+            'Sent Official Receipt OR No. %s back for correction: %s',
+            $documentRequest->submitted_or_number,
+            $data['note'],
+        ));
+
+        $documentRequest->user->notify(
+            new DocumentRequestStatusNotification(
+                $documentRequest,
+                'OR for Correction',
+                'The Registrar\'s Office returned your Official Receipt details: '.$data['note'].' Please re-check and submit them again.'
+            )
+        );
+
+        return redirect()
+            ->back()
+            ->with('status', 'Official Receipt returned to the student for correction.');
+    }
+
+    /**
+     * The registrar's copy of the Order of Payment — same sheet the student
+     * prints, so the office can reissue one that was lost.
+     */
+    public function orderOfPayment(DocumentRequest $documentRequest): View
+    {
+        abort_if($documentRequest->op_number === null, 404);
+
+        return view('documents.order-of-payment', [
+            'request' => $documentRequest->load(['user.studentProfile', 'documents']),
+        ]);
     }
 
     public function cancel(Request $request, DocumentRequest $documentRequest): RedirectResponse
@@ -297,10 +428,10 @@ class DocumentRequestController extends Controller
             'rejection_reason' => $reason,
         ])->save();
 
-        AuditLogger::log('request.cancelled', 'Rejected request ' . $documentRequest->request_number . ($reason ? '. Reason: ' . $reason : ''));
+        AuditLogger::log('request.cancelled', 'Rejected request '.$documentRequest->request_number.($reason ? '. Reason: '.$reason : ''));
 
         $notificationMessage = $reason
-            ? 'Your document request was rejected due to: ' . $reason
+            ? 'Your document request was rejected due to: '.$reason
             : 'Your document request has been rejected by the registrar office.';
 
         $documentRequest->user->notify(
@@ -311,7 +442,7 @@ class DocumentRequestController extends Controller
             )
         );
 
-        SafeMailer::send($documentRequest->user, 
+        SafeMailer::send($documentRequest->user,
             new DocumentRequestRejected($documentRequest, $reason)
         );
 
@@ -328,7 +459,7 @@ class DocumentRequestController extends Controller
      */
     public function destroy(DocumentRequest $documentRequest): RedirectResponse
     {
-        AuditLogger::log('request.deleted', 'Registrar deleted request ' . $documentRequest->request_number . '.');
+        AuditLogger::log('request.deleted', 'Registrar deleted request '.$documentRequest->request_number.'.');
 
         $documentRequest->documents()->detach();
         $documentRequest->delete();

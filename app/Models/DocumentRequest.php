@@ -34,6 +34,13 @@ class DocumentRequest extends Model
         'ready_at',
         'paid_at',
         'or_number',
+        'op_number',
+        'submitted_or_number',
+        'submitted_or_date',
+        'submitted_or_amount',
+        'or_submitted_at',
+        'or_validated_at',
+        'or_validation_note',
         'completed_at',
         'cancelled_at',
         'rejection_reason',
@@ -48,6 +55,10 @@ class DocumentRequest extends Model
             'for_signature_at' => 'datetime',
             'ready_at' => 'datetime',
             'paid_at' => 'datetime',
+            'submitted_or_date' => 'date',
+            'submitted_or_amount' => 'decimal:2',
+            'or_submitted_at' => 'datetime',
+            'or_validated_at' => 'datetime',
             'completed_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];
@@ -56,7 +67,7 @@ class DocumentRequest extends Model
     protected static function booted(): void
     {
         static::creating(function (DocumentRequest $request) {
-            $request->request_number = 'REQ-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
+            $request->request_number = 'REQ-'.now()->format('Ymd').'-'.Str::upper(Str::random(6));
             $request->claim_token = (string) Str::uuid();
         });
     }
@@ -76,7 +87,7 @@ class DocumentRequest extends Model
         $names = $this->documents->pluck('name');
 
         if ($this->others_specification) {
-            $names->push('Others: ' . $this->others_specification);
+            $names->push('Others: '.$this->others_specification);
         }
 
         return $names->join(', ');
@@ -98,6 +109,31 @@ class DocumentRequest extends Model
     public function isPaid(): bool
     {
         return $this->paid_at !== null;
+    }
+
+    /**
+     * True once the student has presented their Official Receipt details
+     * and the request is waiting on the registrar to validate them.
+     */
+    public function hasSubmittedOr(): bool
+    {
+        return $this->or_submitted_at !== null;
+    }
+
+    /**
+     * Issue the Order of Payment that accompanies the approval — the
+     * official billing statement the student settles at the Cashier's
+     * Office. Generated once; re-approvals never renumber it.
+     */
+    public function issueOrderOfPayment(): void
+    {
+        if ($this->op_number !== null) {
+            return;
+        }
+
+        $this->forceFill([
+            'op_number' => 'OP-'.now()->format('Ymd').'-'.Str::upper(Str::random(6)),
+        ])->save();
     }
 
     public function totalFee(): float

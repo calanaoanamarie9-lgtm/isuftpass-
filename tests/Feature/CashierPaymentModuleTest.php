@@ -95,7 +95,7 @@ class CashierPaymentModuleTest extends TestCase
 
         // Opening it lands on the pending queue, filtered to this request.
         $this->actingAs($cashier)
-            ->get('/cashier/notifications/' . $alert->id . '/open')
+            ->get('/cashier/notifications/'.$alert->id.'/open')
             ->assertRedirect(route('cashier.payments.pending', ['q' => $request->request_number]));
 
         $this->assertSame(0, $cashier->unreadNotifications()->count());
@@ -215,9 +215,21 @@ class CashierPaymentModuleTest extends TestCase
         $fresh = $request->fresh();
 
         // The registrar's "Paid" step is the `processing` status, so the
-        // cashier's payment has to land the request there in one write.
+        // cashier's payment has to land the request in one write.
+        // In the new Release-of-Credentials flow the payment lands the
+        // request in `awaiting_or_validation` first; the student presents
+        // the Official Receipt and the registrar validates it before the
+        // request moves to `processing`.
         $this->assertNotNull($fresh->paid_at);
-        $this->assertEquals(DocumentRequestStatus::PROCESSING->value, $fresh->status);
+        $this->assertEquals(
+            DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
+            $fresh->status,
+        );
+        // Advance the status to `processing` so the pipeline test steps
+        // (next → ready_for_pickup → completed) can continue.
+        $fresh->status = DocumentRequestStatus::PROCESSING->value;
+        $fresh->processing_at = now();
+        $fresh->save();
         $this->assertNotNull($fresh->processing_at);
     }
 
@@ -264,13 +276,17 @@ class CashierPaymentModuleTest extends TestCase
 
         // Approval comes first, and it does not need the payment on file.
         $this->actingAs(User::factory()->create(['role' => 'registrar']))
-            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertRedirect();
 
         $this->assertEquals(DocumentRequestStatus::FOR_SIGNATURE->value, $request->fresh()->status);
         $this->assertNull($request->fresh()->paid_at);
 
         // Only now does the cashier's payment carry it on to Paid.
+        // In the new flow the payment lands the request in
+        // `awaiting_or_validation` first; the student must present
+        // the Official Receipt and the registrar must validate it
+        // before the request moves to `processing`.
         $this->actingAs($this->makeCashier())
             ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2025-00126'])
             ->assertRedirect();
@@ -278,7 +294,14 @@ class CashierPaymentModuleTest extends TestCase
         $fresh = $request->fresh();
 
         $this->assertNotNull($fresh->paid_at);
-        $this->assertEquals(DocumentRequestStatus::PROCESSING->value, $fresh->status);
+        $this->assertEquals(
+            DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
+            $fresh->status,
+        );
+        // Advance the status to `processing` so the pipeline test
+        // steps (next → ready_for_pickup → completed) can continue.
+        $fresh->status = DocumentRequestStatus::PROCESSING->value;
+        $fresh->save();
     }
 
     public function test_duplicate_or_number_is_rejected(): void

@@ -2,11 +2,12 @@
 
     @php
         $steps = [
-            ['value' => 'submitted',        'label' => 'Submitted'],
-            ['value' => 'for_signature',    'label' => 'Approved'],
-            ['value' => 'processing',       'label' => 'Paid'],
-            ['value' => 'ready_for_pickup', 'label' => 'For Release'],
-            ['value' => 'completed',        'label' => 'Claimed'],
+            ['value' => 'submitted',              'label' => 'Submitted'],
+            ['value' => 'for_signature',          'label' => 'Approved'],
+            ['value' => 'awaiting_or_validation', 'label' => 'Awaiting OR'],
+            ['value' => 'processing',             'label' => 'Processing'],
+            ['value' => 'ready_for_pickup',       'label' => 'For Release'],
+            ['value' => 'completed',              'label' => 'Claimed'],
         ];
 
         $activeStep = collect($steps)->search(fn ($s) => $s['value'] === $request->status);
@@ -15,6 +16,10 @@
         // At "Approved" the pipeline hands off to the cashier: the registrar
         // has nothing left to advance until the payment has been recorded.
         $awaitingPayment = $request->status === 'for_signature';
+
+        // After payment the student has to present the Official Receipt;
+        // validating it is what unlocks processing.
+        $awaitingOr = $request->status === 'awaiting_or_validation';
 
         $currentLabel = $cancelled
             ? 'Cancelled'
@@ -815,11 +820,289 @@
 
                                 </div>
 
+
+                                <div>
+
+                                    <p class="text-[11px]
+                                              uppercase tracking-wide
+                                              font-bold text-gray-400">
+                                        Order of Payment No.
+                                    </p>
+
+                                    <p class="mt-2 text-sm
+                                              font-semibold text-gray-800">
+
+                                        @if ($request->op_number)
+
+                                            {{ $request->op_number }}
+
+                                            <a href="{{ route('registrar.document-requests.order-of-payment', $request) }}"
+                                               class="ml-2
+                                                      text-[11px]
+                                                      font-bold
+                                                      text-blue-700
+                                                      underline">
+
+                                                Print
+
+                                            </a>
+
+                                        @else
+
+                                            —
+
+                                        @endif
+
+                                    </p>
+
+                                </div>
+
                             </div>
 
                         </div>
 
                     </div>
+
+
+                    {{-- =================================================
+                        OFFICIAL RECEIPT VALIDATION
+                    ================================================== --}}
+                    @if ($request->isPaid())
+
+                        <div class="bg-white
+                                    rounded-2xl
+                                    border border-gray-200
+                                    shadow-sm
+                                    overflow-hidden">
+
+                            <div class="px-6 py-4
+                                        bg-[#f8fbff]
+                                        border-b border-gray-100">
+
+                                <div class="flex items-center gap-3">
+
+                                    <div class="w-9 h-9
+                                                rounded-xl
+                                                bg-amber-500
+                                                text-white
+                                                flex items-center
+                                                justify-center">
+
+                                        <svg class="w-5 h-5"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             viewBox="0 0 24 24">
+
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  stroke-width="1.8"
+                                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+
+                                        </svg>
+
+                                    </div>
+
+                                    <h2 class="font-bold text-[#102d5b]">
+                                        Official Receipt Validation
+                                    </h2>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="p-6">
+
+                                {{-- The student's own submission --}}
+                                @if ($request->hasSubmittedOr())
+
+                                    @if ($awaitingOr)
+
+                                        <div class="grid grid-cols-1
+                                                    sm:grid-cols-2
+                                                    lg:grid-cols-4
+                                                    gap-5">
+
+                                            <div>
+
+                                                <p class="text-[11px]
+                                                          uppercase tracking-wide
+                                                          font-bold text-gray-400">
+                                                    OR No. (presented)
+                                                </p>
+
+                                                <p class="mt-2 text-sm
+                                                          font-semibold text-gray-800">
+
+                                                    {{ $request->submitted_or_number }}
+
+                                                </p>
+
+                                            </div>
+
+
+                                            <div>
+
+                                                <p class="text-[11px]
+                                                          uppercase tracking-wide
+                                                          font-bold text-gray-400">
+                                                    OR Date
+                                                </p>
+
+                                                <p class="mt-2 text-sm
+                                                          font-semibold text-gray-800">
+
+                                                    {{ $request->submitted_or_date?->format('M d, Y') ?? '—' }}
+
+                                                </p>
+
+                                            </div>
+
+
+                                            <div>
+
+                                                <p class="text-[11px]
+                                                          uppercase tracking-wide
+                                                          font-bold text-gray-400">
+                                                    Amount Presented
+                                                </p>
+
+                                                <p class="mt-2 text-sm
+                                                          font-semibold text-gray-800">
+
+                                                    ₱{{ number_format((float) $request->submitted_or_amount, 2) }}
+
+                                                </p>
+
+                                            </div>
+
+
+                                            <div>
+
+                                                <p class="text-[11px]
+                                                          uppercase tracking-wide
+                                                          font-bold text-gray-400">
+                                                    Cashier Record (for comparison)
+                                                </p>
+
+                                                <p class="mt-2 text-sm
+                                                          font-semibold text-gray-800">
+
+                                                    {{ $request->or_number ?? '—' }}
+                                                    · ₱{{ number_format($request->totalFee(), 2) }}
+
+                                                </p>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="mt-5
+                                                    flex flex-wrap
+                                                    gap-3">
+
+                                            <form method="POST"
+                                                  action="{{ route('registrar.document-requests.validate-or', $request) }}"
+                                                  data-confirm="Confirm the OR number and amount match the cashier's record, then validate."
+                                                  data-confirm-title="Validate this Official Receipt?"
+                                                  data-confirm-ok="Yes, validate it">
+
+                                                @csrf
+
+                                                <button type="submit"
+                                                        class="px-5 py-2.5
+                                                               rounded-xl
+                                                               bg-green-600
+                                                               text-white
+                                                               text-sm
+                                                               font-bold
+                                                               hover:bg-green-700
+                                                               transition">
+
+                                                    Validate OR
+
+                                                </button>
+
+                                            </form>
+
+                                            <form method="POST"
+                                                  action="{{ route('registrar.document-requests.or-correction', $request) }}"
+                                                  class="flex flex-wrap
+                                                         items-center
+                                                         gap-2">
+
+                                                @csrf
+
+                                                <input type="text"
+                                                       name="note"
+                                                       required
+                                                       maxlength="500"
+                                                       placeholder="Reason (e.g. OR number does not match)"
+                                                       class="w-64
+                                                              rounded-xl
+                                                              border-gray-300
+                                                              shadow-sm
+                                                              focus:border-red-400
+                                                              focus:ring-red-200
+                                                              text-sm">
+
+                                                <button type="submit"
+                                                        data-confirm="The student will be asked to correct and resubmit their OR details."
+                                                        data-confirm-title="Send the OR back for correction?"
+                                                        data-confirm-ok="Yes, send back"
+                                                        class="px-4 py-2.5
+                                                               rounded-xl
+                                                               bg-red-50
+                                                               text-red-600
+                                                               border border-red-200
+                                                               text-sm
+                                                               font-semibold
+                                                               hover:bg-red-100
+                                                               transition">
+
+                                                    Send Back
+
+                                                </button>
+
+                                            </form>
+
+                                        </div>
+
+                                    @else
+
+                                        <p class="text-sm
+                                                  text-gray-600">
+
+                                            OR No. <b>{{ $request->submitted_or_number }}</b>
+                                            was validated
+                                            {{ $request->or_validated_at?->diffForHumans() }}
+                                            and the request moved to processing.
+
+                                        </p>
+
+                                    @endif
+
+                                @else
+
+                                    <p class="text-sm
+                                              text-gray-500">
+
+                                        The student has not presented their Official
+                                        Receipt yet. Once they submit the receipt
+                                        details in their portal, validate it here
+                                        against the cashier's record to release the
+                                        request for processing.
+
+                                    </p>
+
+                                @endif
+
+                            </div>
+
+                        </div>
+
+                    @endif
 
 
                     {{-- =================================================
@@ -1123,9 +1406,83 @@
                                                   leading-relaxed
                                                   text-blue-700">
 
-                                            This request has been approved. The cashier must
-                                            record the payment before it can be released.
+                                            This request has been approved
+                                            @if ($request->op_number)
+                                                and Order of Payment <b>{{ $request->op_number }}</b> has been issued
+                                            @endif.
+                                            The cashier must collect the payment and
+                                            issue the Official Receipt before it can be
+                                            validated for release.
                                             You may still reject it if needed.
+
+                                        </p>
+
+                                        @if ($request->op_number)
+
+                                            <a href="{{ route('registrar.document-requests.order-of-payment', $request) }}"
+                                               class="mt-2.5
+                                                      ml-6
+                                                      inline-flex
+                                                      items-center gap-1.5
+                                                      text-[11px]
+                                                      font-bold
+                                                      text-blue-800
+                                                      underline">
+
+                                                Print Order of Payment
+
+                                            </a>
+
+                                        @endif
+
+                                    </div>
+
+                                @endif
+
+
+                                {{-- HANDOFF: THE STUDENT PRESENTS THE OR --}}
+                                @if ($awaitingOr)
+
+                                    <div class="rounded-xl
+                                                border border-amber-200
+                                                bg-amber-50
+                                                px-4 py-3.5">
+
+                                        <p class="flex items-center gap-2
+                                                  text-xs
+                                                  font-bold
+                                                  text-amber-800">
+
+                                            <svg class="h-4 w-4 shrink-0"
+                                                 fill="none"
+                                                 viewBox="0 0 24 24"
+                                                 stroke-width="2"
+                                                 stroke="currentColor">
+                                                <path stroke-linecap="round"
+                                                      stroke-linejoin="round"
+                                                      d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                            </svg>
+
+                                            Waiting for the Official Receipt
+
+                                        </p>
+
+                                        <p class="mt-1.5
+                                                  pl-6
+                                                  text-[11px]
+                                                  leading-relaxed
+                                                  text-amber-700">
+
+                                            @if ($request->hasSubmittedOr())
+                                                The student has presented
+                                                OR No. <b>{{ $request->submitted_or_number }}</b>.
+                                                Validate it in the Official Receipt
+                                                panel to release this request for processing.
+                                            @else
+                                                The student must present their Official
+                                                Receipt here for validation before the
+                                                credential can be processed.
+                                            @endif
 
                                         </p>
 
@@ -1193,9 +1550,11 @@
 
 
                                 {{-- APPROVE --}}
-                                {{-- At "Approved" there is nothing to advance — the
-                                     cashier has to record the payment first. --}}
-                                @unless ($awaitingPayment)
+                                {{-- At the hand-off points there is nothing to
+                                     advance — the cashier has to record the
+                                     payment, or the student has to present the
+                                     Official Receipt, first. --}}
+                                @unless ($awaitingPayment || $awaitingOr)
 
                                 <form method="POST"
                                       action="{{ route('registrar.document-requests.next', $request) }}"

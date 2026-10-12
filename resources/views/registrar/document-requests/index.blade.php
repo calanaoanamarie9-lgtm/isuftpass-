@@ -168,7 +168,9 @@
                 </div>
 
 
-                {{-- Paid --}}
+                {{-- Paid: everything the cashier has collected — waiting on
+                     the student to present the OR (awaiting_or_validation)
+                     or already validated and moving through processing. --}}
                 <div class="bg-white rounded-2xl border border-slate-200
                             shadow-sm p-5">
 
@@ -182,7 +184,7 @@
                             </p>
 
                             <p class="text-2xl font-extrabold text-cyan-600 mt-2">
-                                {{ $requests->where('status', 'processing')->count() }}
+                                {{ $requests->whereIn('status', ['awaiting_or_validation', 'processing'])->count() }}
                             </p>
 
                         </div>
@@ -565,6 +567,9 @@
                                         @if ($request->status === 'submitted')
                                             bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200
 
+                                        @elseif ($request->status === 'awaiting_or_validation')
+                                            bg-amber-50 text-amber-700 ring-1 ring-amber-200
+
                                         @elseif ($request->status === 'processing')
                                             bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200
 
@@ -629,6 +634,8 @@
 
                             @if ($request->status === 'submitted')
                                 bg-yellow-400
+                            @elseif ($request->status === 'awaiting_or_validation')
+                                bg-amber-500
                             @elseif ($request->status === 'processing')
                                 bg-cyan-500
                             @elseif ($request->status === 'for_signature')

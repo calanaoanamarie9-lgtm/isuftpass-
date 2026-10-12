@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Document;
+use App\Models\DocumentRequest;
 use App\Models\User;
 use App\Notifications\RegistrarRequestAlert;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,7 +24,7 @@ class RegistrarNotificationsTest extends TestCase
         return User::factory()->create(['role' => 'registrar', 'name' => 'Regina Reyes']);
     }
 
-    private function makeStudentRequest(?string $status = 'submitted'): \App\Models\DocumentRequest
+    private function makeStudentRequest(?string $status = 'submitted'): DocumentRequest
     {
         $student = User::factory()->create(['role' => 'student', 'name' => 'Delacruz, Juan Miguel']);
         $document = Document::create(['name' => 'Transcript of Records', 'description' => 'TOR', 'fee' => 100.00]);
@@ -54,7 +55,7 @@ class RegistrarNotificationsTest extends TestCase
         $registrar->notify(new RegistrarRequestAlert(
             $request,
             'New document request',
-            $request->student_name . ' submitted a request for ' . $request->documentsSummary() . '. It is waiting in your queue.',
+            $request->student_name.' submitted a request for '.$request->documentsSummary().'. It is waiting in your queue.',
         ));
 
         $this->actingAs($registrar)
@@ -83,10 +84,12 @@ class RegistrarNotificationsTest extends TestCase
             ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2026-00777'])
             ->assertRedirect();
 
-        $this->assertSame('processing', $request->fresh()->status);
+        // Payment parks the request at the OR gate: the student still has
+        // to present the receipt before credential processing begins.
+        $this->assertSame('awaiting_or_validation', $request->fresh()->status);
 
         // The registrar has one unread alert, and it carries the payment
-        // details they need before releasing the document.
+        // details they need while waiting for the student's Official Receipt.
         $this->assertSame(1, $registrar->unreadNotifications()->count());
 
         $alert = $registrar->notifications()->first();
@@ -104,7 +107,7 @@ class RegistrarNotificationsTest extends TestCase
 
         // Clicking it clears the badge and lands on the release buttons.
         $this->actingAs($registrar)
-            ->get('/registrar/notifications/' . $alert->id . '/open')
+            ->get('/registrar/notifications/'.$alert->id.'/open')
             ->assertRedirect(route('registrar.document-requests.show', $request));
 
         $this->assertSame(0, $registrar->unreadNotifications()->count());
@@ -120,7 +123,7 @@ class RegistrarNotificationsTest extends TestCase
         $notification = $registrar->notifications()->first();
 
         $this->actingAs($registrar)
-            ->get('/registrar/notifications/' . $notification->id . '/open')
+            ->get('/registrar/notifications/'.$notification->id.'/open')
             ->assertRedirect(route('registrar.document-requests.show', $request));
 
         // Opening it counts as reading it — the badge has to clear.
@@ -138,7 +141,7 @@ class RegistrarNotificationsTest extends TestCase
         $notification = $other->notifications()->first();
 
         $this->actingAs($registrar)
-            ->get('/registrar/notifications/' . $notification->id . '/open')
+            ->get('/registrar/notifications/'.$notification->id.'/open')
             ->assertForbidden();
     }
 

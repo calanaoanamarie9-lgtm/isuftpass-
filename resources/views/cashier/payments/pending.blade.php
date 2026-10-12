@@ -4,7 +4,7 @@
 
             <div class="mb-8">
                 <h1 class="text-2xl font-extrabold text-gray-900">Pending Payments</h1>
-                <p class="text-sm text-gray-500 mt-1">Students who requested documents and are waiting for payment.</p>
+                <p class="text-sm text-gray-500 mt-1">Students who requested documents and are waiting for payment. Record a payment to print the Official Receipt — the student then presents it to the Registrar for validation.</p>
             </div>
 
             @if (session('status'))

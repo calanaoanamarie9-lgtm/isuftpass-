@@ -5,6 +5,7 @@ namespace App\Enums;
 enum DocumentRequestStatus: string
 {
     case SUBMITTED = 'submitted';
+    case AWAITING_OR_VALIDATION = 'awaiting_or_validation';
     case PROCESSING = 'processing';
     case FOR_SIGNATURE = 'for_signature';
     case READY_FOR_PICKUP = 'ready_for_pickup';
@@ -18,7 +19,8 @@ enum DocumentRequestStatus: string
     {
         return match ($this) {
             self::SUBMITTED => 'Submitted',
-            self::PROCESSING => 'Paid',
+            self::AWAITING_OR_VALIDATION => 'Awaiting OR Validation',
+            self::PROCESSING => 'Processing',
             self::FOR_SIGNATURE => 'Approved',
             self::READY_FOR_PICKUP => 'Ready for Pick-up',
             self::COMPLETED => 'Completed',
@@ -29,14 +31,18 @@ enum DocumentRequestStatus: string
     /**
      * Ordered tracking pipeline steps (excluding terminal states).
      *
-     * The registrar approves first; only then can the cashier record the
-     * payment, and the document cannot be released until that payment is in.
+     * Follows the Functional Flow Chart in the Delivery of Service —
+     * Release of Credentials: the registrar verifies the request and
+     * issues an Order of Payment, the cashier collects and issues an
+     * Official Receipt, the student presents that receipt back for
+     * validation, and only then does credential processing begin.
      */
     public static function pipeline(): array
     {
         return [
             self::SUBMITTED,
             self::FOR_SIGNATURE,
+            self::AWAITING_OR_VALIDATION,
             self::PROCESSING,
             self::READY_FOR_PICKUP,
             self::COMPLETED,

@@ -2,17 +2,24 @@
     $steps = match ($request->status) {
         'submitted' => [
             'Wait for the Registrar\'s Office to review and approve your request.',
-            'Once approved, proceed to the Cashier to settle your payment.',
+            'Once approved, an Order of Payment is issued — settle it at the Cashier\'s Office.',
             'Bring your Request Number (' . $request->request_number . ') together with your official receipt when claiming.',
             'Claim your document once the status becomes Ready for Pick-up.',
         ],
         'for_signature' => [
-            'Your request has been approved by the Registrar\'s Office.',
-            'Proceed to the Cashier to settle your payment for the requested document(s).',
-            'Bring your Request Number (' . $request->request_number . ') together with your official receipt when claiming.',
+            'Your request has been verified and approved by the Registrar\'s Office' . ($request->op_number ? ' (Order of Payment ' . $request->op_number . ' issued).' : '.'),
+            'Print the Order of Payment and settle your payment at the Cashier\'s Office.',
+            'After paying, submit your Official Receipt details here for validation by the Registrar\'s Office.',
+        ],
+        'awaiting_or_validation' => [
+            'Your payment has been recorded' . ($request->or_number ? ' and Official Receipt No. ' . $request->or_number . ' was issued' : '') . '.',
+            $request->hasSubmittedOr()
+                ? 'Your Official Receipt details have been submitted and are awaiting validation by the Registrar\'s Office.'
+                : 'Submit your Official Receipt details on this page so the Registrar\'s Office can validate your payment.',
+            'Your credential is prepared for release once the receipt is validated.',
         ],
         'processing' => [
-            'Your payment has been recorded by the Cashier.',
+            'Your Official Receipt has been validated by the Registrar\'s Office.',
             'The Registrar\'s Office is now preparing your document(s) for release.',
             'You will receive a notification once your document is ready for pick-up.',
         ],

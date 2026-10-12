@@ -10,6 +10,8 @@ use App\Support\AuditLogger;
 use App\Support\RegistrarNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class PaymentController extends Controller
@@ -66,11 +68,12 @@ class PaymentController extends Controller
             'or_number' => strtoupper($validated['or_number']),
 
             // The registrar approved first and the request is parked at
-            // "Approved": recording the payment is exactly what moves it on
-            // to "Paid". A cancelled request is never resurrected by a late
-            // payment — those never reach this queue.
-            'status' => DocumentRequestStatus::PROCESSING->value,
-            'processing_at' => $documentRequest->processing_at ?? now(),
+            // "Approved": recording the payment — and issuing the Official
+            // Receipt — is exactly what hands it to OR validation. The
+            // student presents that receipt back to the Registrar before
+            // credential processing begins. A cancelled request is never
+            // resurrected by a late payment — those never reach this queue.
+            'status' => DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
         ];
 
         $documentRequest->update($attributes);
@@ -78,25 +81,43 @@ class PaymentController extends Controller
         $statusLabel = DocumentRequestStatus::tryFrom($documentRequest->status)?->label()
             ?? ucfirst(str_replace('_', ' ', $documentRequest->status));
 
-        AuditLogger::log('payment.recorded', 'Recorded payment for request ' . $documentRequest->request_number . ' (OR No. ' . $documentRequest->or_number . ', ₱' . number_format($documentRequest->totalFee(), 2) . '). Status is now ' . $statusLabel . '.');
+        AuditLogger::log('payment.recorded', 'Recorded payment for request '.$documentRequest->request_number.' (OR No. '.$documentRequest->or_number.', ₱'.number_format($documentRequest->totalFee(), 2).'). Status is now '.$statusLabel.'.');
 
         $documentRequest->user->notify(new DocumentRequestStatusNotification(
             $documentRequest,
             'Payment recorded',
-            'Your payment has been recorded by the Cashier Office. You may claim your document when the status is Ready for Pick-up.',
+            'Your payment has been recorded and Official Receipt No. '.$documentRequest->or_number.' has been issued. Submit the receipt details on your request page so the Registrar\'s Office can validate it.',
         ));
 
         // The registrar cannot see the request move until someone tells them.
         // Approval already happened, so this is the hand-off back to them:
-        // payment landed, the request now reads Paid, and the release step
-        // in their queue is unlocked.
+        // payment landed, and the Official Receipt now waits on the student
+        // to present it for validation.
         RegistrarNotifier::alert(
             $documentRequest,
-            'Payment recorded — ready to release',
-            'Payment of ₱' . number_format($documentRequest->totalFee(), 2) . ' (OR No. ' . $documentRequest->or_number . ') has been recorded. The request is now Paid and waiting in your queue to be released.'
+            'Payment recorded — OR for validation',
+            'Payment of ₱'.number_format($documentRequest->totalFee(), 2).' (OR No. '.$documentRequest->or_number.') has been recorded. Waiting for the student to present the Official Receipt for validation.'
         );
 
-        return back()->with('status', 'Payment recorded for ' . $documentRequest->request_number . '. The registrar has been notified.');
+        return redirect()
+            ->route('cashier.payments.receipt', $documentRequest)
+            ->with('status', 'Payment recorded for '.$documentRequest->request_number.'. Print the Official Receipt for the student; they present it to the Registrar for validation.');
+    }
+
+    /**
+     * The Official Receipt issued for a recorded payment — printed and
+     * handed to the student, who presents it to the Registrar for
+     * validation. Reachable from the moment of recording and reprinted
+     * later from the payment history.
+     */
+    public function receipt(DocumentRequest $documentRequest): View
+    {
+        abort_unless($documentRequest->isPaid(), 404);
+
+        return view('cashier.payments.receipt', [
+            'request' => $documentRequest->load(['user', 'documents']),
+            'cashier' => Auth::user(),
+        ]);
     }
 
     public function history(Request $request): View
@@ -143,13 +164,13 @@ class PaymentController extends Controller
         if ($period === 'custom' && ($from || $to)) {
             if ($from) {
                 try {
-                    $query->where('paid_at', '>=', \Illuminate\Support\Carbon::parse($from)->startOfDay());
+                    $query->where('paid_at', '>=', Carbon::parse($from)->startOfDay());
                 } catch (\Throwable) {
                 }
             }
             if ($to) {
                 try {
-                    $query->where('paid_at', '<=', \Illuminate\Support\Carbon::parse($to)->endOfDay());
+                    $query->where('paid_at', '<=', Carbon::parse($to)->endOfDay());
                 } catch (\Throwable) {
                 }
             }

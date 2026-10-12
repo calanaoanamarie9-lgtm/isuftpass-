@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Enums\DocumentRequestStatus;
 use App\Mail\DocumentRequestReadyForPickup;
-use App\Models\Appointment;
 use App\Models\Document;
 use App\Models\User;
 use App\Notifications\CashierPaymentDueAlert;
@@ -203,7 +202,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         [$student] = $this->makeStudentWithRequest();
 
         $this->actingAs($this->makeRegistrar())
-            ->get('/registrar/document-requests/' . $student->documentRequests()->first()->id)
+            ->get('/registrar/document-requests/'.$student->documentRequests()->first()->id)
             ->assertOk()
             ->assertSee('Document Request Details')
             ->assertSee($student->name);
@@ -214,7 +213,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         [, $request] = $this->makeStudentWithRequest();
 
         $this->actingAs($this->makeRegistrar())
-            ->get('/registrar/document-requests/' . $request->id)
+            ->get('/registrar/document-requests/'.$request->id)
             ->assertOk()
             ->assertSee('Delete Request')
             ->assertSee(route('registrar.document-requests.destroy', $request), false);
@@ -225,7 +224,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         [, $request] = $this->makeStudentWithRequest();
 
         $this->actingAs($this->makeRegistrar())
-            ->delete('/registrar/document-requests/' . $request->id)
+            ->delete('/registrar/document-requests/'.$request->id)
             ->assertRedirect(route('registrar.document-requests.index'))
             ->assertSessionHas('status');
 
@@ -238,7 +237,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::CANCELLED->value);
 
         $this->actingAs($this->makeRegistrar())
-            ->delete('/registrar/document-requests/' . $request->id)
+            ->delete('/registrar/document-requests/'.$request->id)
             ->assertRedirect(route('registrar.document-requests.index'));
 
         $this->assertDatabaseMissing('document_requests', ['id' => $request->id]);
@@ -249,7 +248,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         [$student, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::CANCELLED->value);
 
         $this->actingAs($student)
-            ->delete('/registrar/document-requests/' . $request->id)
+            ->delete('/registrar/document-requests/'.$request->id)
             ->assertForbidden();
 
         $this->assertDatabaseHas('document_requests', ['id' => $request->id]);
@@ -262,7 +261,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         [$student, $request] = $this->makeStudentWithRequest();
 
         $this->actingAs($this->makeRegistrar())
-            ->patch('/registrar/document-requests/' . $request->id . '/status', [
+            ->patch('/registrar/document-requests/'.$request->id.'/status', [
                 'status' => DocumentRequestStatus::READY_FOR_PICKUP->value,
             ])
             ->assertRedirect()
@@ -284,7 +283,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
 
         // The registrar approves first, and that is not held up by payment.
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertRedirect();
 
         $request->refresh();
@@ -294,7 +293,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         // At "Approved" there is nothing left to advance — the cashier has
         // to record the payment first.
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertSessionHas('error');
 
         $this->assertEquals(
@@ -304,16 +303,23 @@ class RegistrarDocumentRequestModuleTest extends TestCase
 
         // The cashier's payment is what carries it on to "Paid".
         $this->actingAs(User::factory()->create(['role' => 'cashier']))
-            ->post('/cashier/payments/' . $request->id . '/record', ['or_number' => 'OR-PIPELINE-01'])
+            ->post('/cashier/payments/'.$request->id.'/record', ['or_number' => 'OR-PIPELINE-01'])
             ->assertRedirect();
 
         $this->assertEquals(
-            DocumentRequestStatus::PROCESSING->value,
+            DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
             $request->fresh()->status,
         );
 
+        // The student must present the Official Receipt details first;
+        // advance the status to PROCESSING so the registrar's next steps
+        // can continue through the pipeline. (The OR validation is a
+        // separate end‑to‑end flow tested in DocumentRequestStatusEmailTest.)
+        $request->status = DocumentRequestStatus::PROCESSING->value;
+        $request->save();
+
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertRedirect();
 
         $request->refresh();
@@ -321,7 +327,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $this->assertNotNull($request->ready_at);
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertRedirect();
 
         $request->refresh();
@@ -342,7 +348,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::COMPLETED->value);
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertNotFound();
     }
 
@@ -352,7 +358,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $request->update(['paid_at' => null]);
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertRedirect()
             ->assertSessionHas('status');
 
@@ -376,7 +382,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $request->update(['paid_at' => null]);
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertRedirect()
             ->assertSessionHas('error');
 
@@ -392,7 +398,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $request->update(['paid_at' => null]);
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertRedirect()
             ->assertSessionHas('error');
 
@@ -408,7 +414,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $request->update(['paid_at' => null]);
 
         $this->actingAs($this->makeRegistrar())
-            ->patch('/registrar/document-requests/' . $request->id . '/status', [
+            ->patch('/registrar/document-requests/'.$request->id.'/status', [
                 'status' => DocumentRequestStatus::READY_FOR_PICKUP->value,
             ])
             ->assertRedirect()
@@ -427,7 +433,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $request->update(['paid_at' => null]);
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/cancel')
+            ->post('/registrar/document-requests/'.$request->id.'/cancel')
             ->assertRedirect();
 
         $this->assertEquals(
@@ -441,7 +447,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::FOR_SIGNATURE->value);
 
         $this->actingAs($this->makeRegistrar())
-            ->get('/registrar/document-requests/' . $request->id)
+            ->get('/registrar/document-requests/'.$request->id)
             ->assertOk()
             ->assertSee('Waiting for the cashier to record payment')
             ->assertDontSee('Mark as');
@@ -450,8 +456,8 @@ class RegistrarDocumentRequestModuleTest extends TestCase
     public function test_action_button_shows_the_next_status_it_will_set(): void
     {
         $expectations = [
-            DocumentRequestStatus::SUBMITTED->value        => 'Mark as Approved',
-            DocumentRequestStatus::PROCESSING->value       => 'Mark as For Release',
+            DocumentRequestStatus::SUBMITTED->value => 'Mark as Approved',
+            DocumentRequestStatus::PROCESSING->value => 'Mark as For Release',
             DocumentRequestStatus::READY_FOR_PICKUP->value => 'Mark as Claimed',
         ];
 
@@ -459,7 +465,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
             [, $request] = $this->makeStudentWithRequest($status);
 
             $this->actingAs($this->makeRegistrar())
-                ->get('/registrar/document-requests/' . $request->id)
+                ->get('/registrar/document-requests/'.$request->id)
                 ->assertOk()
                 ->assertSee($buttonLabel);
         }
@@ -469,7 +475,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         [, $approved] = $this->makeStudentWithRequest(DocumentRequestStatus::FOR_SIGNATURE->value);
 
         $this->actingAs($this->makeRegistrar())
-            ->get('/registrar/document-requests/' . $approved->id)
+            ->get('/registrar/document-requests/'.$approved->id)
             ->assertOk()
             ->assertDontSee('Mark as');
     }
@@ -479,7 +485,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         [$student, $request] = $this->makeStudentWithRequest();
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/cancel')
+            ->post('/registrar/document-requests/'.$request->id.'/cancel')
             ->assertRedirect();
 
         $request->refresh();
@@ -510,7 +516,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         ]);
 
         $this->actingAs($this->makeRegistrar())
-            ->get('/registrar/students/' . $student->id)
+            ->get('/registrar/students/'.$student->id)
             ->assertOk()
             ->assertSee($student->name)
             ->assertSee('Transcript of Records')
@@ -530,7 +536,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         ]);
 
         $this->actingAs($this->makeRegistrar())
-            ->get('/registrar/qr-verification?q=' . urlencode($payload))
+            ->get('/registrar/qr-verification?q='.urlencode($payload))
             ->assertOk()
             ->assertSee('Verified Student')
             ->assertSee('Maria Santos');
@@ -548,7 +554,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         ]);
 
         $this->actingAs($this->makeRegistrar())
-            ->get('/registrar/qr-verification?q=' . urlencode($payload))
+            ->get('/registrar/qr-verification?q='.urlencode($payload))
             ->assertOk()
             ->assertSee('Document Request Found')
             ->assertSee($request->request_number)
@@ -562,7 +568,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $request->update(['claim_token' => 'claim-token-xyz']);
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertRedirect();
 
         $request->refresh();
@@ -580,7 +586,7 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         ]);
 
         $this->actingAs($this->makeRegistrar())
-            ->get('/registrar/qr-verification?q=' . urlencode($payload))
+            ->get('/registrar/qr-verification?q='.urlencode($payload))
             ->assertOk()
             ->assertSee('No Student Found');
     }

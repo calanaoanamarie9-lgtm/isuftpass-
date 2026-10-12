@@ -272,6 +272,40 @@
 
                                         </span>
 
+                                    @elseif ($request->status === 'awaiting_or_validation')
+
+                                        <span class="inline-flex items-center gap-1.5
+                                                     px-3 py-1.5
+                                                     rounded-full
+                                                     text-xs font-bold
+                                                     bg-amber-50
+                                                     text-amber-700
+                                                     border border-amber-200">
+
+                                            <span class="w-1.5 h-1.5 rounded-full
+                                                         bg-amber-500"></span>
+
+                                            Awaiting OR Validation
+
+                                        </span>
+
+                                    @elseif ($request->status === 'processing')
+
+                                        <span class="inline-flex items-center gap-1.5
+                                                     px-3 py-1.5
+                                                     rounded-full
+                                                     text-xs font-bold
+                                                     bg-blue-50
+                                                     text-blue-700
+                                                     border border-blue-200">
+
+                                            <span class="w-1.5 h-1.5 rounded-full
+                                                         bg-blue-500"></span>
+
+                                            Processing
+
+                                        </span>
+
                                     @elseif ($request->status === 'cancelled')
 
                                         <span class="inline-flex items-center gap-1.5

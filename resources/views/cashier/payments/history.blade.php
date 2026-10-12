@@ -108,7 +108,20 @@
                             <p class="text-sm text-gray-500 mt-0.5 truncate">{{ $request->documentsSummary() }}</p>
                             <p class="text-xs text-gray-400 mt-0.5">Paid {{ $request->paid_at->format('M d, Y h:i A') }}</p>
                         </div>
-                        <span class="font-bold text-green-700 self-start sm:self-center">₱{{ number_format($request->totalFee(), 2) }}</span>
+                        <div class="flex items-center gap-3 self-start sm:self-center">
+                            <span class="font-bold text-green-700">₱{{ number_format($request->totalFee(), 2) }}</span>
+                            @if ($request->or_number)
+                                {{-- Reprint the Official Receipt issued for this payment. --}}
+                                <a href="{{ route('cashier.payments.receipt', $request) }}"
+                                   target="_blank" rel="noopener"
+                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 text-xs font-semibold hover:bg-gray-50 transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                    </svg>
+                                    Print OR
+                                </a>
+                            @endif
+                        </div>
                     </div>
                 @empty
                     <div class="p-12 text-center">
