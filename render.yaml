@@ -81,6 +81,15 @@ services:
         value: isufstpass@gmail.com
       - key: MAIL_FROM_NAME
         value: ISUFSTPASS
+      # Store profile photos in Supabase Storage, not the container's local
+      # disk. Render's free-tier filesystem is ephemeral — anything written to
+      # the default `public` disk is wiped on every deploy/restart, so avatars
+      # uploaded on the live site disappeared and photos seeded from local dev
+      # never existed here at all (the DB is shared, the files are not). Point
+      # the avatar disk at the Supabase bucket below makes uploads persist and
+      # serve from a real URL.
+      - key: AVATAR_DISK
+        value: supabase
       - key: SUPABASE_PROJECT_REF
         value: jcaazdrprcqwiuocirpc
       - key: S3_REGION
