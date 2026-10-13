@@ -214,23 +214,15 @@ class CashierPaymentModuleTest extends TestCase
 
         $fresh = $request->fresh();
 
-        // The registrar's "Paid" step is the `processing` status, so the
-        // cashier's payment has to land the request in one write.
-        // In the new Release-of-Credentials flow the payment lands the
-        // request in `awaiting_or_validation` first; the student presents
-        // the Official Receipt and the registrar validates it before the
-        // request moves to `processing`.
+        // The cashier's payment now moves the request straight to PROCESSING
+        // (no separate OR validation step in the new flow).
         $this->assertNotNull($fresh->paid_at);
         $this->assertEquals(
-            DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
+            DocumentRequestStatus::PROCESSING->value,
             $fresh->status,
         );
-        // Advance the status to `processing` so the pipeline test steps
-        // (next → ready_for_pickup → completed) can continue.
-        $fresh->status = DocumentRequestStatus::PROCESSING->value;
-        $fresh->processing_at = now();
-        $fresh->save();
         $this->assertNotNull($fresh->processing_at);
+        $this->assertNotNull($fresh->or_validated_at);
     }
 
     public function test_cashier_cannot_record_payment_before_the_registrar_approves(): void
@@ -295,13 +287,11 @@ class CashierPaymentModuleTest extends TestCase
 
         $this->assertNotNull($fresh->paid_at);
         $this->assertEquals(
-            DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
+            DocumentRequestStatus::PROCESSING->value,
             $fresh->status,
         );
-        // Advance the status to `processing` so the pipeline test
-        // steps (next → ready_for_pickup → completed) can continue.
-        $fresh->status = DocumentRequestStatus::PROCESSING->value;
-        $fresh->save();
+        $this->assertNotNull($fresh->processing_at);
+        $this->assertNotNull($fresh->or_validated_at);
     }
 
     public function test_duplicate_or_number_is_rejected(): void

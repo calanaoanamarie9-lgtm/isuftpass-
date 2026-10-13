@@ -65,7 +65,12 @@ class ReleaseOfCredentialsFlowTest extends TestCase
         ]);
         $request->documents()->attach($document->id);
 
-        if ($status === DocumentRequestStatus::AWAITING_OR_VALIDATION->value) {
+        if (in_array($status, [
+            DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
+            DocumentRequestStatus::PROCESSING->value,
+            DocumentRequestStatus::READY_FOR_PICKUP->value,
+            DocumentRequestStatus::COMPLETED->value,
+        ], true)) {
             $request->forceFill([
                 'paid_at' => now(),
                 'or_number' => 'OR-2026-00001',
@@ -151,74 +156,19 @@ class ReleaseOfCredentialsFlowTest extends TestCase
             ->assertRedirect(route('cashier.payments.receipt', $request));
 
         $request->refresh();
-        $this->assertSame(DocumentRequestStatus::AWAITING_OR_VALIDATION->value, $request->status);
+        $this->assertSame(DocumentRequestStatus::PROCESSING->value, $request->status);
         $this->assertNotNull($request->paid_at);
         $this->assertSame('OR-2026-777', $request->or_number);
 
-        // The printable receipt, and the reprint from payment history.
+        // The printable receipt.
         $this->actingAs($cashier)
             ->get("/cashier/payments/{$request->id}/receipt")
             ->assertOk()
             ->assertSee('Official Receipt')
             ->assertSee('OR-2026-777');
 
-        $this->actingAs($cashier)
-            ->get(route('cashier.payments.history'))
-            ->assertOk()
-            ->assertSee('Print OR');
-
-        // --- Step 4: the student presents the OR back to the registrar.
-        $this->actingAs($student)
-            ->post(route('student.documents.submit-or', $request), [
-                'submitted_or_number' => 'or-2026-777',
-                'submitted_or_date' => now()->toDateString(),
-                'submitted_or_amount' => 100.00,
-            ])
-            ->assertRedirect(route('student.documents.show', $request));
-
-        $request->refresh();
-        $this->assertNotNull($request->or_submitted_at);
-        $this->assertSame('OR-2026-777', $request->submitted_or_number);
-
-        // The student's page reflects the hand-off.
-        $this->actingAs($student)
-            ->get(route('student.documents.show', $request))
-            ->assertOk()
-            ->assertSee('Submitted — awaiting validation by the Registrar\'s Office', false);
-
-        // The registrar knows a receipt is waiting (separate from the
-        // payment alert that arrived when the cashier recorded it).
-        $alert = $registrar->unreadNotifications()
-            ->where('type', RegistrarRequestAlert::class)
-            ->get()
-            ->first(fn ($n) => str_contains($n->data['title'], 'Official Receipt presented for validation'));
-        $this->assertNotNull($alert);
-
-        // The registrar's page shows the presented receipt and its button.
-        $this->actingAs($registrar)
-            ->get("/registrar/document-requests/{$request->id}")
-            ->assertOk()
-            ->assertSee('Official Receipt Validation')
-            ->assertSee('OR-2026-777')
-            ->assertSee('Validate OR');
-
-        // Advancing by hand is refused — the Validate OR button is the path.
-        $this->actingAs($registrar)
-            ->post("/registrar/document-requests/{$request->id}/next")
-            ->assertSessionHas('error');
-
-        // --- Step 5: validation releases it into credential processing.
-        $this->actingAs($registrar)
-            ->post("/registrar/document-requests/{$request->id}/validate-or")
-            ->assertRedirect()
-            ->assertSessionHas('status');
-
-        $request->refresh();
-        $this->assertSame(DocumentRequestStatus::PROCESSING->value, $request->status);
-        $this->assertNotNull($request->or_validated_at);
-        $this->assertNotNull($request->processing_at);
-
-        // And the registrar can walk it to release.
+        // --- Step 4: registrar continues advancing through the pipeline
+        // (no student OR submission or registrar OR validation needed).
         $this->actingAs($registrar)
             ->post("/registrar/document-requests/{$request->id}/next")
             ->assertRedirect();
@@ -250,27 +200,11 @@ class ReleaseOfCredentialsFlowTest extends TestCase
         );
 
         // Hand-off 2: paid, but the student has not presented the OR yet.
-        $paid = $this->makeRequest($student, DocumentRequestStatus::AWAITING_OR_VALIDATION->value);
+        $paid = $this->makeRequest($student, DocumentRequestStatus::PROCESSING->value);
         $this->actingAs($this->makeRegistrar())
             ->post("/registrar/document-requests/{$paid->id}/next")
-            ->assertSessionHas('error', fn ($message) => str_contains($message, 'not yet presented'));
-
-        // Same gate once the receipt IS in — only the Validate OR button moves it.
-        $paid->forceFill([
-            'or_submitted_at' => now(),
-            'submitted_or_number' => 'OR-2026-1',
-            'submitted_or_date' => now()->toDateString(),
-            'submitted_or_amount' => 100.00,
-        ])->save();
-
-        $this->actingAs($this->makeRegistrar())
-            ->post("/registrar/document-requests/{$paid->id}/next")
-            ->assertSessionHas('error', fn ($message) => str_contains($message, 'Validate OR button'));
-
-        $this->assertSame(
-            DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
-            $paid->fresh()->status,
-        );
+            ->assertRedirect();
+        $this->assertSame(DocumentRequestStatus::READY_FOR_PICKUP->value, $paid->fresh()->status);
     }
 
     /**

@@ -84,12 +84,10 @@ class RegistrarNotificationsTest extends TestCase
             ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2026-00777'])
             ->assertRedirect();
 
-        // Payment parks the request at the OR gate: the student still has
-        // to present the receipt before credential processing begins.
-        $this->assertSame('awaiting_or_validation', $request->fresh()->status);
+        // Payment moves the request straight to processing (no OR gate).
+        $this->assertSame('processing', $request->fresh()->status);
 
-        // The registrar has one unread alert, and it carries the payment
-        // details they need while waiting for the student's Official Receipt.
+        // The registrar has one unread alert with the payment details.
         $this->assertSame(1, $registrar->unreadNotifications()->count());
 
         $alert = $registrar->notifications()->first();

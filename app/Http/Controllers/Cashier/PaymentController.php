@@ -67,13 +67,13 @@ class PaymentController extends Controller
             'paid_at' => now(),
             'or_number' => strtoupper($validated['or_number']),
 
-            // The registrar approved first and the request is parked at
-            // "Approved": recording the payment — and issuing the Official
-            // Receipt — is exactly what hands it to OR validation. The
-            // student presents that receipt back to the Registrar before
-            // credential processing begins. A cancelled request is never
-            // resurrected by a late payment — those never reach this queue.
-            'status' => DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
+            // Cashier records payment → the request moves straight to
+            // PROCESSING. The Official Receipt is authoritative; no
+            // separate student submission or registrar validation step is
+            // required. This matches the "automatic paid → processing" flow.
+            'status' => DocumentRequestStatus::PROCESSING->value,
+            'processing_at' => now(),
+            'or_validated_at' => now(),
         ];
 
         $documentRequest->update($attributes);
@@ -85,18 +85,16 @@ class PaymentController extends Controller
 
         $documentRequest->user->notify(new DocumentRequestStatusNotification(
             $documentRequest,
-            'Payment recorded',
-            'Your payment has been recorded and Official Receipt No. '.$documentRequest->or_number.' has been issued. Submit the receipt details on your request page so the Registrar\'s Office can validate it.',
+            'Payment recorded — processing started',
+            'Your payment has been recorded (OR No. '.$documentRequest->or_number.'). Your credential is now being prepared for release.',
         ));
 
-        // The registrar cannot see the request move until someone tells them.
-        // Approval already happened, so this is the hand-off back to them:
-        // payment landed, and the Official Receipt now waits on the student
-        // to present it for validation.
+        // Notify the registrar that payment was recorded and the request
+        // has moved directly to processing — no OR validation step needed.
         RegistrarNotifier::alert(
             $documentRequest,
-            'Payment recorded — OR for validation',
-            'Payment of ₱'.number_format($documentRequest->totalFee(), 2).' (OR No. '.$documentRequest->or_number.') has been recorded. Waiting for the student to present the Official Receipt for validation.'
+            'Payment recorded — moved to processing',
+            'Payment of ₱'.number_format($documentRequest->totalFee(), 2).' (OR No. '.$documentRequest->or_number.') has been recorded. The request is now under processing.'
         );
 
         return redirect()

@@ -301,23 +301,18 @@ class RegistrarDocumentRequestModuleTest extends TestCase
             $request->fresh()->status,
         );
 
-        // The cashier's payment is what carries it on to "Paid".
+        // The cashier's payment moves it straight to PROCESSING
+        // (no separate OR validation step in the new flow).
         $this->actingAs(User::factory()->create(['role' => 'cashier']))
             ->post('/cashier/payments/'.$request->id.'/record', ['or_number' => 'OR-PIPELINE-01'])
             ->assertRedirect();
 
         $this->assertEquals(
-            DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
+            DocumentRequestStatus::PROCESSING->value,
             $request->fresh()->status,
         );
 
-        // The student must present the Official Receipt details first;
-        // advance the status to PROCESSING so the registrar's next steps
-        // can continue through the pipeline. (The OR validation is a
-        // separate end‑to‑end flow tested in DocumentRequestStatusEmailTest.)
-        $request->status = DocumentRequestStatus::PROCESSING->value;
-        $request->save();
-
+        // Now the registrar can continue advancing through the pipeline.
         $this->actingAs($this->makeRegistrar())
             ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertRedirect();
