@@ -39,19 +39,19 @@ class ConsultationServiceManagementTest extends TestCase
 
     public function test_staff_can_add_a_service(): void
     {
-        $this->actingAs($this->makeStaff('Guidance', 'guidance'))
-            ->post('/guidance/consultations', [
+        $this->actingAs($this->makeStaff('Accounting', 'accounting'))
+            ->post('/accounting/consultations', [
                 'name' => 'Career Coaching',
                 'description' => 'One-on-one career coaching.',
                 'is_active' => '1',
             ])
-            ->assertRedirect(route('guidance.consultations'))
+            ->assertRedirect(route('accounting.consultations'))
             ->assertSessionHas('status');
 
         $service = ConsultationService::firstWhere('name', 'Career Coaching');
 
         $this->assertNotNull($service);
-        $this->assertSame('Guidance', $service->office);
+        $this->assertSame('Accounting', $service->office);
         $this->assertTrue($service->is_active);
     }
 
@@ -72,12 +72,12 @@ class ConsultationServiceManagementTest extends TestCase
     public function test_staff_can_update_their_own_service(): void
     {
         $service = ConsultationService::create([
-            'office' => 'OSAS',
+            'office' => 'SSC',
             'name' => 'Scholarship',
         ]);
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->put('/osas/consultations/' . $service->id, [
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->put('/ssc/consultations/'.$service->id, [
                 'name' => 'Scholarship & Aid',
                 'is_active' => '0',
             ])
@@ -94,8 +94,8 @@ class ConsultationServiceManagementTest extends TestCase
     {
         $service = ConsultationService::create(['office' => 'Library', 'name' => 'Book Borrowing']);
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->put('/osas/consultations/' . $service->id, ['name' => 'Hijacked'])
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->put('/ssc/consultations/'.$service->id, ['name' => 'Hijacked'])
             ->assertForbidden();
 
         $this->assertSame('Book Borrowing', $service->fresh()->name);
@@ -105,8 +105,8 @@ class ConsultationServiceManagementTest extends TestCase
     {
         $service = ConsultationService::create(['office' => 'Library', 'name' => 'Book Borrowing']);
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->delete('/osas/consultations/' . $service->id)
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->delete('/ssc/consultations/'.$service->id)
             ->assertForbidden();
 
         $this->assertNotNull($service->fresh());
@@ -117,7 +117,7 @@ class ConsultationServiceManagementTest extends TestCase
         $service = ConsultationService::create(['office' => 'COED', 'name' => 'Practicum Advising']);
 
         $this->actingAs($this->makeStaff('COED'))
-            ->delete('/coed/consultations/' . $service->id)
+            ->delete('/coed/consultations/'.$service->id)
             ->assertRedirect()
             ->assertSessionHas('status');
 
@@ -161,14 +161,13 @@ class ConsultationServiceManagementTest extends TestCase
             '/cbmsd/consultations' => ['CBMSD', 'department'],
             '/coag/consultations' => ['COAG', 'department'],
             '/coed/consultations' => ['COED', 'department'],
-            '/osas/consultations' => ['OSAS', 'osas'],
+            '/ssc/consultations' => ['SSC', 'ssc'],
             '/accounting/consultations' => ['Accounting', 'accounting'],
             '/library/consultations' => ['Library', 'library'],
-            '/guidance/consultations' => ['Guidance', 'guidance'],
         ];
 
         foreach ($pages as [$office]) {
-            ConsultationService::create(['office' => $office, 'name' => $office . ' Marker']);
+            ConsultationService::create(['office' => $office, 'name' => $office.' Marker']);
         }
 
         $this->assertSame(count($pages), ConsultationService::count());
@@ -178,7 +177,7 @@ class ConsultationServiceManagementTest extends TestCase
                 ->get($url)
                 ->assertOk()
                 ->assertSee('Add service')
-                ->assertSee($office . ' Marker')
+                ->assertSee($office.' Marker')
                 ->assertSee('Edit');
         }
     }

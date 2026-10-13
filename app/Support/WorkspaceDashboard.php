@@ -9,9 +9,9 @@ use Illuminate\Support\Collection;
 /**
  * Shared numbers behind every office and department dashboard.
  *
- * All eight workspaces (Accounting, Guidance, Library, OSAS and the CICI,
+ * All seven workspaces (Accounting, Library, SSC and the CICI,
  * CBMSD, COAG, COED departments) render the same tiles, so the queries live
- * here once instead of being copied into eight controllers.
+ * here once instead of being copied into seven controllers.
  */
 class WorkspaceDashboard
 {

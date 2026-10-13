@@ -24,10 +24,9 @@ class WorkspaceQrCheckInTest extends TestCase
         '/cbmsd' => ['CBMSD', 'department'],
         '/coag' => ['COAG', 'department'],
         '/coed' => ['COED', 'department'],
-        '/osas' => ['OSAS', 'osas'],
+        '/ssc' => ['SSC', 'ssc'],
         '/accounting' => ['Accounting', 'accounting'],
         '/library' => ['Library', 'library'],
-        '/guidance' => ['Guidance', 'guidance'],
     ];
 
     private function makeStaff(string $office, string $role): User
@@ -111,11 +110,11 @@ class WorkspaceQrCheckInTest extends TestCase
 
     public function test_a_pasted_verification_url_is_reduced_to_its_token(): void
     {
-        $appointment = $this->makeAppointment('OSAS');
+        $appointment = $this->makeAppointment('SSC');
         $printed = 'https://isuftpass-9atj.onrender.com/verify/appointment/'.$appointment->qr_token;
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->postJson('/osas/qr/check-in', ['token' => $printed])
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->postJson('/ssc/qr/check-in', ['token' => $printed])
             ->assertOk()
             ->assertJsonPath('checkedIn', true);
 
@@ -124,11 +123,11 @@ class WorkspaceQrCheckInTest extends TestCase
 
     public function test_scanning_twice_reports_the_first_arrival_and_keeps_it(): void
     {
-        $appointment = $this->makeAppointment('OSAS');
-        $staff = $this->makeStaff('OSAS', 'osas');
+        $appointment = $this->makeAppointment('SSC');
+        $staff = $this->makeStaff('SSC', 'ssc');
 
         $this->actingAs($staff)
-            ->postJson('/osas/qr/check-in', ['token' => $appointment->qr_token])
+            ->postJson('/ssc/qr/check-in', ['token' => $appointment->qr_token])
             ->assertJsonPath('checkedIn', true);
 
         $arrivedAt = $appointment->fresh()->checked_in_at;
@@ -136,7 +135,7 @@ class WorkspaceQrCheckInTest extends TestCase
         $this->travel(10)->minutes();
 
         $this->actingAs($staff)
-            ->postJson('/osas/qr/check-in', ['token' => $appointment->qr_token])
+            ->postJson('/ssc/qr/check-in', ['token' => $appointment->qr_token])
             ->assertOk()
             ->assertJsonPath('valid', true)
             ->assertJsonPath('checkedIn', true)
@@ -152,10 +151,10 @@ class WorkspaceQrCheckInTest extends TestCase
 
     public function test_a_desk_cannot_check_a_student_into_another_offices_visit(): void
     {
-        $appointment = $this->makeAppointment('Guidance');
+        $appointment = $this->makeAppointment('Accounting');
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->postJson('/osas/qr/check-in', ['token' => $appointment->qr_token])
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->postJson('/ssc/qr/check-in', ['token' => $appointment->qr_token])
             ->assertOk()
             ->assertJsonPath('valid', false)
             ->assertJsonPath('checkedIn', false)
@@ -184,15 +183,15 @@ class WorkspaceQrCheckInTest extends TestCase
 
     public function test_a_digital_id_without_a_visit_today_says_so_and_writes_nothing(): void
     {
-        $appointment = $this->makeAppointment('OSAS', ['date' => now()->addDays(2)->toDateString()]);
+        $appointment = $this->makeAppointment('SSC', ['date' => now()->addDays(2)->toDateString()]);
         $appointment->user->studentProfile()->create(['pass_token' => 'pass-token-osas-later']);
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->postJson('/osas/qr/check-in', ['token' => 'pass-token-osas-later'])
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->postJson('/ssc/qr/check-in', ['token' => 'pass-token-osas-later'])
             ->assertOk()
             ->assertJsonPath('valid', false)
             ->assertJsonPath('checkedIn', false)
-            ->assertJsonPath('message', $appointment->user->name.' has no appointment with OSAS today.');
+            ->assertJsonPath('message', $appointment->user->name.' has no appointment with SSC today.');
 
         $this->assertSame(AppointmentStatus::CONFIRMED->value, $appointment->fresh()->status);
     }
@@ -249,15 +248,15 @@ class WorkspaceQrCheckInTest extends TestCase
 
     public function test_todays_list_shows_only_this_offices_arrivals(): void
     {
-        $ours = $this->makeAppointment('OSAS');
-        $theirs = $this->makeAppointment('Guidance');
+        $ours = $this->makeAppointment('SSC');
+        $theirs = $this->makeAppointment('Accounting');
 
-        $this->actingAs($this->makeStaff('Guidance', 'guidance'))
-            ->postJson('/guidance/qr/check-in', ['token' => $theirs->qr_token])
+        $this->actingAs($this->makeStaff('Accounting', 'accounting'))
+            ->postJson('/accounting/qr/check-in', ['token' => $theirs->qr_token])
             ->assertJsonPath('checkedIn', true);
 
-        $response = $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->postJson('/osas/qr/check-in', ['token' => $ours->qr_token])
+        $response = $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->postJson('/ssc/qr/check-in', ['token' => $ours->qr_token])
             ->assertOk()
             ->assertJsonPath('checkedIn', true);
 
@@ -270,10 +269,10 @@ class WorkspaceQrCheckInTest extends TestCase
 
     public function test_students_reach_no_check_in_endpoint(): void
     {
-        $appointment = $this->makeAppointment('OSAS');
+        $appointment = $this->makeAppointment('SSC');
 
         $this->actingAs(User::factory()->create(['role' => 'student']))
-            ->postJson('/osas/qr/check-in', ['token' => $appointment->qr_token])
+            ->postJson('/ssc/qr/check-in', ['token' => $appointment->qr_token])
             ->assertForbidden();
 
         $this->assertSame(AppointmentStatus::CONFIRMED->value, $appointment->fresh()->status);

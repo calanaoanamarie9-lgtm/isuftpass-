@@ -54,10 +54,10 @@ class OfficeHoursSlotsTest extends TestCase
 
     public function test_availability_page_shows_the_offices_saved_hours(): void
     {
-        $this->registerOffice('OSAS');
+        $this->registerOffice('SSC');
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->get('/osas/availability')
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->get('/ssc/availability')
             ->assertOk()
             ->assertSee('Office Hours')
             ->assertSee('value="08:00"', false)
@@ -68,17 +68,17 @@ class OfficeHoursSlotsTest extends TestCase
 
     public function test_saving_later_hours_grows_the_slot_list_everywhere(): void
     {
-        $this->registerOffice('OSAS');
+        $this->registerOffice('SSC');
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->postJson('/osas/availability/hours', [
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->postJson('/ssc/availability/hours', [
                 'open_time' => '08:00',
                 'close_time' => '19:00',
             ])
             ->assertOk()
             ->assertJsonPath('count', 11);
 
-        $slots = TimeSlots::forOffice('OSAS');
+        $slots = TimeSlots::forOffice('SSC');
 
         $this->assertCount(11, $slots);
         $this->assertSame('06:00 PM - 07:00 PM', end($slots));
@@ -88,7 +88,7 @@ class OfficeHoursSlotsTest extends TestCase
 
         $offered = collect(
             $this->actingAs(User::factory()->create(['role' => 'student']))
-                ->getJson('/student/appointments/slots?office=OSAS&date=' . $date)
+                ->getJson('/student/appointments/slots?office=SSC&date='.$date)
                 ->json()
         )->pluck('time')->all();
 
@@ -97,18 +97,18 @@ class OfficeHoursSlotsTest extends TestCase
 
     public function test_hours_only_change_the_office_that_saved_them(): void
     {
-        $this->registerOffice('OSAS');
+        $this->registerOffice('SSC');
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->postJson('/osas/availability/hours', [
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->postJson('/ssc/availability/hours', [
                 'open_time' => '08:00',
                 'close_time' => '19:00',
             ])
             ->assertOk();
 
-        $this->assertCount(11, TimeSlots::forOffice('OSAS'));
+        $this->assertCount(11, TimeSlots::forOffice('SSC'));
         $this->assertCount(count(Appointment::TIME_SLOTS), TimeSlots::forOffice('Registrar'));
-        $this->assertSame('08:00', Office::where('name', 'OSAS')->first()->open_time);
+        $this->assertSame('08:00', Office::where('name', 'SSC')->first()->open_time);
     }
 
     public function test_the_registrar_edits_its_hours_from_its_own_page(): void
@@ -134,10 +134,10 @@ class OfficeHoursSlotsTest extends TestCase
 
     public function test_closing_time_must_follow_the_opening_time(): void
     {
-        $office = $this->registerOffice('OSAS');
+        $office = $this->registerOffice('SSC');
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->postJson('/osas/availability/hours', [
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->postJson('/ssc/availability/hours', [
                 'open_time' => '17:00',
                 'close_time' => '08:00',
             ])
@@ -149,11 +149,11 @@ class OfficeHoursSlotsTest extends TestCase
 
     public function test_a_slot_outside_office_hours_cannot_be_booked(): void
     {
-        $this->registerOffice('OSAS');
+        $this->registerOffice('SSC');
 
         $this->actingAs(User::factory()->create(['role' => 'student']))
             ->post('/student/appointments', [
-                'office' => 'OSAS',
+                'office' => 'SSC',
                 'purpose' => 'Enrollment clearance',
                 'date' => now()->addDays(2)->toDateString(),
                 'time_slot' => '07:00 PM - 08:00 PM',
@@ -165,19 +165,19 @@ class OfficeHoursSlotsTest extends TestCase
 
     public function test_shrinking_hours_drops_slot_rules_outside_the_new_day(): void
     {
-        $this->registerOffice('OSAS');
+        $this->registerOffice('SSC');
         $date = now()->addDays(3)->toDateString();
 
-        $staff = $this->makeStaff('OSAS', 'osas');
+        $staff = $this->makeStaff('SSC', 'ssc');
 
         $this->actingAs($staff)
-            ->postJson('/osas/availability/save', ['date' => $date, 'type' => 'open'])
+            ->postJson('/ssc/availability/save', ['date' => $date, 'type' => 'open'])
             ->assertOk();
 
         $this->assertCount(9, SlotAvailability::whereDate('date', $date)->get());
 
         $this->actingAs($staff)
-            ->postJson('/osas/availability/hours', [
+            ->postJson('/ssc/availability/hours', [
                 'open_time' => '08:00',
                 'close_time' => '12:00',
             ])
@@ -185,7 +185,7 @@ class OfficeHoursSlotsTest extends TestCase
             ->assertJsonPath('count', 4);
 
         $this->actingAs($staff)
-            ->postJson('/osas/availability/save', ['date' => $date, 'type' => 'open'])
+            ->postJson('/ssc/availability/save', ['date' => $date, 'type' => 'open'])
             ->assertOk();
 
         $rules = SlotAvailability::whereDate('date', $date)->get();
@@ -196,12 +196,12 @@ class OfficeHoursSlotsTest extends TestCase
 
     public function test_office_can_update_its_slot_capacity(): void
     {
-        $office = $this->registerOffice('OSAS');
+        $office = $this->registerOffice('SSC');
 
-        $staff = $this->makeStaff('OSAS', 'osas');
+        $staff = $this->makeStaff('SSC', 'ssc');
 
         $this->actingAs($staff)
-            ->postJson('/osas/availability/hours', [
+            ->postJson('/ssc/availability/hours', [
                 'open_time' => '08:00',
                 'close_time' => '17:00',
                 'default_slot_capacity' => 15,

@@ -72,7 +72,7 @@ class StudentNotificationsHelpTest extends TestCase
             ->get('/student/help')
             ->assertOk()
             ->assertSee('Office Directory')
-            ->assertSee('Office of the Registrar')
+            ->assertSee("Registrar's Office")
             ->assertSee('How do I book an appointment?');
     }
 }

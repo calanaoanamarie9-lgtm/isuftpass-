@@ -59,7 +59,7 @@ class RegistrarTimeAtBookingTest extends TestCase
 
         $this->actingAs($student)
             ->post(route('student.appointments.store'), [
-                'office' => 'Guidance',
+                'office' => 'Accounting',
                 'purpose' => 'Counseling',
                 'date' => now()->addDays(3)->toDateString(),
             ])

@@ -123,10 +123,10 @@
                                            bg-gray-50 px-4 py-2.5 text-sm
                                            focus:bg-white focus:border-blue-500
                                            focus:ring-blue-500">
-                                @foreach ($destinations as $destination)
-                                    <option value="{{ $destination }}"
-                                            @selected(old('destination_office') === $destination)>
-                                        {{ $destination }}
+                                @foreach ($destinations as $destinationValue => $destinationLabel)
+                                    <option value="{{ $destinationValue }}"
+                                            @selected(old('destination_office') === $destinationValue)>
+                                        {{ $destinationLabel }}
                                     </option>
                                 @endforeach
                             </select>

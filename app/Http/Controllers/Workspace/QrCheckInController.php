@@ -12,9 +12,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * The scan endpoint behind "QR Scanner & Check-in", served to all eight
+ * The scan endpoint behind "QR Scanner & Check-in", served to all seven
  * offices and departments: the route is declared once inside $workspaceRoutes,
- * so /cici/qr, /osas/qr, /library/qr … all POST here and all get the same
+ * so /cici/qr, /ssc/qr, /library/qr … all POST here and all get the same
  * behaviour.
  *
  * A desk asks three questions in order — whose visit is this, is it booked
@@ -22,8 +22,8 @@ use Illuminate\Http\Request;
  * answer comes back as JSON for the one shared page to render.
  *
  * The office always comes from officeScope(), never from the request, so a
- * scanned token can never move a visit across offices: an OSAS desk scanning
- * a Guidance appointment is told whose it is, and nothing is written.
+ * scanned token can never move a visit across offices: an SSC desk scanning
+ * a CICI appointment is told whose it is, and nothing is written.
  */
 class QrCheckInController extends Controller
 {

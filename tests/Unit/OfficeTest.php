@@ -11,9 +11,11 @@ class OfficeTest extends TestCase
     {
         $this->assertSame('Library', Office::fromTyped('library'));
         $this->assertSame('Library', Office::fromTyped('LIBRARY'));
-        $this->assertSame('Library', Office::fromTyped('University Library'));
-        $this->assertSame('CICI', Office::fromTyped('college of informatics and computing innovations'));
-        $this->assertSame('Registrar', Office::fromTyped('Office of the  Registrar'));
+        $this->assertSame('Library', Office::fromTyped('Library Office'));
+        $this->assertSame('SSC', Office::fromTyped('Student Support Center (SSC)'));
+        $this->assertSame('SSC', Office::fromTyped('ssc'));
+        $this->assertSame('CICI', Office::fromTyped('college of informatics and computing innovation (cici)'));
+        $this->assertSame('Registrar', Office::fromTyped("Registrar's  Office"));
     }
 
     public function test_an_office_that_has_no_case_yet_is_kept_as_typed(): void

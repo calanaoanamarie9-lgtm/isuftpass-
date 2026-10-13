@@ -12,8 +12,8 @@ use Illuminate\View\View;
 
 /**
  * Workspace for self-registered offices — an office account whose typed
- * office name is none of the eight built-in workspaces (OSAS, Accounting,
- * Library, Guidance, CICI, CBMSD, COAG, COED) lands here after admin
+ * office name is none of the seven built-in workspaces (Accounting,
+ * Library, SSC, CICI, CBMSD, COAG, COED) lands here after admin
  * approval and email verification.
  *
  * Appointments only: document requests stay with the Registrar. Everything

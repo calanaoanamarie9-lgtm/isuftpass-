@@ -4,12 +4,10 @@ namespace App\Enums;
 
 enum Office: string
 {
-    case OSAS = 'OSAS';
+    case SSC = 'SSC';
     case Registrar = 'Registrar';
-    case Guidance = 'Guidance';
     case Cashier = 'Cashier';
     case Accounting = 'Accounting';
-    case Admin = 'Admin';
     case Library = 'Library';
     case Cici = 'CICI';
     case CBMSD = 'CBMSD';
@@ -27,7 +25,7 @@ enum Office: string
     public static function toSelect(): array
     {
         $options = collect(self::cases())
-            ->mapWithKeys(fn (self $office) => [$office->value => $office->value]);
+            ->mapWithKeys(fn (self $office) => [$office->value => $office->label()]);
 
         foreach (self::registeredOffices() as $name) {
             $options->put($name, $name);
@@ -113,17 +111,15 @@ enum Office: string
     public function label(): string
     {
         return match ($this) {
-            self::OSAS => 'Office of Student Affairs & Services',
-            self::Registrar => 'Office of the Registrar',
-            self::Guidance => 'Guidance & Counseling Office',
-            self::Cashier => 'Cashier Office',
-            self::Accounting => 'Accounting Office',
-            self::Admin => 'Office of the Administrator',
-            self::Library => 'University Library',
-                self::Cici => 'College of Informatics and Computing Innovations',
-                self::CBMSD => 'College of Business, Management, and Development Studies',
-                self::Coag => 'College of Agriculture',
-                self::Coed => 'College of Education',
+            self::SSC => 'Student Support Center (SSC)',
+            self::Registrar => "Registrar's Office",
+            self::Cashier => "Cashier's Office",
+            self::Accounting => "Accounting Office",
+            self::Library => 'Library Office',
+            self::Cici => 'College of Informatics and Computing Innovation (CICI)',
+            self::CBMSD => 'College of Business Management and Sustainable Development (CBMSD)',
+            self::Coag => 'College of Agriculture (COAG)',
+            self::Coed => 'College of Education (COED)',
         };
     }
 
@@ -131,12 +127,10 @@ enum Office: string
     {
         return [
             'description' => match ($this) {
-                self::OSAS => 'Student services, activities, and welfare concerns.',
+                self::SSC => 'Student services, activities, and welfare concerns.',
                 self::Registrar => 'Student records, grades, transcripts, and document issuance.',
-                self::Guidance => 'Counseling services, testing, and student development.',
                 self::Cashier => 'Financial transactions and official receipts for fees.',
                 self::Accounting => 'Billing, accounts, and fund-related concerns.',
-                self::Admin => 'General inquiries and administrative matters.',
                 self::Library => 'Library services, borrowing, references, and study resources.',
                 self::Cici => 'Department consultations, academic concerns, and college transactions.',
                 self::CBMSD => 'Business management consultations, academic advising, and college transactions.',
@@ -144,12 +138,10 @@ enum Office: string
                 self::Coed => 'Education consultations, academic advising, and college transactions.',
             },
             'location' => match ($this) {
-                self::OSAS => 'Student Center, 2nd Floor',
+                self::SSC => 'Student Center, 2nd Floor',
                 self::Registrar => 'Main Building, Ground Floor',
-                self::Guidance => 'Main Building, 2nd Floor',
                 self::Cashier => 'Finance Building, Ground Floor',
                 self::Accounting => 'Finance Building, 2nd Floor',
-                self::Admin => 'Main Building, 3rd Floor',
                 self::Library => 'Library Building, Ground Floor',
                 self::Cici => 'CICI Building, Ground Floor',
                 self::CBMSD => 'CBMSD Building, Ground Floor',

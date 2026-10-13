@@ -11,10 +11,9 @@
         $role === 'department' => ($user->office ?? null) ? $user->office . ' Department' : 'Department Profile',
         $role === 'office' => ($user->office ?? null) ? $user->office . ' Office' : 'Office Profile',
         $role === 'guard' => ($user->office ?? null) ? $user->office . ' Security' : 'Campus Security',
-        $role === 'osas' => 'OSAS Office',
+        $role === 'ssc' => 'SSC Office',
         $role === 'accounting' => 'Accounting Office',
         $role === 'library' => 'Library Office',
-        $role === 'guidance' => 'Guidance Office',
         $role === 'cashier' => 'Cashier Profile',
         default => 'Student Profile',
     };
@@ -290,37 +289,37 @@
 
 
         {{-- =====================================================
-            OSAS
+            STUDENT SUPPORT CENTER (SSC)
         ====================================================== --}}
-        @if ($role === 'osas')
+        @if ($role === 'ssc')
 
             <div>
                 <p class="{{ $sectionClass }}">Main Menu</p>
 
                 <div class="space-y-1">
 
-                    <a href="{{ route('osas.dashboard') }}"
+                    <a href="{{ route('ssc.dashboard') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>📊</span>
                         <span>{{ $user->officeScope() }} Dashboard</span>
                     </a>
 
-                    <a href="{{ route('osas.qr.index') }}"
+                    <a href="{{ route('ssc.qr.index') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>📷</span>
                         <span>QR Scanner & Check-in</span>
                     </a>
 
-                    <a href="{{ route('osas.appointments') }}"
+                    <a href="{{ route('ssc.appointments') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>📅</span>
                         <span>Manage Appointments</span>
                     </a>
 
-                    <a href="{{ route('osas.consultations') }}"
+                    <a href="{{ route('ssc.consultations') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>📋</span>
@@ -336,7 +335,7 @@
 
                 <div class="space-y-1">
 
-                    <a href="{{ route('osas.availability') }}"
+                    <a href="{{ route('ssc.availability') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>🕒</span>
@@ -359,7 +358,7 @@
                         <span>Profile Settings</span>
                     </a>
 
-                    <a href="{{ route('osas.help') }}"
+                    <a href="{{ route('ssc.help') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>❓</span>
@@ -528,90 +527,6 @@
                     </a>
 
                     <a href="{{ route('library.help') }}"
-                       @click="open = false"
-                       class="{{ $navClass }}">
-                        <span>❓</span>
-                        <span>Help & FAQs</span>
-                    </a>
-
-                </div>
-            </div>
-
-        @endif
-
-
-
-        {{-- =====================================================
-            GUIDANCE
-        ====================================================== --}}
-        @if ($role === 'guidance')
-
-            <div>
-                <p class="{{ $sectionClass }}">Main Menu</p>
-
-                <div class="space-y-1">
-
-                    <a href="{{ route('guidance.dashboard') }}"
-                       @click="open = false"
-                       class="{{ $navClass }}">
-                        <span>📊</span>
-                        <span>{{ $user->officeScope() }} Dashboard</span>
-                    </a>
-
-                    <a href="{{ route('guidance.qr.index') }}"
-                       @click="open = false"
-                       class="{{ $navClass }}">
-                        <span>📷</span>
-                        <span>QR Scanner & Check-in</span>
-                    </a>
-
-                    <a href="{{ route('guidance.appointments') }}"
-                       @click="open = false"
-                       class="{{ $navClass }}">
-                        <span>📅</span>
-                        <span>Manage Appointments</span>
-                    </a>
-
-                    <a href="{{ route('guidance.consultations') }}"
-                       @click="open = false"
-                       class="{{ $navClass }}">
-                        <span>📋</span>
-                        <span>Consultation Services</span>
-                    </a>
-
-                </div>
-            </div>
-
-
-            <div>
-                <p class="{{ $sectionClass }}">Availability</p>
-
-                <div class="space-y-1">
-
-                    <a href="{{ route('guidance.availability') }}"
-                       @click="open = false"
-                       class="{{ $navClass }}">
-                        <span>🕒</span>
-                        <span>Time Slot Settings</span>
-                    </a>
-
-                </div>
-            </div>
-
-
-            <div>
-                <p class="{{ $sectionClass }}">Account & Support</p>
-
-                <div class="space-y-1">
-
-                    <a href="{{ route('profile.edit') }}"
-                       @click="open = false"
-                       class="{{ $navClass }}">
-                        <span>⚙️</span>
-                        <span>Profile Settings</span>
-                    </a>
-
-                    <a href="{{ route('guidance.help') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>❓</span>

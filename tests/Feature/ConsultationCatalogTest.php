@@ -31,9 +31,9 @@ class ConsultationCatalogTest extends TestCase
 
     public function test_catalog_hides_inactive_services(): void
     {
-        ConsultationService::create(['office' => 'Guidance', 'name' => 'Visible Service']);
+        ConsultationService::create(['office' => 'Accounting', 'name' => 'Visible Service']);
         ConsultationService::create([
-            'office' => 'Guidance',
+            'office' => 'Accounting',
             'name' => 'Hidden Service',
             'is_active' => false,
         ]);
@@ -47,18 +47,18 @@ class ConsultationCatalogTest extends TestCase
 
     public function test_service_card_links_to_a_prefilled_booking(): void
     {
-        ConsultationService::create(['office' => 'OSAS', 'name' => 'Scholarship Inquiry']);
+        ConsultationService::create(['office' => 'SSC', 'name' => 'Scholarship Inquiry']);
 
         $response = $this->actingAs($this->makeStudent())->get('/student/consultations');
 
         $response->assertOk();
 
         $expected = route('student.appointments.create', [
-            'office' => 'OSAS',
+            'office' => 'SSC',
             'purpose' => 'Scholarship Inquiry',
         ]);
 
-        $this->assertStringContainsString('office=OSAS', $expected);
+        $this->assertStringContainsString('office=SSC', $expected);
         $this->assertStringContainsString('purpose=Scholarship%20Inquiry', $expected);
 
         // Blade escapes the & in the href, so assertSee's default escaping matches.
@@ -68,10 +68,10 @@ class ConsultationCatalogTest extends TestCase
     public function test_booking_form_prefills_office_and_purpose_from_the_query_string(): void
     {
         $this->actingAs($this->makeStudent())
-            ->get('/student/appointments/create?office=OSAS&purpose=Scholarship%20Inquiry')
+            ->get('/student/appointments/create?office=SSC&purpose=Scholarship%20Inquiry')
             ->assertOk()
             ->assertSee('Scholarship Inquiry')
-            ->assertSee('value="OSAS"', false);
+            ->assertSee('value="SSC"', false);
     }
 
     public function test_empty_catalog_shows_a_helpful_state(): void

@@ -43,12 +43,15 @@ class Appointment extends Model
      * Maximum concurrent bookings per time slot, configurable per office.
      */
     public const SLOT_LIMITS = [
-        'OSAS' => 8,
+        'SSC' => 8,
         'Registrar' => 6,
-        'Guidance' => 8,
         'Cashier' => 8,
         'Accounting' => 6,
-        'Admin' => 4,
+        'Library' => 6,
+        'CICI' => 6,
+        'CBMSD' => 6,
+        'COAG' => 6,
+        'COED' => 6,
     ];
 
     protected $fillable = [

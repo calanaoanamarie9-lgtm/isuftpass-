@@ -27,10 +27,9 @@ class WorkspacePagesTest extends TestCase
         '/cbmsd' => ['CBMSD', 'department'],
         '/coag' => ['COAG', 'department'],
         '/coed' => ['COED', 'department'],
-        '/osas' => ['OSAS', 'osas'],
+        '/ssc' => ['SSC', 'ssc'],
         '/accounting' => ['Accounting', 'accounting'],
         '/library' => ['Library', 'library'],
-        '/guidance' => ['Guidance', 'guidance'],
     ];
 
     private function makeStaff(string $office, string $role): User
@@ -132,16 +131,16 @@ class WorkspacePagesTest extends TestCase
 
     public function test_office_can_save_availability_for_its_own_office(): void
     {
-        $office = $this->registerOffice('OSAS');
+        $office = $this->registerOffice('SSC');
         $date = now()->addDays(3)->toDateString();
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->postJson('/osas/availability/save', [
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->postJson('/ssc/availability/save', [
                 'date' => $date,
                 'type' => 'open',
             ])
             ->assertOk()
-            ->assertJsonPath('message', 'OSAS availability has been updated.');
+            ->assertJsonPath('message', 'SSC availability has been updated.');
 
         $rules = SlotAvailability::whereDate('date', $date)->get();
 
@@ -170,12 +169,12 @@ class WorkspacePagesTest extends TestCase
     {
         $date = now()->addDays(3)->toDateString();
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->getJson("/osas/appointments/slots?office=Guidance&date={$date}")
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->getJson("/ssc/appointments/slots?office=Library&date={$date}")
             ->assertForbidden();
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->getJson("/osas/appointments/slots?office=OSAS&date={$date}")
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->getJson("/ssc/appointments/slots?office=SSC&date={$date}")
             ->assertOk();
     }
 
@@ -184,16 +183,16 @@ class WorkspacePagesTest extends TestCase
         $date = now()->addDays(3)->toDateString();
 
         $this->actingAs(User::factory()->create(['role' => 'registrar']))
-            ->getJson("/registrar/appointments/slots?office=Guidance&date={$date}")
+            ->getJson("/registrar/appointments/slots?office=SSC&date={$date}")
             ->assertOk();
     }
 
     public function test_workspace_cannot_reschedule_another_offices_appointment(): void
     {
-        $appointment = $this->makeAppointment('Guidance');
+        $appointment = $this->makeAppointment('Accounting');
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->putJson('/osas/appointments/'.$appointment->id.'/reschedule', [
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->putJson('/ssc/appointments/'.$appointment->id.'/reschedule', [
                 'date' => now()->addDays(5)->toDateString(),
                 'time_slot' => Appointment::TIME_SLOTS[2],
                 'reschedule_reason' => 'Class conflict',
@@ -211,16 +210,16 @@ class WorkspacePagesTest extends TestCase
     {
         Mail::fake();
 
-        $appointment = $this->makeAppointment('OSAS');
+        $appointment = $this->makeAppointment('SSC');
         $newDate = now()->addDays(5)->toDateString();
 
-        $this->actingAs($this->makeStaff('OSAS', 'osas'))
-            ->put('/osas/appointments/'.$appointment->id.'/reschedule', [
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->put('/ssc/appointments/'.$appointment->id.'/reschedule', [
                 'date' => $newDate,
                 'time_slot' => Appointment::TIME_SLOTS[3],
                 'reschedule_reason' => 'Student request',
             ])
-            ->assertRedirect(route('osas.appointments'));
+            ->assertRedirect(route('ssc.appointments'));
 
         $this->assertSame(AppointmentStatus::RESCHEDULED->value, $appointment->fresh()->status);
     }
@@ -243,19 +242,19 @@ class WorkspacePagesTest extends TestCase
     public function test_student_cannot_reach_workspace_pages_or_endpoints(): void
     {
         $student = User::factory()->create(['role' => 'student']);
-        $appointment = $this->makeAppointment('OSAS');
+        $appointment = $this->makeAppointment('SSC');
 
-        $this->actingAs($student)->get('/osas/appointments')->assertForbidden();
+        $this->actingAs($student)->get('/ssc/appointments')->assertForbidden();
         $this->actingAs($student)->get('/library/availability')->assertForbidden();
-        $this->actingAs($student)->get('/guidance/qr')->assertForbidden();
+        $this->actingAs($student)->get('/accounting/qr')->assertForbidden();
         $this->actingAs($student)
-            ->postJson('/osas/availability/save', ['date' => now()->addDays(3)->toDateString(), 'type' => 'open'])
+            ->postJson('/ssc/availability/save', ['date' => now()->addDays(3)->toDateString(), 'type' => 'open'])
             ->assertForbidden();
         $this->actingAs($student)
-            ->getJson('/osas/appointments/slots?office=OSAS&date='.now()->addDays(3)->toDateString())
+            ->getJson('/ssc/appointments/slots?office=OSAS&date='.now()->addDays(3)->toDateString())
             ->assertForbidden();
         $this->actingAs($student)
-            ->putJson('/osas/appointments/'.$appointment->id.'/reschedule', [
+            ->putJson('/ssc/appointments/'.$appointment->id.'/reschedule', [
                 'date' => now()->addDays(5)->toDateString(),
                 'time_slot' => Appointment::TIME_SLOTS[3],
                 'reschedule_reason' => 'Nope',

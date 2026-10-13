@@ -19,9 +19,8 @@ use App\Http\Controllers\Department\CoedController;
 use App\Http\Controllers\Guard\GateController;
 use App\Http\Controllers\Offices\AccountingController;
 use App\Http\Controllers\Offices\AlumniController;
-use App\Http\Controllers\Offices\GuidanceController;
 use App\Http\Controllers\Offices\LibraryController;
-use App\Http\Controllers\Offices\OsasController;
+use App\Http\Controllers\Offices\SscController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Registrar\AppointmentController as RegistrarAppointmentController;
 use App\Http\Controllers\Registrar\AvailabilityController;
@@ -265,16 +264,15 @@ Route::get('/dashboard', function () {
         return redirect()->route('guard.dashboard');
     }
 
-    if (in_array($user->role, ['department', 'osas', 'accounting', 'library', 'guidance'], true)) {
+    if (in_array($user->role, ['department', 'ssc', 'accounting', 'library'], true)) {
         // Office is typed at registration, not picked, so match it the way the
         // sidebar already does - case must not decide which workspace a
         // staff account lands in. A legacy department account whose office is
         // none of the eight built-ins falls through to the generic workspace.
         $dept = match (strtoupper($user->office ?? '')) {
-            'OSAS' => 'osas',
+            'SSC' => 'ssc',
             'ACCOUNTING' => 'accounting',
             'LIBRARY' => 'library',
-            'GUIDANCE' => 'guidance',
             'CICI' => 'cici',
             'CBMSD' => 'cbmsd',
             'COAG' => 'coag',
@@ -609,14 +607,14 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('coed')->name
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'verified', 'role:department,osas'])->prefix('osas')->name('osas.')->group(function () use ($workspaceRoutes) {
-    Route::get('/', [OsasController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [OsasController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [OsasController::class, 'availability'])->name('availability');
-    Route::get('/qr', [OsasController::class, 'qrScanner'])->name('qr.index');
-    Route::get('/consultations', [OsasController::class, 'consultations'])->name('consultations');
+Route::middleware(['auth', 'verified', 'role:department,ssc'])->prefix('ssc')->name('ssc.')->group(function () use ($workspaceRoutes) {
+    Route::get('/', [SscController::class, 'dashboard'])->name('dashboard');
+    Route::get('/appointments', [SscController::class, 'appointments'])->name('appointments');
+    Route::get('/availability', [SscController::class, 'availability'])->name('availability');
+    Route::get('/qr', [SscController::class, 'qrScanner'])->name('qr.index');
+    Route::get('/consultations', [SscController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
-    Route::get('/help', [OsasController::class, 'help'])->name('help');
+    Route::get('/help', [SscController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
@@ -641,18 +639,6 @@ Route::middleware(['auth', 'verified', 'role:department,library'])->prefix('libr
     Route::get('/consultations', [LibraryController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::get('/help', [LibraryController::class, 'help'])->name('help');
-
-    $workspaceRoutes();
-});
-
-Route::middleware(['auth', 'verified', 'role:department,guidance'])->prefix('guidance')->name('guidance.')->group(function () use ($workspaceRoutes) {
-    Route::get('/', [GuidanceController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [GuidanceController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [GuidanceController::class, 'availability'])->name('availability');
-    Route::get('/qr', [GuidanceController::class, 'qrScanner'])->name('qr.index');
-    Route::get('/consultations', [GuidanceController::class, 'consultations'])->name('consultations');
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
-    Route::get('/help', [GuidanceController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
@@ -706,10 +692,9 @@ foreach ([
     'cbmsd' => 'department',
     'coag' => 'department',
     'coed' => 'department',
-    'osas' => 'department,osas',
+    'ssc' => 'department,ssc',
     'accounting' => 'department,accounting',
     'library' => 'department,library',
-    'guidance' => 'department,guidance',
     'workspace' => 'department,office',
 ] as $consultationPrefix => $consultationRoles) {
     Route::middleware(['auth', 'verified', 'role:'.$consultationRoles])

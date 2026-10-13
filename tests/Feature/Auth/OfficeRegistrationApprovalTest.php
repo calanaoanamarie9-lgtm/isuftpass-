@@ -21,7 +21,7 @@ class OfficeRegistrationApprovalTest extends TestCase
     {
         return [
             'library' => ['office' => 'Library', 'position' => 'Librarian II'],
-            'guidance' => ['office' => 'Guidance', 'position' => 'Guidance Counselor'],
+            'accounting' => ['office' => 'accounting', 'position' => 'Guidance Counselor'],
             'accounting' => ['office' => 'Accounting', 'position' => 'Accountant I'],
         ];
     }
@@ -127,7 +127,7 @@ class OfficeRegistrationApprovalTest extends TestCase
             'password' => 'password',
             'password_confirmation' => 'password',
             'user_type' => 'office',
-            'office' => 'University Library',
+            'office' => 'Library Office',
             'position' => 'Librarian II',
             'contact_number' => '09171234567',
         ])->assertRedirect(route('register.pending', absolute: false));
