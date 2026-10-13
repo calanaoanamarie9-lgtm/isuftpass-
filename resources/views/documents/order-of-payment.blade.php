@@ -49,6 +49,21 @@
             overflow: hidden;
         }
 
+        /* Responsive on screen; fixed paper size in print */
+        @media screen {
+            .document-page {
+                width: 100%;
+                max-width: 215.9mm;
+                min-height: auto;
+                padding: 16px;
+                margin: 16px auto;
+            }
+            .sheet-viewport {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
         /* ---- Print bar (screen only) ---- */
         .print-bar {
             max-width: 215.9mm;
