@@ -4,14 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\StudentProfile;
 use App\Models\User;
+use App\Support\Avatar;
 use App\Support\SafeMailer;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -146,27 +147,23 @@ class ProfileController extends Controller
 
     /**
      * Apply the photo side of the request: removal clears whichever photo
-     * the account has on file, an upload replaces it. Student-role accounts
-     * keep the photo on the student profile (what their dashboards, QR pass
-     * and sidebar read); staff keep it on the user record.
+     * the account has on file, an upload stores it as a data URI in the
+     * database (permanent — no ephemeral disk or external bucket). Student-role
+     * accounts keep the photo on the student profile (what their dashboards,
+     * QR pass and sidebar read); staff keep it on the user record.
      */
     private function storeAvatar(Request $request, User $user, array $validated): void
     {
-        $disk = config('filesystems.avatar');
         $target = $user->studentProfile ?? $user;
 
         if ($request->boolean('remove_avatar')) {
-            if ($target->avatar) {
-                Storage::disk($disk)->delete($target->avatar);
-                $target->update(['avatar' => null]);
-            }
+            $this->forgetAvatar($target);
 
             // A registration-time photo can survive a student-profile removal
             // and would keep rendering through the fallback chain, so clear it
             // too whenever the account has one.
-            if ($target instanceof StudentProfile && $user->avatar) {
-                Storage::disk($disk)->delete($user->avatar);
-                $user->update(['avatar' => null]);
+            if ($target instanceof StudentProfile) {
+                $this->forgetAvatar($user);
             }
 
             return;
@@ -176,15 +173,26 @@ class ProfileController extends Controller
             return;
         }
 
-        if ($target->avatar) {
-            Storage::disk($disk)->delete($target->avatar);
+        $this->forgetAvatar($target);
+
+        $target->update([
+            'avatar_data' => Avatar::fromUploadedFile($request->file('avatar')),
+            'avatar' => null,
+        ]);
+    }
+
+    /**
+     * Drop whatever photo a record has on file: the stored data URI in the
+     * database, plus any legacy file path still pointing at a disk.
+     */
+    private function forgetAvatar(Model $model): void
+    {
+        if ($model->avatar) {
+            Storage::disk(config('filesystems.avatar'))->delete($model->avatar);
         }
 
-        $file = $request->file('avatar');
-        $name = 'avatars/'.Str::random(40).'.'.$file->getClientOriginalExtension();
-
-        Storage::disk($disk)->put($name, file_get_contents($file->getRealPath()));
-
-        $target->update(['avatar' => $name]);
+        if ($model->avatar_data || $model->avatar) {
+            $model->update(['avatar' => null, 'avatar_data' => null]);
+        }
     }
 }

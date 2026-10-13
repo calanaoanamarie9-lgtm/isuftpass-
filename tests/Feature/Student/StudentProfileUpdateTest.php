@@ -99,16 +99,16 @@ class StudentProfileUpdateTest extends TestCase
             'avatar' => UploadedFile::fake()->image('me.jpg', 200, 200),
         ])->assertSessionHasNoErrors();
 
-        $path = $user->studentProfile->refresh()->avatar;
-        $this->assertStringStartsWith('avatars/', $path);
-        Storage::disk('public')->assertExists($path);
+        $data = $user->studentProfile->refresh()->avatar_data;
+        $this->assertNotNull($data);
+        $this->assertStringStartsWith('data:image/', $data);
 
         $this->actingAs($user)->put('/student/profile', [
             'contact_number' => '09171234567',
             'remove_avatar' => 1,
         ])->assertSessionHasNoErrors();
 
-        $this->assertNull($user->studentProfile->refresh()->avatar);
+        $this->assertNull($user->studentProfile->refresh()->avatar_data);
     }
 
     /**

@@ -19,6 +19,7 @@ class StudentProfile extends Model
         'address',
         'pass_token',
         'avatar',
+        'avatar_data',
     ];
 
     public const YEAR_LEVELS = [

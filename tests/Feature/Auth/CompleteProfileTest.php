@@ -303,12 +303,10 @@ class CompleteProfileTest extends TestCase
     }
 
     /**
-     * A student's avatar upload used to be merged into the profile update as
-     * the raw UploadedFile, writing the upload's TEMP path into
-     * student_profiles.avatar - which the profile page then rendered as the
-     * image source. The stored path must be the only thing persisted, and the
-     * photo has to render on the profile page (student_profiles first, the
-     * user-record upload as the fallback).
+     * A student's avatar upload is stored as a permanent data URI in the
+     * database (not a file on an ephemeral disk). The user-record upload has to
+     * render on the profile page (student_profiles first, the user-record photo
+     * as the fallback), never as a leftover temp path.
      */
     public function test_student_avatar_upload_is_stored_and_renders_on_profile_page(): void
     {
@@ -327,9 +325,8 @@ class CompleteProfileTest extends TestCase
 
         $user->refresh();
 
-        $this->assertNotNull($user->avatar, 'the user-record upload did not persist');
-        $this->assertStringStartsWith('avatars/', $user->avatar);
-        Storage::disk('public')->assertExists($user->avatar);
+        $this->assertNotNull($user->avatar_data, 'the user-record upload did not persist');
+        $this->assertStringStartsWith('data:image/', $user->avatar_data);
 
         // A path on the profile may only ever be a stored avatar, never the
         // temp path of the request's upload.
@@ -342,15 +339,13 @@ class CompleteProfileTest extends TestCase
         $this->actingAs($user)
             ->get('/student/profile')
             ->assertOk()
-            ->assertSee('storage/avatars/');
+            ->assertSee('data:image/', false);
     }
 
     /**
-     * Commit f628145 removed the `$user->avatar` guard that blocked
-     * first-time uploads and claims every registration type can now set a
-     * photo. Prove it for alumni, guests and parents: the file lands on the
-     * avatar disk, the column stores the relative path, and the dashboard
-     * renders it through the sidebar.
+     * Every registration type can set a photo. Prove it for alumni, guests and
+     * parents: the upload is stored as a permanent data URI in the database and
+     * the dashboard renders it through the sidebar.
      */
     public function test_avatar_upload_persists_for_every_other_registration_type(): void
     {
@@ -372,15 +367,14 @@ class CompleteProfileTest extends TestCase
 
             $user->refresh();
 
-            $this->assertNotNull($user->avatar, "no avatar persisted for {$type}");
-            $this->assertStringStartsWith('avatars/', $user->avatar);
-            Storage::disk('public')->assertExists($user->avatar);
-            $this->assertStringContainsString('storage/avatars/', $user->avatar_url);
+            $this->assertNotNull($user->avatar_data, "no avatar persisted for {$type}");
+            $this->assertStringStartsWith('data:image/', $user->avatar_data);
+            $this->assertStringContainsString('data:image/', $user->avatar_url);
 
             $this->actingAs($user)
                 ->get('/dashboard')
                 ->assertOk()
-                ->assertSee('storage/avatars/');
+                ->assertSee('data:image/', false);
         }
     }
 }

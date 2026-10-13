@@ -37,6 +37,15 @@ trait HasAvatarUrl
      */
     public function getAvatarUrlAttribute(): ?string
     {
+        // The photo is stored as a data URI in the database, which is permanent
+        // (no ephemeral disk, no external bucket). Render it straight into the
+        // <img src>. This is the normal path for every freshly uploaded photo.
+        $data = $this->avatar_data ?? null;
+
+        if (filled($data)) {
+            return $data;
+        }
+
         $path = $this->avatar;
 
         if (blank($path)) {
@@ -61,6 +70,6 @@ trait HasAvatarUrl
         // app at /Isufstpass, production at the domain root), which neither
         // Storage::url() (domain root only) nor asset() (pinned to APP_URL by
         // forceRootUrl) can produce here.
-        return request()->getBaseUrl() . '/storage/' . ltrim($path, '/');
+        return request()->getBaseUrl().'/storage/'.ltrim($path, '/');
     }
 }

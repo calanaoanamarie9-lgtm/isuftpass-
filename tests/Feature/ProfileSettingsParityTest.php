@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -103,8 +102,6 @@ class ProfileSettingsParityTest extends TestCase
      */
     public function test_a_staff_member_can_upload_and_remove_their_photo(): void
     {
-        Storage::fake('public');
-
         $user = User::factory()->create(['role' => 'registrar']);
 
         $this->actingAs($user)->put('/profile', [
@@ -114,18 +111,18 @@ class ProfileSettingsParityTest extends TestCase
             ->assertRedirect('/profile');
 
         $user->refresh();
-        $this->assertStringStartsWith('avatars/', $user->avatar);
-        Storage::disk('public')->assertExists($user->avatar);
+        $this->assertNotNull($user->avatar_data);
+        $this->assertStringStartsWith('data:image/', $user->avatar_data);
 
         $this->actingAs($user)
             ->get('/profile')
             ->assertOk()
-            ->assertSee('storage/avatars/');
+            ->assertSee('data:image/', false);
 
         $this->actingAs($user)->put('/profile', ['remove_avatar' => 1])
             ->assertSessionHasNoErrors();
 
-        $this->assertNull($user->fresh()->avatar);
+        $this->assertNull($user->fresh()->avatar_data);
     }
 
     /**
@@ -136,8 +133,6 @@ class ProfileSettingsParityTest extends TestCase
      */
     public function test_a_student_role_account_keeps_the_photo_on_the_student_profile(): void
     {
-        Storage::fake('public');
-
         $user = User::factory()->create(['role' => 'student']);
         $profile = $user->studentProfile()->create();
 
@@ -147,14 +142,14 @@ class ProfileSettingsParityTest extends TestCase
             ->assertSessionHasNoErrors()
             ->assertRedirect('/profile');
 
-        $path = $profile->refresh()->avatar;
-        $this->assertStringStartsWith('avatars/', $path);
-        Storage::disk('public')->assertExists($path);
+        $data = $profile->refresh()->avatar_data;
+        $this->assertNotNull($data);
+        $this->assertStringStartsWith('data:image/', $data);
 
         $this->actingAs($user)->put('/profile', ['remove_avatar' => 1])
             ->assertSessionHasNoErrors();
 
-        $this->assertNull($profile->refresh()->avatar);
+        $this->assertNull($profile->refresh()->avatar_data);
     }
 
     /**
@@ -187,10 +182,8 @@ class ProfileSettingsParityTest extends TestCase
      */
     public function test_saving_without_re_picking_the_photo_keeps_it(): void
     {
-        Storage::fake('public');
-
-        $user = User::factory()->create(['role' => 'registrar', 'avatar' => 'avatars/existing.jpg']);
-        Storage::disk('public')->put('avatars/existing.jpg', 'data');
+        $user = User::factory()->create(['role' => 'registrar']);
+        $user->forceFill(['avatar_data' => 'data:image/jpeg;base64,abc123'])->save();
 
         $this->actingAs($user)->put('/profile', [
             // exactly what the browser posts for an untouched file input
@@ -199,6 +192,6 @@ class ProfileSettingsParityTest extends TestCase
             ->assertSessionHasNoErrors()
             ->assertRedirect('/profile');
 
-        $this->assertSame('avatars/existing.jpg', $user->fresh()->avatar);
+        $this->assertSame('data:image/jpeg;base64,abc123', $user->fresh()->avatar_data);
     }
 }

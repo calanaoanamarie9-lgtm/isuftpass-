@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\Avatar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -159,17 +160,18 @@ class CompleteProfileController extends Controller
             $user->update($updateData);
         }
 
-        // Store avatar path if uploaded. Same disk the profile page reads
-        // from (and deletes from on remove), so a path written here is never
-        // resolved against a different disk later.
+        // Store the photo as a data URI in the database, which is permanent
+        // (no ephemeral disk or external bucket to lose it). Any legacy file
+        // path still on the record is cleaned up first.
         if ($request->hasFile('avatar')) {
-            $disk = config('filesystems.avatar');
-
             if ($user->avatar) {
-                Storage::disk($disk)->delete($user->avatar);
+                Storage::disk(config('filesystems.avatar'))->delete($user->avatar);
             }
 
-            $user->update(['avatar' => $request->file('avatar')->store('avatars', $disk)]);
+            $user->update([
+                'avatar_data' => Avatar::fromUploadedFile($request->file('avatar')),
+                'avatar' => null,
+            ]);
         }
 
         return redirect()->route('dashboard');

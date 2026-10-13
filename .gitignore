@@ -24,3 +24,6 @@ Homestead.yaml
 Thumbs.db
 mysql_export.sql
 postgresql_import.sql
+
+# One-off SQL backups (contain user records) — never commit these.
+/database/backups/
