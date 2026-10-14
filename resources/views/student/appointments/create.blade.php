@@ -903,6 +903,15 @@
         }
 
 
+        // Choosing "Other" must reveal the mandatory "Please specify purpose"
+        // box right away, so this listens on the Purpose select itself - not
+        // only when the office (and with it the whole option list) changes.
+        purposeSelect.addEventListener(
+            'change',
+            toggleOtherPurpose
+        );
+
+
         officeEl.addEventListener(
             'change',
             () => {

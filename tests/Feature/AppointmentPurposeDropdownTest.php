@@ -94,4 +94,24 @@ class AppointmentPurposeDropdownTest extends TestCase
 
         $this->assertSame(0, $student->appointments()->count());
     }
+
+    /**
+     * Picking "Other" only reveals the specify box if the Purpose select
+     * itself listens for change - wiring it only inside the office-change
+     * rebuild meant the box never appeared for a student, even though every
+     * server-side case passed. Guard the markup keeps that listener.
+     */
+    public function test_the_purpose_select_reveals_the_specify_box_on_change(): void
+    {
+        $html = $this->actingAs($this->makeStudent())
+            ->get(route('student.appointments.create'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertMatchesRegularExpression(
+            "/purposeSelect\\.addEventListener\\(\\s*'change',\\s*toggleOtherPurpose\\s*\\)/",
+            $html,
+            'The Purpose dropdown must call toggleOtherPurpose() when the student picks an option.'
+        );
+    }
 }
