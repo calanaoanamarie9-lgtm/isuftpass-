@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AppointmentController extends Controller
@@ -160,7 +161,11 @@ class AppointmentController extends Controller
         $data = $request->validate([
             'office' => ['required', 'in:' . implode(',', Office::toSelectKeys())],
             'purpose' => ['required', 'string', 'max:255'],
-            'purpose_other' => ['required_if:purpose,' . AppointmentPurposes::OTHER, 'string', 'max:255'],
+            // The hidden "Please specify purpose" box is emptied by the
+            // TrimStrings / ConvertEmptyStringsToNull middleware, so a chosen
+            // preset arrives here as null - it must stay nullable. "Other"
+            // still demands text: see resolvePurpose().
+            'purpose_other' => ['required_if:purpose,' . AppointmentPurposes::OTHER, 'nullable', 'string', 'max:255'],
             'date' => ['required', 'date', 'after_or_equal:today'],
             'time_slot' => [
                 'nullable',
@@ -173,9 +178,7 @@ class AppointmentController extends Controller
         ]);
 
         // "Other" stores the purpose the student typed; a chosen preset is kept as-is.
-        $data['purpose'] = $data['purpose'] === AppointmentPurposes::OTHER
-            ? trim((string) $data['purpose_other'])
-            : $data['purpose'];
+        $data['purpose'] = $this->resolvePurpose($data);
         unset($data['purpose_other']);
 
         // The Registrar asks for a date alone — it answers with the time when
@@ -305,6 +308,35 @@ class AppointmentController extends Controller
     }
 
     /**
+     * "Other" stores the purpose the student typed; a chosen preset is kept
+     * as-is.
+     *
+     * The rule on purpose_other must stay `nullable` (the hidden box submits
+     * as null whenever a preset is chosen), and Laravel skips the implicit
+     * `required_if` for null values on nullable fields - so "Other" with no
+     * typed text gets its own check here, right before the booking is
+     * written.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function resolvePurpose(array $data): string
+    {
+        if ($data['purpose'] !== AppointmentPurposes::OTHER) {
+            return $data['purpose'];
+        }
+
+        $typed = trim((string) ($data['purpose_other'] ?? ''));
+
+        if ($typed === '') {
+            throw ValidationException::withMessages([
+                'purpose_other' => 'Please specify your purpose.',
+            ]);
+        }
+
+        return $typed;
+    }
+
+    /**
      * Edit form for an upcoming appointment (pre-filled with current values).
      */
     public function edit(Appointment $appointment): View
@@ -339,7 +371,10 @@ class AppointmentController extends Controller
         $data = $request->validate([
             'office' => ['required', 'in:' . implode(',', Office::toSelectKeys())],
             'purpose' => ['required', 'string', 'max:255'],
-            'purpose_other' => ['required_if:purpose,' . AppointmentPurposes::OTHER, 'string', 'max:255'],
+            // Same as store(): a preset purpose submits the emptied (null)
+            // specify box, so the rule stays nullable while resolvePurpose()
+            // still demands text when "Other" is chosen.
+            'purpose_other' => ['required_if:purpose,' . AppointmentPurposes::OTHER, 'nullable', 'string', 'max:255'],
             'date' => ['required', 'date', 'after_or_equal:today'],
             'time_slot' => [
                 'nullable',
@@ -352,9 +387,7 @@ class AppointmentController extends Controller
         ]);
 
         // "Other" stores the purpose the student typed; a chosen preset is kept as-is.
-        $data['purpose'] = $data['purpose'] === AppointmentPurposes::OTHER
-            ? trim((string) $data['purpose_other'])
-            : $data['purpose'];
+        $data['purpose'] = $this->resolvePurpose($data);
         unset($data['purpose_other']);
 
         $timeSlot = $data['time_slot'] ?? null;

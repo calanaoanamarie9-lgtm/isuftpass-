@@ -325,6 +325,7 @@
                                            type="text"
                                            value="{{ old('purpose_other') }}"
                                            placeholder="Type your purpose"
+                                           @disabled($selectedPurpose !== $otherPurpose)
                                            class="w-full rounded-xl border-gray-300
                                                   bg-white text-sm text-gray-800
                                                   shadow-sm
@@ -761,13 +762,22 @@
         }
 
 
-        // "Other" reveals the mandatory "Please specify purpose" box.
+        // "Other" reveals the mandatory "Please specify purpose" box; every
+        // other purpose empties and disables it, so the box is not submitted
+        // at all (an emptied text input arrives as null on the server).
         function toggleOtherPurpose() {
 
             const isOther = purposeSelect.value === otherPurpose;
 
             purposeOtherGroup.classList.toggle('hidden', ! isOther);
             purposeOtherInput.required = isOther;
+            purposeOtherInput.disabled = ! isOther;
+
+            if (! isOther) {
+
+                purposeOtherInput.value = '';
+
+            }
 
         }
 
