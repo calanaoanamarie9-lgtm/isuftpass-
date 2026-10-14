@@ -4,7 +4,7 @@
         $steps = [
             ['value' => 'submitted',              'label' => 'Submitted'],
             ['value' => 'for_signature',          'label' => 'Approved'],
-            ['value' => 'awaiting_or_validation', 'label' => 'Awaiting OR'],
+            ['value' => 'awaiting_or_validation', 'label' => 'Paid'],
             ['value' => 'processing',             'label' => 'Processing'],
             ['value' => 'ready_for_pickup',       'label' => 'For Release'],
             ['value' => 'completed',              'label' => 'Claimed'],
