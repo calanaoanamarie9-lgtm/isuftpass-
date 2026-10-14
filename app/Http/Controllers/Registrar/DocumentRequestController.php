@@ -51,13 +51,36 @@ class DocumentRequestController extends Controller
             ]);
         }
 
+        // Applicant classification filter. "Student" is every account that
+        // signed up as a student (registration_type is left null for them);
+        // alumni / parent / guest were typed into registration_type at signup.
+        $userTypes = [
+            'student' => 'Student',
+            'alumni' => 'Alumni',
+            'parent' => 'Parent',
+            'guest' => 'Guest',
+        ];
+
+        $userType = $request->query('user_type');
+        $userType = array_key_exists($userType, $userTypes) ? $userType : null;
+
+        if ($userType === 'student') {
+            $query->whereHas('user', fn ($q) => $q->whereNull('registration_type'));
+        } elseif ($userType !== null) {
+            // "Parent" also covers the legacy 'guardian' registration_type.
+            $registrations = $userType === 'parent' ? ['parent', 'guardian'] : [$userType];
+            $query->whereHas('user', fn ($q) => $q->whereIn('registration_type', $registrations));
+        }
+
         return view('registrar.document-requests.index', [
             'requests' => $query->paginate(10)->withQueryString(),
             'statuses' => collect(DocumentRequestStatus::cases())
                 ->mapWithKeys(fn (DocumentRequestStatus $s) => [$s->value => $s->label()])
                 ->all(),
+            'userTypes' => $userTypes,
             'filters' => array_filter([
                 'status' => $request->query('status'),
+                'user_type' => $userType,
             ]),
             'tab' => $tab,
         ]);

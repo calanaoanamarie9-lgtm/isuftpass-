@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\DocumentRequestStatus;
 use App\Mail\DocumentRequestReadyForPickup;
 use App\Models\Document;
+use App\Models\DocumentRequest;
 use App\Models\User;
 use App\Notifications\CashierPaymentDueAlert;
 use App\Notifications\DocumentRequestStatusNotification;
@@ -44,6 +45,28 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $request->documents()->attach($document->id);
 
         return [$student, $request];
+    }
+
+    private function makeRequestFor(User $user, string $status = DocumentRequestStatus::SUBMITTED->value): DocumentRequest
+    {
+        $document = Document::create(['name' => 'Transcript of Records', 'description' => 'TOR', 'fee' => 100.00]);
+
+        $request = $user->documentRequests()->create([
+            'student_name' => $user->name,
+            'student_address' => 'Iloilo City',
+            'student_contact' => '09170000000',
+            'student_course_year' => 'BSIT 3',
+            'status' => $status,
+            'purpose_type' => 'employment',
+            'educational_status' => 'not_graduated',
+            'educational_level' => 'college',
+            'claim_mode' => 'personal',
+            'submitted_at' => now(),
+            'paid_at' => now(),
+        ]);
+        $request->documents()->attach($document->id);
+
+        return $request;
     }
 
     public function test_approving_a_request_notifies_the_student_and_every_cashier(): void
@@ -195,6 +218,64 @@ class RegistrarDocumentRequestModuleTest extends TestCase
             ->assertSee($completedRequest->request_number)
             ->assertDontSee($cancelledRequest->request_number)
             ->assertDontSee($activeRequest->request_number);
+    }
+
+    public function test_registrar_queue_shows_the_applicant_classification_badge(): void
+    {
+        $alumni = User::factory()->create([
+            'role' => 'student',
+            'registration_type' => 'alumni',
+            'name' => 'Reyes, Ana Claire',
+        ]);
+        $this->makeRequestFor($alumni);
+
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/document-requests')
+            ->assertOk()
+            ->assertSee('Reyes, Ana Claire')
+            ->assertSee('data-classification="alumni"', false);
+    }
+
+    public function test_request_details_show_the_applicant_classification_badge(): void
+    {
+        $guest = User::factory()->create([
+            'role' => 'student',
+            'registration_type' => 'guest',
+            'name' => 'Cruz, Peter Santos',
+        ]);
+        $request = $this->makeRequestFor($guest);
+
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/document-requests/'.$request->id)
+            ->assertOk()
+            ->assertSee('Cruz, Peter Santos')
+            ->assertSee('data-classification="guest"', false);
+    }
+
+    public function test_registrar_can_filter_the_queue_by_user_type(): void
+    {
+        [, $studentRequest] = $this->makeStudentWithRequest();
+
+        $alumni = User::factory()->create([
+            'role' => 'student',
+            'registration_type' => 'alumni',
+            'name' => 'Reyes, Ana Claire',
+        ]);
+        $alumniRequest = $this->makeRequestFor($alumni);
+
+        // Alumni filter shows only the alumni applicant.
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/document-requests?user_type=alumni')
+            ->assertOk()
+            ->assertSee($alumniRequest->request_number)
+            ->assertDontSee($studentRequest->request_number);
+
+        // Student filter shows only the student applicant.
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/document-requests?user_type=student')
+            ->assertOk()
+            ->assertSee($studentRequest->request_number)
+            ->assertDontSee($alumniRequest->request_number);
     }
 
     public function test_registrar_can_view_request_details(): void

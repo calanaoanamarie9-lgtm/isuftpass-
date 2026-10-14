@@ -229,6 +229,26 @@ class User extends Authenticatable implements MustVerifyEmail
         };
     }
 
+    /**
+     * Applicant classification surfaced to staff portals. Alumni, parent and
+     * guest come from the registration_type typed at signup; every other
+     * signup is a student (registration_type is left null for them).
+     */
+    public function classification(): string
+    {
+        return match ($this->registration_type) {
+            'alumni' => 'alumni',
+            'parent', 'guardian' => 'parent',
+            'guest' => 'guest',
+            default => 'student',
+        };
+    }
+
+    public function classificationLabel(): string
+    {
+        return ucfirst($this->classification());
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Relationships

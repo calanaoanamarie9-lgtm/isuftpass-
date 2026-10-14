@@ -380,6 +380,43 @@
                         </div>
 
 
+                        {{-- USER TYPE / CLASSIFICATION FILTER --}}
+                        <div class="flex-1">
+
+                            <label class="block text-[11px] font-bold
+                                          uppercase tracking-wider
+                                          text-slate-400 mb-2">
+
+                                Filter by User Type
+
+                            </label>
+
+                            <select name="user_type"
+                                    class="w-full rounded-xl border-slate-300
+                                           shadow-sm text-sm
+                                           focus:border-blue-500
+                                           focus:ring-blue-500">
+
+                                <option value="">
+                                    All User Types
+                                </option>
+
+                                @foreach ($userTypes as $value => $label)
+
+                                    <option value="{{ $value }}"
+                                        @selected(($filters['user_type'] ?? null) === $value)>
+
+                                        {{ $label }}
+
+                                    </option>
+
+                                @endforeach
+
+                            </select>
+
+                        </div>
+
+
                         <div class="flex gap-2">
 
                             <button type="submit"
@@ -490,6 +527,8 @@
                                             {{ $request->student_name }}
 
                                         </h3>
+
+                                        <x-classification-badge :user="$request->user" />
 
                                         <span class="px-2.5 py-1 rounded-lg
                                                      bg-slate-100 text-slate-500

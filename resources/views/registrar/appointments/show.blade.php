@@ -136,6 +136,8 @@
 
                                         </h1>
 
+                                        <x-classification-badge :user="$appointment->user" />
+
                                     </div>
 
 

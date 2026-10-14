@@ -600,6 +600,9 @@
                                             </p>
 
 
+                                            <x-classification-badge :user="$appointment->user" />
+
+
                                             <span class="text-[10px]
                                                          font-bold
                                                          uppercase
