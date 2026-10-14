@@ -63,6 +63,9 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     protected $fillable = [
         'name',
+        'last_name',
+        'first_name',
+        'middle_name',
         'email',
         'email_verified_at',
         'role',
@@ -317,6 +320,46 @@ class User extends Authenticatable implements MustVerifyEmail
     public function scopePendingApproval(Builder $query): Builder
     {
         return $query->where('approval_status', self::APPROVAL_PENDING);
+    }
+
+    /**
+     * Keep the display `name` in sync with the structured name parts whenever
+     * they are present, so the rest of the app keeps rendering a natural
+     * "First Middle Last" while official print-outs use formattedName().
+     *
+     * Accounts that have not filled the parts in (users created before the
+     * split) keep their existing `name` untouched.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            $natural = trim(implode(' ', array_filter([
+                $user->first_name,
+                $user->middle_name,
+                $user->last_name,
+            ], fn ($part) => $part !== null && $part !== '')));
+
+            if ($natural !== '') {
+                $user->name = $natural;
+            }
+        });
+    }
+
+    /**
+     * Official rendering of the applicant's name for requisition forms,
+     * claim passes and other print-outs: "[Last Name], [First Name] [Middle
+     * Name]". Falls back to the display `name` for accounts that have not
+     * filled in the parts yet.
+     */
+    public function formattedName(): string
+    {
+        if ($this->last_name === null && $this->first_name === null) {
+            return (string) $this->name;
+        }
+
+        $middle = $this->middle_name ? ' '.$this->middle_name : '';
+
+        return trim(($this->last_name ?? '').', '.($this->first_name ?? '').$middle);
     }
 
     protected function casts(): array

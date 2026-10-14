@@ -649,17 +649,30 @@
         |--------------------------------------------------------------------------
         | STUDENT NAME
         |--------------------------------------------------------------------------
+        | Prefer the structured name parts when the account has them; older
+        | accounts only carry the single display name, which is parsed here as
+        | a best effort (unchanged from before).
         */
 
-        $nameParts = preg_split(
-            '/\s*,\s*|\s+/',
-            trim($request->student_name ?? ''),
-            3
-        );
+        if ($request->user && ($request->user->last_name || $request->user->first_name)) {
 
-        $family = $nameParts[0] ?? '';
-        $first = $nameParts[1] ?? '';
-        $middle = $nameParts[2] ?? '';
+            $family = (string) $request->user->last_name;
+            $first = (string) $request->user->first_name;
+            $middle = (string) $request->user->middle_name;
+
+        } else {
+
+            $nameParts = preg_split(
+                '/\s*,\s*|\s+/',
+                trim($request->student_name ?? ''),
+                3
+            );
+
+            $family = $nameParts[0] ?? '';
+            $first = $nameParts[1] ?? '';
+            $middle = $nameParts[2] ?? '';
+
+        }
 
 
         /*

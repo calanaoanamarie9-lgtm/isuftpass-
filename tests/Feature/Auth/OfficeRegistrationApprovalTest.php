@@ -52,7 +52,9 @@ class OfficeRegistrationApprovalTest extends TestCase
     public function test_office_registration_creates_a_pending_account(): void
     {
         $response = $this->post('/register', [
-            'name' => 'Librarian Probe',
+            'first_name' => 'Librarian',
+            'middle_name' => 'M',
+            'last_name' => 'Probe',
             'email' => 'librarian@isufst.edu.ph',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -86,7 +88,9 @@ class OfficeRegistrationApprovalTest extends TestCase
     public function test_office_registration_requires_office_position_and_contact(): void
     {
         $response = $this->post('/register', [
-            'name' => 'Incomplete Staff',
+            'first_name' => 'Incomplete',
+            'middle_name' => 'M',
+            'last_name' => 'Staff',
             'email' => 'incomplete@isufst.edu.ph',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -100,7 +104,9 @@ class OfficeRegistrationApprovalTest extends TestCase
     public function test_office_registration_takes_the_office_the_applicant_types(): void
     {
         $this->post('/register', [
-            'name' => 'Property Officer',
+            'first_name' => 'Property',
+            'middle_name' => 'M',
+            'last_name' => 'Officer',
             'email' => 'property@isufst.edu.ph',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -122,7 +128,9 @@ class OfficeRegistrationApprovalTest extends TestCase
     public function test_a_typed_name_of_an_existing_office_resolves_to_that_office(): void
     {
         $this->post('/register', [
-            'name' => 'Librarian Probe',
+            'first_name' => 'Librarian',
+            'middle_name' => 'M',
+            'last_name' => 'Probe',
             'email' => 'librarian2@isufst.edu.ph',
             'password' => 'password',
             'password_confirmation' => 'password',

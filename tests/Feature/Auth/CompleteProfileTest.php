@@ -15,7 +15,9 @@ class CompleteProfileTest extends TestCase
     private function registerStudent(string $email = 'jane@example.com'): User
     {
         $this->post('/register', [
-            'name' => 'Jane Student',
+            'first_name' => 'Jane',
+            'middle_name' => 'M',
+            'last_name' => 'Student',
             'email' => $email,
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -28,7 +30,9 @@ class CompleteProfileTest extends TestCase
     private function registerOther(string $registrationType, string $email = 'john@example.com'): User
     {
         $this->post('/register', [
-            'name' => 'John Other',
+            'first_name' => 'John',
+            'middle_name' => 'M',
+            'last_name' => 'Other',
             'email' => $email,
             'password' => 'password',
             'password_confirmation' => 'password',

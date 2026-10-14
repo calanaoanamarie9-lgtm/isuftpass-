@@ -57,7 +57,9 @@ class EmailVerificationTest extends TestCase
         Notification::fake();
 
         $response = $this->post('/register', [
-            'name' => 'New Student',
+            'first_name' => 'New',
+            'middle_name' => 'M',
+            'last_name' => 'Student',
             'email' => 'newstudent@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -207,7 +209,9 @@ class EmailVerificationTest extends TestCase
         config(['mail.default' => 'offline']);
 
         $response = $this->post('/register', [
-            'name' => 'Outage Student',
+            'first_name' => 'Outage',
+            'middle_name' => 'M',
+            'last_name' => 'Student',
             'email' => 'outage@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -318,7 +322,9 @@ class EmailVerificationTest extends TestCase
         Notification::fake();
 
         $this->post('/register', [
-            'name' => 'Gated Student',
+            'first_name' => 'Gated',
+            'middle_name' => 'M',
+            'last_name' => 'Student',
             'email' => 'gated@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',

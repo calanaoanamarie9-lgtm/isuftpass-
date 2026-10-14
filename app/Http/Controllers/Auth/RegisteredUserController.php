@@ -48,7 +48,9 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $rules = [
-            'name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:100'],
+            'first_name' => ['required', 'string', 'max:100'],
+            'middle_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'user_type' => ['required', 'string', 'in:student,office,other'],
@@ -70,7 +72,11 @@ class RegisteredUserController extends Controller
         $request->validate($rules);
 
         $user = User::create([
-            'name' => $request->name,
+            // The three parts are stored as-is; the User model composes the
+            // display `name` ("First Middle Last") from them on save.
+            'last_name' => $request->last_name,
+            'first_name' => $request->first_name,
+            'middle_name' => $request->middle_name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'registration_type' => $request->user_type === 'other' ? $request->registration_type : null,

@@ -383,7 +383,7 @@
                         </p>
 
                         <p class="mt-1 text-lg font-black text-gray-900 break-words">
-                            {{ $documentRequest->student_name }}
+                            {{ $documentRequest->user?->formattedName() ?? $documentRequest->student_name }}
                         </p>
 
                         @if ($documentRequest->user?->studentProfile?->student_id)

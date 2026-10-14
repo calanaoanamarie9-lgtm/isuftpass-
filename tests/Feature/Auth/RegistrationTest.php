@@ -50,7 +50,9 @@ class RegistrationTest extends TestCase
     public function test_new_users_can_register(): void
     {
         $response = $this->post('/register', [
-            'name' => 'Test User',
+            'first_name' => 'Test',
+            'middle_name' => 'M',
+            'last_name' => 'User',
             'email' => 'test@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -67,7 +69,9 @@ class RegistrationTest extends TestCase
     public function test_other_type_registers_without_student_profile(): void
     {
         $response = $this->post('/register', [
-            'name' => 'Other User',
+            'first_name' => 'Other',
+            'middle_name' => 'M',
+            'last_name' => 'User',
             'email' => 'other@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -88,7 +92,9 @@ class RegistrationTest extends TestCase
     public function test_other_type_requires_registration_type(): void
     {
         $response = $this->post('/register', [
-            'name' => 'Other User',
+            'first_name' => 'Other',
+            'middle_name' => 'M',
+            'last_name' => 'User',
             'email' => 'other2@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',

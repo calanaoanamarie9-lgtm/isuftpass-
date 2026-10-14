@@ -21,7 +21,9 @@ class StudentProfileUpdateTest extends TestCase
     private function student(string $email = 'jane@example.com'): User
     {
         $this->post('/register', [
-            'name' => 'Jane Student',
+            'first_name' => 'Jane',
+            'middle_name' => 'M',
+            'last_name' => 'Student',
             'email' => $email,
             'password' => 'password',
             'password_confirmation' => 'password',

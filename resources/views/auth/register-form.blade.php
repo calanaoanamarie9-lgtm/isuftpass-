@@ -660,52 +660,86 @@
                         <div>
 
                             <label
-                                for="name"
                                 class="block text-sm font-semibold text-gray-800 mb-2"
                             >
                                 Full Name
                             </label>
 
-                            <div class="relative">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
 
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <!-- Last Name -->
+                                <div>
 
-                                    <svg
-                                        class="w-5 h-5 text-gray-400"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
+                                    <label
+                                        for="last_name"
+                                        class="block text-xs font-semibold text-gray-500 mb-1"
                                     >
+                                        Last Name / Family Name <span class="text-red-500">*</span>
+                                    </label>
 
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                        />
-
-                                    </svg>
+                                    <input
+                                        id="last_name"
+                                        name="last_name"
+                                        type="text"
+                                        value="{{ old('last_name') }}"
+                                        required
+                                        autofocus
+                                        placeholder="Last name"
+                                        class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
+                                    >
 
                                 </div>
 
-                                <input
-                                    id="name"
-                                    name="name"
-                                    type="text"
-                                    value="{{ old('name') }}"
-                                    required
-                                    autofocus
-                                    autocomplete="name"
-                                    placeholder="Enter your full name"
-                                    class="block w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
-                                >
+                                <!-- First Name -->
+                                <div>
+
+                                    <label
+                                        for="first_name"
+                                        class="block text-xs font-semibold text-gray-500 mb-1"
+                                    >
+                                        First Name <span class="text-red-500">*</span>
+                                    </label>
+
+                                    <input
+                                        id="first_name"
+                                        name="first_name"
+                                        type="text"
+                                        value="{{ old('first_name') }}"
+                                        required
+                                        placeholder="First name"
+                                        class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
+                                    >
+
+                                </div>
+
+                                <!-- Middle Name -->
+                                <div>
+
+                                    <label
+                                        for="middle_name"
+                                        class="block text-xs font-semibold text-gray-500 mb-1"
+                                    >
+                                        Middle Name <span class="text-red-500">*</span>
+                                    </label>
+
+                                    <input
+                                        id="middle_name"
+                                        name="middle_name"
+                                        type="text"
+                                        value="{{ old('middle_name') }}"
+                                        required
+                                        placeholder="Middle name"
+                                        class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
+                                    >
+
+                                </div>
 
                             </div>
 
-                            @if ($errors->get('name'))
+                            @if ($errors->has('last_name') || $errors->has('first_name') || $errors->has('middle_name'))
 
                                 <p class="mt-2 text-sm text-red-600">
-                                    {{ $errors->first('name') }}
+                                    {{ $errors->first('last_name') ?: ($errors->first('first_name') ?: $errors->first('middle_name')) }}
                                 </p>
 
                             @endif

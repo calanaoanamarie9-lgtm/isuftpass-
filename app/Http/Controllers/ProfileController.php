@@ -61,6 +61,9 @@ class ProfileController extends Controller
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'remove_avatar' => ['nullable', 'boolean'],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'last_name' => ['sometimes', 'required', 'string', 'max:100'],
+            'first_name' => ['sometimes', 'required', 'string', 'max:100'],
+            'middle_name' => ['sometimes', 'required', 'string', 'max:100'],
             'email' => [
                 'sometimes',
                 'required',
@@ -98,7 +101,9 @@ class ProfileController extends Controller
             $user->studentProfile->update($profileData);
         }
 
-        $accountData = array_intersect_key($validated, array_flip(['name', 'email']));
+        $accountData = array_intersect_key($validated, array_flip([
+            'name', 'last_name', 'first_name', 'middle_name', 'email',
+        ]));
 
         if ($accountData !== []) {
             $user->fill($accountData);

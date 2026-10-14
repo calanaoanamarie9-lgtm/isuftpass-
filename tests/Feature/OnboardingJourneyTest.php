@@ -81,7 +81,9 @@ class OnboardingJourneyTest extends TestCase
     {
         $this->walkJourney(
             [
-                'name' => 'Jane Student',
+                'first_name' => 'Jane',
+                'middle_name' => 'M',
+                'last_name' => 'Student',
                 'email' => 'jane.journey@example.com',
                 'user_type' => 'student',
             ],
@@ -93,7 +95,7 @@ class OnboardingJourneyTest extends TestCase
                 'address' => 'Barotac Nuevo, Iloilo',
             ],
             'student.dashboard',
-            'Welcome, Jane Student!',
+            'Welcome, Jane M Student!',
         );
     }
 
@@ -101,7 +103,9 @@ class OnboardingJourneyTest extends TestCase
     {
         $user = $this->walkJourney(
             [
-                'name' => 'Anna Alumni',
+                'first_name' => 'Anna',
+                'middle_name' => 'M',
+                'last_name' => 'Alumni',
                 'email' => 'anna.journey@example.com',
                 'user_type' => 'other',
                 'registration_type' => 'alumni',
@@ -113,7 +117,7 @@ class OnboardingJourneyTest extends TestCase
                 'year_graduated' => '2024',
             ],
             'alumni.dashboard',
-            'Welcome, Anna Alumni!',
+            'Welcome, Anna M Alumni!',
         );
 
         $this->assertSame('alumni', $user->fresh()->registration_type);
@@ -123,7 +127,9 @@ class OnboardingJourneyTest extends TestCase
     {
         $user = $this->walkJourney(
             [
-                'name' => 'Gina Guest',
+                'first_name' => 'Gina',
+                'middle_name' => 'M',
+                'last_name' => 'Guest',
                 'email' => 'gina.journey@example.com',
                 'user_type' => 'other',
                 'registration_type' => 'guest',
@@ -151,7 +157,9 @@ class OnboardingJourneyTest extends TestCase
     {
         $user = $this->walkJourney(
             [
-                'name' => 'Pia Parent',
+                'first_name' => 'Pia',
+                'middle_name' => 'M',
+                'last_name' => 'Parent',
                 'email' => 'pia.journey@example.com',
                 'user_type' => 'other',
                 'registration_type' => 'parent',
