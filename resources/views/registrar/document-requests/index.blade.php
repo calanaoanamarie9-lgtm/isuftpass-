@@ -168,9 +168,9 @@
                 </div>
 
 
-                {{-- Paid: everything the cashier has collected — waiting on
-                     the student to present the OR (awaiting_or_validation)
-                     or already validated and moving through processing. --}}
+                {{-- Paid: everything the cashier has collected — parked at
+                     awaiting_or_validation until the registrar starts
+                     processing, or already moving through processing. --}}
                 <div class="bg-white rounded-2xl border border-slate-200
                             shadow-sm p-5">
 

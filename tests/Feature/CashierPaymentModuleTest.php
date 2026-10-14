@@ -114,6 +114,18 @@ class CashierPaymentModuleTest extends TestCase
             ->assertSee('Record Payment');
     }
 
+    public function test_submitted_requests_are_not_yet_in_the_cashier_queue(): void
+    {
+        // Registrar approval comes first: a request still sitting at
+        // "Submitted" must not surface in the cashier's queue at all.
+        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::SUBMITTED->value);
+
+        $this->actingAs($this->makeCashier())
+            ->get('/cashier/payments')
+            ->assertOk()
+            ->assertDontSee($request->request_number);
+    }
+
     public function test_cashier_can_record_payment_and_notify_student(): void
     {
         Notification::fake();
@@ -129,7 +141,7 @@ class CashierPaymentModuleTest extends TestCase
         Notification::assertSentTo(
             $student,
             DocumentRequestStatusNotification::class,
-            fn ($notification) => str_contains($notification->message, 'payment has been recorded'),
+            fn ($notification) => str_contains($notification->message, 'payment has been confirmed'),
         );
     }
 
@@ -214,15 +226,15 @@ class CashierPaymentModuleTest extends TestCase
 
         $fresh = $request->fresh();
 
-        // The cashier's payment now moves the request straight to PROCESSING
-        // (no separate OR validation step in the new flow).
+        // The cashier's payment parks the request at PAID, awaiting the
+        // registrar's explicit Start Processing. Processing has not begun.
         $this->assertNotNull($fresh->paid_at);
         $this->assertEquals(
-            DocumentRequestStatus::PROCESSING->value,
+            DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
             $fresh->status,
         );
-        $this->assertNotNull($fresh->processing_at);
-        $this->assertNotNull($fresh->or_validated_at);
+        $this->assertNull($fresh->processing_at);
+        $this->assertNull($fresh->or_validated_at);
     }
 
     public function test_cashier_cannot_record_payment_before_the_registrar_approves(): void
@@ -274,11 +286,9 @@ class CashierPaymentModuleTest extends TestCase
         $this->assertEquals(DocumentRequestStatus::FOR_SIGNATURE->value, $request->fresh()->status);
         $this->assertNull($request->fresh()->paid_at);
 
-        // Only now does the cashier's payment carry it on to Paid.
-        // In the new flow the payment lands the request in
-        // `awaiting_or_validation` first; the student must present
-        // the Official Receipt and the registrar must validate it
-        // before the request moves to `processing`.
+        // Only now does the cashier's payment carry it on to Paid — and it
+        // stops there: processing only begins when the registrar explicitly
+        // clicks Start Processing.
         $this->actingAs($this->makeCashier())
             ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2025-00126'])
             ->assertRedirect();
@@ -287,11 +297,11 @@ class CashierPaymentModuleTest extends TestCase
 
         $this->assertNotNull($fresh->paid_at);
         $this->assertEquals(
-            DocumentRequestStatus::PROCESSING->value,
+            DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
             $fresh->status,
         );
-        $this->assertNotNull($fresh->processing_at);
-        $this->assertNotNull($fresh->or_validated_at);
+        $this->assertNull($fresh->processing_at);
+        $this->assertNull($fresh->or_validated_at);
     }
 
     public function test_duplicate_or_number_is_rejected(): void

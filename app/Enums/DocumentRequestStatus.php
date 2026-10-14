@@ -19,9 +19,11 @@ enum DocumentRequestStatus: string
     {
         return match ($this) {
             self::SUBMITTED => 'Submitted',
-            self::AWAITING_OR_VALIDATION => 'Awaiting OR Validation',
-            self::PROCESSING => 'Processing',
             self::FOR_SIGNATURE => 'Approved',
+            // "Paid": the cashier has recorded the payment and issued the OR.
+            // The registrar must explicitly start processing from here.
+            self::AWAITING_OR_VALIDATION => 'Paid',
+            self::PROCESSING => 'Processing',
             self::READY_FOR_PICKUP => 'Ready for Pick-up',
             self::COMPLETED => 'Completed',
             self::CANCELLED => 'Cancelled',
@@ -34,8 +36,12 @@ enum DocumentRequestStatus: string
      * Follows the Functional Flow Chart in the Delivery of Service —
      * Release of Credentials: the registrar verifies the request and
      * issues an Order of Payment, the cashier collects and issues an
-     * Official Receipt, the student presents that receipt back for
-     * validation, and only then does credential processing begin.
+     * Official Receipt (marking it Paid), and only then does the registrar
+     * explicitly start credential processing.
+     *
+     * The AWAITING_OR_VALIDATION case keeps its legacy value (it is stored
+     * in the database) but now represents the "Paid" stage — payment is in,
+     * waiting on the registrar to begin processing.
      */
     public static function pipeline(): array
     {

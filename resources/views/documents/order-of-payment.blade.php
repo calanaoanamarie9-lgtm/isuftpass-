@@ -462,10 +462,10 @@
 
                 Settle the total amount due at the
                 <b>University Cashier's Office</b> (over the counter) and
-                claim your <b>Official Receipt</b>. Present that Official
-                Receipt back to the <b>Registrar's Office</b> — or submit
-                its details through the ISUFSTPASS portal — for validation
-                before your credential is prepared for release.
+                claim your <b>Official Receipt</b>. Once the Cashier
+                records your payment, your request will be marked
+                <b>Paid</b> and the <b>Registrar's Office</b> will prepare
+                your credential for release.
 
             </div>
 

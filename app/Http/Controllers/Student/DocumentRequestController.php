@@ -223,50 +223,6 @@ class DocumentRequestController extends Controller
     }
 
     /**
-     * Step 4 of the release flow: the student (or their representative)
-     * presents the Official Receipt back to the Registrar's Office for
-     * validation. Resubmission is allowed — the registrar may send the
-     * details back for correction.
-     */
-    public function submitOr(Request $request, DocumentRequest $documentRequest): RedirectResponse
-    {
-        Gate::authorize('submitOr', $documentRequest);
-
-        $data = $request->validate([
-            'submitted_or_number' => ['required', 'string', 'max:50'],
-            'submitted_or_date' => ['required', 'date', 'before_or_equal:today'],
-            'submitted_or_amount' => ['required', 'numeric', 'min:0', 'max:999999.99'],
-        ]);
-
-        $documentRequest->forceFill([
-            'submitted_or_number' => strtoupper(trim($data['submitted_or_number'])),
-            'submitted_or_date' => $data['submitted_or_date'],
-            'submitted_or_amount' => $data['submitted_or_amount'],
-            'or_submitted_at' => now(),
-            'or_validation_note' => null,
-        ])->save();
-
-        AuditLogger::log('or.submitted', sprintf(
-            'Submitted Official Receipt OR No. %s dated %s (₱%s) for request %s.',
-            $documentRequest->submitted_or_number,
-            $documentRequest->submitted_or_date->format('Y-m-d'),
-            number_format((float) $documentRequest->submitted_or_amount, 2),
-            $documentRequest->request_number,
-        ));
-
-        // The registrar cannot act on a receipt nobody told them about.
-        RegistrarNotifier::alert(
-            $documentRequest,
-            'Official Receipt presented for validation',
-            $documentRequest->student_name.' submitted OR No. '.$documentRequest->submitted_or_number.' (₱'.number_format((float) $documentRequest->submitted_or_amount, 2).') for '.$documentRequest->request_number.'. Validate it to release the request for processing.'
-        );
-
-        return redirect()
-            ->route('student.documents.show', $documentRequest)
-            ->with('status', 'Official Receipt submitted. The Registrar\'s Office will validate it and your request will move to processing.');
-    }
-
-    /**
      * The Order of Payment issued upon approval — the official billing
      * statement the student settles at the Cashier's Office.
      */

@@ -361,10 +361,9 @@
             {{-- NOTE --}}
             <div class="note-box">
 
-                <b>Present this Official Receipt</b> to the Registrar's
-                Office — or submit its details through the ISUFSTPASS
-                portal — for validation. Your credential is prepared for
-                release only after the receipt has been validated.
+                <b>Keep this Official Receipt</b> as proof of payment.
+                Your request is now marked <b>Paid</b> — the Registrar's
+                Office will start processing your credential.
 
             </div>
 

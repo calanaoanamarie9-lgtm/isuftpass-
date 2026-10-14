@@ -285,7 +285,7 @@
                                             <span class="w-1.5 h-1.5 rounded-full
                                                          bg-amber-500"></span>
 
-                                            Awaiting OR Validation
+                                            Paid
 
                                         </span>
 

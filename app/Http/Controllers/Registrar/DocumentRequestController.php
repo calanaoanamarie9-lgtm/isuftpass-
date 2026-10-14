@@ -133,26 +133,18 @@ class DocumentRequestController extends Controller
             ));
         }
 
-        // Second hand-off: payment is in, but the student has to present
-        // the Official Receipt for validation before credential processing
-        // can begin. Advancing happens through validateOr(), not here.
-        if ($documentRequest->status === DocumentRequestStatus::AWAITING_OR_VALIDATION->value) {
-            return back()->with('error', $documentRequest->hasSubmittedOr()
-                ? sprintf(
-                    '%s has an Official Receipt awaiting validation. Use the Validate OR button on this page to move it to processing.',
-                    $documentRequest->request_number,
-                )
-                : sprintf(
-                    '%s has been paid, but the student has not yet presented the Official Receipt for validation.',
-                    $documentRequest->request_number,
-                ));
-        }
-
         $next = match ($documentRequest->status) {
             DocumentRequestStatus::SUBMITTED->value => [
                 DocumentRequestStatus::FOR_SIGNATURE->value,
                 'for_signature_at',
                 'has been approved',
+            ],
+            // Paid: the cashier has recorded the OR. The registrar must
+            // explicitly click "Start Processing" to begin credential work.
+            DocumentRequestStatus::AWAITING_OR_VALIDATION->value => [
+                DocumentRequestStatus::PROCESSING->value,
+                'processing_at',
+                'is now being processed',
             ],
             DocumentRequestStatus::PROCESSING->value => [
                 DocumentRequestStatus::READY_FOR_PICKUP->value,
@@ -254,12 +246,12 @@ class DocumentRequestController extends Controller
             return $blocked;
         }
 
-        // Awaiting OR Validation carries no stamp of its own: the payment
-        // timestamp is the cashier's write, set when the OR was issued.
+        // Paid carries no stamp of its own: the payment timestamp is the
+        // cashier's write, set when the OR was issued.
         [$timestamp, $message] = match ($target) {
             DocumentRequestStatus::PROCESSING => ['processing_at', 'is now being processed'],
             DocumentRequestStatus::FOR_SIGNATURE => ['for_signature_at', 'has been approved'],
-            DocumentRequestStatus::AWAITING_OR_VALIDATION => [null, 'has been paid — the Official Receipt now needs validation'],
+            DocumentRequestStatus::AWAITING_OR_VALIDATION => [null, 'has been paid'],
             DocumentRequestStatus::READY_FOR_PICKUP => ['ready_at', 'is now ready for pick-up'],
             DocumentRequestStatus::COMPLETED => ['completed_at', 'has been completed'],
             default => [null, null],
@@ -304,99 +296,6 @@ class DocumentRequestController extends Controller
         return redirect()
             ->back()
             ->with('status', "Request {$target->label()}. The student has been notified by email and in the system.");
-    }
-
-    /**
-     * Step 4 → 5: the student has presented their Official Receipt, and
-     * the registrar has checked it against the cashier's record. Validating
-     * it releases the request into credential processing.
-     */
-    public function validateOr(Request $request, DocumentRequest $documentRequest): RedirectResponse
-    {
-        if ($documentRequest->status !== DocumentRequestStatus::AWAITING_OR_VALIDATION->value) {
-            return back()->with('error', sprintf(
-                '%s is not awaiting Official Receipt validation.',
-                $documentRequest->request_number,
-            ));
-        }
-
-        if (! $documentRequest->hasSubmittedOr()) {
-            return back()->with('error', sprintf(
-                'The student has not submitted Official Receipt details for %s yet. Ask them to present the receipt through their portal first.',
-                $documentRequest->request_number,
-            ));
-        }
-
-        $documentRequest->forceFill([
-            'status' => DocumentRequestStatus::PROCESSING->value,
-            'processing_at' => $documentRequest->processing_at ?? now(),
-            'or_validated_at' => now(),
-            'or_validation_note' => null,
-        ])->save();
-
-        AuditLogger::log('or.validated', sprintf(
-            'Validated Official Receipt OR No. %s (submitted) against the cashier record OR No. %s for request %s.',
-            $documentRequest->submitted_or_number,
-            $documentRequest->or_number,
-            $documentRequest->request_number,
-        ));
-
-        $message = 'Your Official Receipt has been validated by the Registrar\'s Office. Your credential is now being prepared for release.';
-
-        $documentRequest->user->notify(
-            new DocumentRequestStatusNotification($documentRequest, 'OR Validated', $message)
-        );
-
-        SafeMailer::send($documentRequest->user,
-            new DocumentRequestStatusUpdate($documentRequest, 'OR Validated', $message)
-        );
-
-        return redirect()
-            ->back()
-            ->with('status', 'Official Receipt validated. The request is now under processing.');
-    }
-
-    /**
-     * The OR the student presented does not check out — a wrong number, an
-     * amount that does not match. Send it back with a note; the student's
-     * form reopens (prefilled with the old entries) so they can correct it.
-     */
-    public function requestOrCorrection(Request $request, DocumentRequest $documentRequest): RedirectResponse
-    {
-        if ($documentRequest->status !== DocumentRequestStatus::AWAITING_OR_VALIDATION->value
-            || ! $documentRequest->hasSubmittedOr()) {
-            return back()->with('error', sprintf(
-                '%s has no submitted Official Receipt to send back.',
-                $documentRequest->request_number,
-            ));
-        }
-
-        $data = $request->validate([
-            'note' => ['required', 'string', 'max:500'],
-        ]);
-
-        $documentRequest->forceFill([
-            'or_submitted_at' => null,
-            'or_validation_note' => $data['note'],
-        ])->save();
-
-        AuditLogger::log('or.correction_requested', sprintf(
-            'Sent Official Receipt OR No. %s back for correction: %s',
-            $documentRequest->submitted_or_number,
-            $data['note'],
-        ));
-
-        $documentRequest->user->notify(
-            new DocumentRequestStatusNotification(
-                $documentRequest,
-                'OR for Correction',
-                'The Registrar\'s Office returned your Official Receipt details: '.$data['note'].' Please re-check and submit them again.'
-            )
-        );
-
-        return redirect()
-            ->back()
-            ->with('status', 'Official Receipt returned to the student for correction.');
     }
 
     /**

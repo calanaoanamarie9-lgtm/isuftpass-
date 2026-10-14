@@ -366,7 +366,6 @@ Route::middleware(['auth', 'verified', 'role:student'])->prefix('student')->name
     Route::get('/document-requests/{documentRequest}/qr/download', [DocumentRequestController::class, 'downloadQr'])->name('documents.qr.download');
     Route::get('/document-requests/{documentRequest}/requisition', [DocumentRequestController::class, 'requisition'])->name('documents.requisition');
     Route::get('/document-requests/{documentRequest}/order-of-payment', [DocumentRequestController::class, 'orderOfPayment'])->name('documents.order-of-payment');
-    Route::post('/document-requests/{documentRequest}/official-receipt', [DocumentRequestController::class, 'submitOr'])->name('documents.submit-or');
     Route::get('/document-requests/{documentRequest}/edit', [DocumentRequestController::class, 'edit'])->name('documents.edit');
     Route::put('/document-requests/{documentRequest}', [DocumentRequestController::class, 'update'])->name('documents.update');
     Route::post('/document-requests/{documentRequest}/cancel', [DocumentRequestController::class, 'cancel'])->name('documents.cancel');
@@ -421,8 +420,6 @@ Route::middleware(['auth', 'verified', 'role:registrar,department'])->prefix('re
     Route::get('/document-requests/{documentRequest}', [RegistrarDocumentRequestController::class, 'show'])->name('document-requests.show');
     Route::get('/document-requests/{documentRequest}/order-of-payment', [RegistrarDocumentRequestController::class, 'orderOfPayment'])->name('document-requests.order-of-payment');
     Route::post('/document-requests/{documentRequest}/next', [RegistrarDocumentRequestController::class, 'next'])->name('document-requests.next');
-    Route::post('/document-requests/{documentRequest}/validate-or', [RegistrarDocumentRequestController::class, 'validateOr'])->name('document-requests.validate-or');
-    Route::post('/document-requests/{documentRequest}/or-correction', [RegistrarDocumentRequestController::class, 'requestOrCorrection'])->name('document-requests.or-correction');
     Route::patch('/document-requests/{documentRequest}/status', [RegistrarDocumentRequestController::class, 'updateStatus'])->name('document-requests.status');
     Route::post('/document-requests/{documentRequest}/cancel', [RegistrarDocumentRequestController::class, 'cancel'])->name('document-requests.cancel');
     Route::delete('/document-requests/{documentRequest}', [RegistrarDocumentRequestController::class, 'destroy'])->name('document-requests.destroy');

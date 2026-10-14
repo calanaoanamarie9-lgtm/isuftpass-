@@ -9,17 +9,14 @@
         'for_signature' => [
             'Your request has been verified and approved by the Registrar\'s Office' . ($request->op_number ? ' (Order of Payment ' . $request->op_number . ' issued).' : '.'),
             'Print the Order of Payment and settle your payment at the Cashier\'s Office.',
-            'After paying, submit your Official Receipt details here for validation by the Registrar\'s Office.',
+            'Once the Cashier records your payment, your request will be marked Paid.',
         ],
         'awaiting_or_validation' => [
-            'Your payment has been recorded' . ($request->or_number ? ' and Official Receipt No. ' . $request->or_number . ' was issued' : '') . '.',
-            $request->hasSubmittedOr()
-                ? 'Your Official Receipt details have been submitted and are awaiting validation by the Registrar\'s Office.'
-                : 'Submit your Official Receipt details on this page so the Registrar\'s Office can validate your payment.',
-            'Your credential is prepared for release once the receipt is validated.',
+            'Your payment has been confirmed' . ($request->or_number ? ' — Official Receipt No. ' . $request->or_number . ' was issued' : '') . '.',
+            'The Registrar\'s Office will start processing your credential.',
+            'You will receive a notification once your document is ready for pick-up.',
         ],
         'processing' => [
-            'Your Official Receipt has been validated by the Registrar\'s Office.',
             'The Registrar\'s Office is now preparing your document(s) for release.',
             'You will receive a notification once your document is ready for pick-up.',
         ],

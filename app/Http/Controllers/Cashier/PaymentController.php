@@ -67,13 +67,11 @@ class PaymentController extends Controller
             'paid_at' => now(),
             'or_number' => strtoupper($validated['or_number']),
 
-            // Cashier records payment → the request moves straight to
-            // PROCESSING. The Official Receipt is authoritative; no
-            // separate student submission or registrar validation step is
-            // required. This matches the "automatic paid → processing" flow.
-            'status' => DocumentRequestStatus::PROCESSING->value,
-            'processing_at' => now(),
-            'or_validated_at' => now(),
+            // The cashier's OR is what confirms payment, so the request
+            // parks at PAID (the AWAITING_OR_VALIDATION value). It does NOT
+            // move on to processing here: the registrar must explicitly
+            // click "Start Processing" to begin credential preparation.
+            'status' => DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
         ];
 
         $documentRequest->update($attributes);
@@ -85,28 +83,29 @@ class PaymentController extends Controller
 
         $documentRequest->user->notify(new DocumentRequestStatusNotification(
             $documentRequest,
-            'Payment recorded — processing started',
-            'Your payment has been recorded (OR No. '.$documentRequest->or_number.'). Your credential is now being prepared for release.',
+            'Payment confirmed',
+            'Your payment has been confirmed (OR No. '.$documentRequest->or_number.'). The Registrar\'s Office will start processing your credential.',
         ));
 
-        // Notify the registrar that payment was recorded and the request
-        // has moved directly to processing — no OR validation step needed.
+        // The registrar must know the instant the OR is recorded — it is the
+        // signal that the request is paid and ready for them to start
+        // processing.
         RegistrarNotifier::alert(
             $documentRequest,
-            'Payment recorded — moved to processing',
-            'Payment of ₱'.number_format($documentRequest->totalFee(), 2).' (OR No. '.$documentRequest->or_number.') has been recorded. The request is now under processing.'
+            'Payment recorded — ready to start processing',
+            'Payment of ₱'.number_format($documentRequest->totalFee(), 2).' (OR No. '.$documentRequest->or_number.') has been recorded. The request is now Paid — click "Start Processing" to begin credential processing.'
         );
 
         return redirect()
             ->route('cashier.payments.receipt', $documentRequest)
-            ->with('status', 'Payment recorded for '.$documentRequest->request_number.'. Print the Official Receipt for the student; they present it to the Registrar for validation.');
+            ->with('status', 'Payment recorded for '.$documentRequest->request_number.'. The request is now marked Paid — the Registrar can start processing it.');
     }
 
     /**
      * The Official Receipt issued for a recorded payment — printed and
-     * handed to the student, who presents it to the Registrar for
-     * validation. Reachable from the moment of recording and reprinted
-     * later from the payment history.
+     * handed to the student. Recording it marks the request Paid; the
+     * registrar starts processing from there. Reachable from the moment of
+     * recording and reprinted later from the payment history.
      */
     public function receipt(DocumentRequest $documentRequest): View
     {

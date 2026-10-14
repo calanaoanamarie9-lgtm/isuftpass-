@@ -17,8 +17,9 @@
         // has nothing left to advance until the payment has been recorded.
         $awaitingPayment = $request->status === 'for_signature';
 
-        // After payment the student has to present the Official Receipt;
-        // validating it is what unlocks processing.
+        // The cashier has recorded the payment and issued the Official
+        // Receipt. The request sits at "Paid" until the registrar explicitly
+        // clicks Start Processing.
         $awaitingOr = $request->status === 'awaiting_or_validation';
 
         $currentLabel = $cancelled
@@ -32,6 +33,23 @@
         $nextLabel = ($activeStep !== false && isset($steps[$activeStep + 1]))
             ? $steps[$activeStep + 1]['label']
             : null;
+
+        // The primary action for a paid request is "Start Processing" — the
+        // registrar moves Paid → Processing explicitly. Every other step is
+        // labelled "Mark as <next step>".
+        $startProcessing = $awaitingOr;
+
+        $primaryLabel = $startProcessing
+            ? 'Start Processing'
+            : 'Mark as '.($nextLabel ?? 'Advance');
+
+        $primaryConfirm = $startProcessing
+            ? 'Start processing this request?'
+            : ($nextLabel ? 'Mark as '.$nextLabel.'?' : 'Advance this request?');
+
+        $primaryConfirmOk = $startProcessing
+            ? 'Yes, start processing'
+            : ($nextLabel ? 'Yes, mark as '.$nextLabel : 'Yes, advance');
 
         // Payment gates the release step only — approval is not held up by it.
         $releaseBlocked = $nextLabel === 'For Release' && ! $request->isPaid();
@@ -865,7 +883,7 @@
 
 
                     {{-- =================================================
-                        OFFICIAL RECEIPT VALIDATION
+                        PAYMENT — OFFICIAL RECEIPT (RECORDED BY THE CASHIER)
                     ================================================== --}}
                     @if ($request->isPaid())
 
@@ -903,7 +921,7 @@
                                     </div>
 
                                     <h2 class="font-bold text-[#102d5b]">
-                                        Official Receipt Validation
+                                        Payment Details
                                     </h2>
 
                                 </div>
@@ -913,188 +931,77 @@
 
                             <div class="p-6">
 
-                                {{-- The student's own submission --}}
-                                @if ($request->hasSubmittedOr())
+                                {{-- The cashier issues the Official Receipt when the
+                                     payment is taken; it is the payment on file. --}}
+                                <div class="grid grid-cols-1
+                                            sm:grid-cols-2
+                                            lg:grid-cols-4
+                                            gap-5">
 
-                                    @if ($awaitingOr)
+                                    <div>
 
-                                        <div class="grid grid-cols-1
-                                                    sm:grid-cols-2
-                                                    lg:grid-cols-4
-                                                    gap-5">
-
-                                            <div>
-
-                                                <p class="text-[11px]
-                                                          uppercase tracking-wide
-                                                          font-bold text-gray-400">
-                                                    OR No. (presented)
-                                                </p>
-
-                                                <p class="mt-2 text-sm
-                                                          font-semibold text-gray-800">
-
-                                                    {{ $request->submitted_or_number }}
-
-                                                </p>
-
-                                            </div>
-
-
-                                            <div>
-
-                                                <p class="text-[11px]
-                                                          uppercase tracking-wide
-                                                          font-bold text-gray-400">
-                                                    OR Date
-                                                </p>
-
-                                                <p class="mt-2 text-sm
-                                                          font-semibold text-gray-800">
-
-                                                    {{ $request->submitted_or_date?->format('M d, Y') ?? '—' }}
-
-                                                </p>
-
-                                            </div>
-
-
-                                            <div>
-
-                                                <p class="text-[11px]
-                                                          uppercase tracking-wide
-                                                          font-bold text-gray-400">
-                                                    Amount Presented
-                                                </p>
-
-                                                <p class="mt-2 text-sm
-                                                          font-semibold text-gray-800">
-
-                                                    ₱{{ number_format((float) $request->submitted_or_amount, 2) }}
-
-                                                </p>
-
-                                            </div>
-
-
-                                            <div>
-
-                                                <p class="text-[11px]
-                                                          uppercase tracking-wide
-                                                          font-bold text-gray-400">
-                                                    Cashier Record (for comparison)
-                                                </p>
-
-                                                <p class="mt-2 text-sm
-                                                          font-semibold text-gray-800">
-
-                                                    {{ $request->or_number ?? '—' }}
-                                                    · ₱{{ number_format($request->totalFee(), 2) }}
-
-                                                </p>
-
-                                            </div>
-
-                                        </div>
-
-
-                                        <div class="mt-5
-                                                    flex flex-wrap
-                                                    gap-3">
-
-                                            <form method="POST"
-                                                  action="{{ route('registrar.document-requests.validate-or', $request) }}"
-                                                  data-confirm="Confirm the OR number and amount match the cashier's record, then validate."
-                                                  data-confirm-title="Validate this Official Receipt?"
-                                                  data-confirm-ok="Yes, validate it">
-
-                                                @csrf
-
-                                                <button type="submit"
-                                                        class="px-5 py-2.5
-                                                               rounded-xl
-                                                               bg-green-600
-                                                               text-white
-                                                               text-sm
-                                                               font-bold
-                                                               hover:bg-green-700
-                                                               transition">
-
-                                                    Validate OR
-
-                                                </button>
-
-                                            </form>
-
-                                            <form method="POST"
-                                                  action="{{ route('registrar.document-requests.or-correction', $request) }}"
-                                                  class="flex flex-wrap
-                                                         items-center
-                                                         gap-2">
-
-                                                @csrf
-
-                                                <input type="text"
-                                                       name="note"
-                                                       required
-                                                       maxlength="500"
-                                                       placeholder="Reason (e.g. OR number does not match)"
-                                                       class="w-64
-                                                              rounded-xl
-                                                              border-gray-300
-                                                              shadow-sm
-                                                              focus:border-red-400
-                                                              focus:ring-red-200
-                                                              text-sm">
-
-                                                <button type="submit"
-                                                        data-confirm="The student will be asked to correct and resubmit their OR details."
-                                                        data-confirm-title="Send the OR back for correction?"
-                                                        data-confirm-ok="Yes, send back"
-                                                        class="px-4 py-2.5
-                                                               rounded-xl
-                                                               bg-red-50
-                                                               text-red-600
-                                                               border border-red-200
-                                                               text-sm
-                                                               font-semibold
-                                                               hover:bg-red-100
-                                                               transition">
-
-                                                    Send Back
-
-                                                </button>
-
-                                            </form>
-
-                                        </div>
-
-                                    @else
-
-                                        <p class="text-sm
-                                                  text-gray-600">
-
-                                            OR No. <b>{{ $request->submitted_or_number }}</b>
-                                            was validated
-                                            {{ $request->or_validated_at?->diffForHumans() }}
-                                            and the request moved to processing.
-
+                                        <p class="text-[11px]
+                                                  uppercase tracking-wide
+                                                  font-bold text-gray-400">
+                                            Official Receipt No.
                                         </p>
 
-                                    @endif
+                                        <p class="mt-2 text-sm
+                                                  font-semibold text-gray-800">
+                                            {{ $request->or_number ?? '—' }}
+                                        </p>
 
-                                @else
+                                    </div>
 
-                                    <p class="text-sm
-                                              text-gray-500">
 
-                                        The student has not presented their Official
-                                        Receipt yet. Once they submit the receipt
-                                        details in their portal, validate it here
-                                        against the cashier's record to release the
-                                        request for processing.
+                                    <div>
 
-                                    </p>
+                                        <p class="text-[11px]
+                                                  uppercase tracking-wide
+                                                  font-bold text-gray-400">
+                                            Amount
+                                        </p>
+
+                                        <p class="mt-2 text-sm
+                                                  font-semibold text-gray-800">
+                                            ₱{{ number_format($request->totalFee(), 2) }}
+                                        </p>
+
+                                    </div>
+
+
+                                    <div>
+
+                                        <p class="text-[11px]
+                                                  uppercase tracking-wide
+                                                  font-bold text-gray-400">
+                                            Date Recorded
+                                        </p>
+
+                                        <p class="mt-2 text-sm
+                                                  font-semibold text-gray-800">
+                                            {{ $request->paid_at?->format('M d, Y H:i') ?? '—' }}
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                                @if ($awaitingOr)
+
+                                    <div class="mt-5
+                                                rounded-xl
+                                                bg-emerald-50
+                                                border border-emerald-200
+                                                px-4 py-3
+                                                text-sm
+                                                text-emerald-800">
+
+                                        Payment recorded by the Cashier's Office. Click
+                                        <b>Start Processing</b> below to begin preparing
+                                        the credential.
+
+                                    </div>
 
                                 @endif
 
@@ -1411,8 +1318,8 @@
                                                 and Order of Payment <b>{{ $request->op_number }}</b> has been issued
                                             @endif.
                                             The cashier must collect the payment and
-                                            issue the Official Receipt before it can be
-                                            validated for release.
+                                            issue the Official Receipt to mark it
+                                            <b>Paid</b> before you can start processing.
                                             You may still reject it if needed.
 
                                         </p>
@@ -1440,18 +1347,18 @@
                                 @endif
 
 
-                                {{-- HANDOFF: THE STUDENT PRESENTS THE OR --}}
+                                {{-- HANDOFF: PAID — THE REGISTRAR STARTS PROCESSING --}}
                                 @if ($awaitingOr)
 
                                     <div class="rounded-xl
-                                                border border-amber-200
-                                                bg-amber-50
+                                                border border-emerald-200
+                                                bg-emerald-50
                                                 px-4 py-3.5">
 
                                         <p class="flex items-center gap-2
                                                   text-xs
                                                   font-bold
-                                                  text-amber-800">
+                                                  text-emerald-800">
 
                                             <svg class="h-4 w-4 shrink-0"
                                                  fill="none"
@@ -1463,7 +1370,7 @@
                                                       d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                             </svg>
 
-                                            Waiting for the Official Receipt
+                                            Payment received — ready to process
 
                                         </p>
 
@@ -1471,18 +1378,15 @@
                                                   pl-6
                                                   text-[11px]
                                                   leading-relaxed
-                                                  text-amber-700">
+                                                  text-emerald-700">
 
-                                            @if ($request->hasSubmittedOr())
-                                                The student has presented
-                                                OR No. <b>{{ $request->submitted_or_number }}</b>.
-                                                Validate it in the Official Receipt
-                                                panel to release this request for processing.
-                                            @else
-                                                The student must present their Official
-                                                Receipt here for validation before the
-                                                credential can be processed.
+                                            The cashier has recorded the payment
+                                            @if ($request->or_number)
+                                                (OR No. <b>{{ $request->or_number }}</b>)
                                             @endif
+                                            and the request is now marked <b>Paid</b>.
+                                            Click <b>Start Processing</b> below to begin
+                                            preparing the credential.
 
                                         </p>
 
@@ -1549,20 +1453,21 @@
                                 <div class="border-t border-gray-100"></div>
 
 
-                                {{-- APPROVE --}}
-                                {{-- At the hand-off points there is nothing to
-                                     advance — the cashier has to record the
-                                     payment, or the student has to present the
-                                     Official Receipt, first. --}}
-                                @unless ($awaitingPayment || $awaitingOr)
+                                {{-- ADVANCE: START PROCESSING OR MARK THE NEXT STEP --}}
+                                {{-- At the "Approved" hand-off there is nothing to
+                                     advance — the cashier has to record the payment
+                                     first. From "Paid" the registrar starts processing. --}}
+                                @unless ($awaitingPayment)
 
                                 <form method="POST"
                                       action="{{ route('registrar.document-requests.next', $request) }}"
                                       data-confirm="{{ $request->status === 'ready_for_pickup'
                                         ? 'Verify that the student is present and release the documents.'
-                                        : 'Advance this request to the next pipeline stage.' }}"
-                                      data-confirm-title="{{ $nextLabel ? 'Mark as ' . $nextLabel . '?' : 'Advance this request?' }}"
-                                      data-confirm-ok="{{ $nextLabel ? 'Yes, mark as ' . $nextLabel : 'Yes, advance' }}"
+                                        : ($startProcessing
+                                            ? 'This moves the request to Processing and begins credential preparation.'
+                                            : 'Advance this request to the next pipeline stage.') }}"
+                                      data-confirm-title="{{ $primaryConfirm }}"
+                                      data-confirm-ok="{{ $primaryConfirmOk }}"
                                       data-confirm-icon="{{ $request->status === 'ready_for_pickup'
                                         ? 'success'
                                         : 'question' }}">
@@ -1648,7 +1553,7 @@
                                         @if ($releaseBlocked)
                                             Payment required first
                                         @else
-                                            Mark as {{ $nextLabel ?? 'Advance' }}
+                                            {{ $primaryLabel }}
                                         @endif
 
                                     </button>

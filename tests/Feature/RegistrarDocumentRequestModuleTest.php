@@ -301,16 +301,24 @@ class RegistrarDocumentRequestModuleTest extends TestCase
             $request->fresh()->status,
         );
 
-        // The cashier's payment moves it straight to PROCESSING
-        // (no separate OR validation step in the new flow).
+        // The cashier's payment parks it at PAID — processing has not begun.
         $this->actingAs(User::factory()->create(['role' => 'cashier']))
             ->post('/cashier/payments/'.$request->id.'/record', ['or_number' => 'OR-PIPELINE-01'])
             ->assertRedirect();
 
         $this->assertEquals(
-            DocumentRequestStatus::PROCESSING->value,
+            DocumentRequestStatus::AWAITING_OR_VALIDATION->value,
             $request->fresh()->status,
         );
+
+        // The registrar must explicitly click Start Processing to move it on.
+        $this->actingAs($this->makeRegistrar())
+            ->post('/registrar/document-requests/'.$request->id.'/next')
+            ->assertRedirect();
+
+        $request->refresh();
+        $this->assertEquals(DocumentRequestStatus::PROCESSING->value, $request->status);
+        $this->assertNotNull($request->processing_at);
 
         // Now the registrar can continue advancing through the pipeline.
         $this->actingAs($this->makeRegistrar())
@@ -330,10 +338,11 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $this->assertNotNull($request->completed_at);
 
         // Approve (status + the payment now due), the cashier's payment,
-        // release and claim — the blocked attempt notified nobody.
-        $this->assertEquals(5, $student->notifications()->count());
+        // start processing, release and claim — the blocked attempt notified
+        // nobody.
+        $this->assertEquals(6, $student->notifications()->count());
         $this->assertEquals(
-            4,
+            5,
             $student->notifications()->where('type', DocumentRequestStatusNotification::class)->count(),
         );
     }
@@ -472,6 +481,18 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->get('/registrar/document-requests/'.$approved->id)
             ->assertOk()
+            ->assertDontSee('Mark as');
+    }
+
+    public function test_paid_requests_show_the_start_processing_button(): void
+    {
+        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::AWAITING_OR_VALIDATION->value);
+
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/document-requests/'.$request->id)
+            ->assertOk()
+            // The confirm dialog is unique to the Start Processing button.
+            ->assertSee('Start processing this request?')
             ->assertDontSee('Mark as');
     }
 

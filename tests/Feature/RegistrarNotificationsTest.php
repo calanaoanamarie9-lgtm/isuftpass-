@@ -84,8 +84,9 @@ class RegistrarNotificationsTest extends TestCase
             ->post("/cashier/payments/{$request->id}/record", ['or_number' => 'OR-2026-00777'])
             ->assertRedirect();
 
-        // Payment moves the request straight to processing (no OR gate).
-        $this->assertSame('processing', $request->fresh()->status);
+        // Payment parks the request at PAID, and that is the signal for the
+        // registrar to click Start Processing.
+        $this->assertSame('awaiting_or_validation', $request->fresh()->status);
 
         // The registrar has one unread alert with the payment details.
         $this->assertSame(1, $registrar->unreadNotifications()->count());
@@ -93,6 +94,7 @@ class RegistrarNotificationsTest extends TestCase
         $alert = $registrar->notifications()->first();
         $this->assertSame(RegistrarRequestAlert::class, $alert->type);
         $this->assertStringContainsString('Payment recorded', $alert->data['title']);
+        $this->assertStringContainsString('Start Processing', $alert->data['message']);
         $this->assertStringContainsString('OR-2026-00777', $alert->data['message']);
         $this->assertStringContainsString($request->request_number, $alert->data['message']);
 
