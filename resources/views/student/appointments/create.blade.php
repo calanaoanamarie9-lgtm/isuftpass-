@@ -254,6 +254,13 @@
 
 
                                 {{-- PURPOSE --}}
+                                @php
+                                    $selectedOffice   = old('office', $preselect['office'] ?? $appointment->office ?? null);
+                                    $selectedPurpose  = old('purpose', $preselect['purpose'] ?? $appointment->purpose ?? '');
+                                    $officePurposes   = $purposes[$selectedOffice] ?? [];
+                                    $otherPurpose     = \App\Support\AppointmentPurposes::OTHER;
+                                @endphp
+
                                 <div>
 
                                     <label for="purpose"
@@ -264,12 +271,60 @@
 
                                     </label>
 
-                                    <input id="purpose"
-                                           name="purpose"
+                                    <select id="purpose"
+                                            name="purpose"
+                                            required
+                                            class="w-full rounded-xl border-gray-300
+                                                   bg-white text-sm text-gray-800
+                                                   shadow-sm
+                                                   focus:border-blue-600
+                                                   focus:ring-blue-600">
+
+                                        <option value="">
+                                            Select a purpose
+                                        </option>
+
+                                        {{-- A purpose kept from an earlier booking or a catalogue deep-link that is
+                                             no longer in the list stays selectable and selected. --}}
+                                        @if ($selectedPurpose !== '' && $selectedPurpose !== $otherPurpose && ! array_key_exists($selectedPurpose, $officePurposes))
+                                            <option value="{{ $selectedPurpose }}" selected>
+                                                {{ $selectedPurpose }}
+                                            </option>
+                                        @endif
+
+                                        @foreach ($officePurposes as $value => $label)
+
+                                            <option value="{{ $value }}"
+                                                @selected($selectedPurpose === $value)>
+
+                                                {{ $label }}
+
+                                            </option>
+
+                                        @endforeach
+
+                                    </select>
+
+                                </div>
+
+
+                                {{-- OTHER PURPOSE — revealed when "Other" is chosen --}}
+                                <div id="purpose-other-group"
+                                     @class(['hidden' => $selectedPurpose !== $otherPurpose])>
+
+                                    <label for="purpose_other"
+                                           class="block text-sm font-bold text-gray-700 mb-2">
+
+                                        Please specify purpose
+                                        <span class="text-red-500">*</span>
+
+                                    </label>
+
+                                    <input id="purpose_other"
+                                           name="purpose_other"
                                            type="text"
-                                           value="{{ old('purpose', $preselect['purpose'] ?? $appointment->purpose ?? '') }}"
-                                           required
-                                           placeholder="e.g. Request for enrollment verification"
+                                           value="{{ old('purpose_other') }}"
+                                           placeholder="Type your purpose"
                                            class="w-full rounded-xl border-gray-300
                                                   bg-white text-sm text-gray-800
                                                   shadow-sm
@@ -627,6 +682,12 @@
         const notesStep = document.getElementById('notes-step');
         const registrarOffice = {{ Js::from(\App\Enums\Office::Registrar->value) }};
 
+        const purposeSelect = document.getElementById('purpose');
+        const purposeOtherGroup = document.getElementById('purpose-other-group');
+        const purposeOtherInput = document.getElementById('purpose_other');
+        const otherPurpose = {{ Js::from(\App\Support\AppointmentPurposes::OTHER) }};
+        const purposesByOffice = {{ Js::from($purposes) }};
+
 
         // The Registrar does not ask for a time: booking it shows a date only,
         // and the office answers with a time when it approves. A disabled
@@ -645,6 +706,68 @@
                 notesStep.textContent = registrar ? '3' : '4';
 
             }
+
+        }
+
+
+        // The Purpose options depend on the chosen office, so they are rebuilt
+        // on every change. A purpose that no longer appears in the new list
+        // (legacy value or a catalogue deep-link) is kept selectable so it is
+        // never silently dropped.
+        function renderPurposes(office, selected = '') {
+
+            const list = purposesByOffice[office] || {};
+
+            purposeSelect.innerHTML = '';
+
+            const placeholder = document.createElement('option');
+
+            placeholder.value = '';
+            placeholder.textContent = 'Select a purpose';
+
+            purposeSelect.appendChild(placeholder);
+
+
+            if (selected && selected !== otherPurpose && ! (selected in list)) {
+
+                const extra = document.createElement('option');
+
+                extra.value = selected;
+                extra.textContent = selected;
+
+                purposeSelect.appendChild(extra);
+
+            }
+
+
+            Object.entries(list).forEach(([value, label]) => {
+
+                const option = document.createElement('option');
+
+                option.value = value;
+                option.textContent = label;
+
+                if (value === selected) {
+
+                    option.selected = true;
+
+                }
+
+                purposeSelect.appendChild(option);
+
+            });
+
+            toggleOtherPurpose();
+        }
+
+
+        // "Other" reveals the mandatory "Please specify purpose" box.
+        function toggleOtherPurpose() {
+
+            const isOther = purposeSelect.value === otherPurpose;
+
+            purposeOtherGroup.classList.toggle('hidden', ! isOther);
+            purposeOtherInput.required = isOther;
 
         }
 
@@ -786,6 +909,8 @@
 
                 applyOfficeMode();
 
+                renderPurposes(officeEl.value, '');
+
                 loadSlots();
 
             }
@@ -818,6 +943,8 @@
             () => {
 
                 applyOfficeMode();
+
+                renderPurposes(officeEl.value, purposeSelect.value);
 
                 if (
                     officeEl.value &&

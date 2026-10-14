@@ -9,6 +9,7 @@ use App\Mail\AppointmentBooked;
 use App\Models\Appointment;
 use App\Notifications\AppointmentBookedNotification;
 use App\Notifications\AppointmentCancelledNotification;
+use App\Support\AppointmentPurposes;
 use App\Support\SafeMailer;
 use App\Support\SlotAvailabilityService;
 use App\Support\TimeSlots;
@@ -117,6 +118,7 @@ class AppointmentController extends Controller
         return view('student.appointments.create', [
             'offices' => Office::toSelect(),
             'slotLimits' => Appointment::SLOT_LIMITS,
+            'purposes' => AppointmentPurposes::toSelectMap(Office::toSelectKeys()),
 
             // Pre-filled when the student arrived from the consultation
             // catalogue: ?office=Accounting&purpose=Payment Concerns
@@ -158,6 +160,7 @@ class AppointmentController extends Controller
         $data = $request->validate([
             'office' => ['required', 'in:' . implode(',', Office::toSelectKeys())],
             'purpose' => ['required', 'string', 'max:255'],
+            'purpose_other' => ['required_if:purpose,' . AppointmentPurposes::OTHER, 'string', 'max:255'],
             'date' => ['required', 'date', 'after_or_equal:today'],
             'time_slot' => [
                 'nullable',
@@ -165,7 +168,15 @@ class AppointmentController extends Controller
                 'in:' . implode(',', TimeSlots::forOffice($office)),
             ],
             'notes' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'purpose_other.required_if' => 'Please specify your purpose.',
         ]);
+
+        // "Other" stores the purpose the student typed; a chosen preset is kept as-is.
+        $data['purpose'] = $data['purpose'] === AppointmentPurposes::OTHER
+            ? trim((string) $data['purpose_other'])
+            : $data['purpose'];
+        unset($data['purpose_other']);
 
         // The Registrar asks for a date alone — it answers with the time when
         // it approves, so there is no requested slot to weigh for capacity.
@@ -308,6 +319,7 @@ class AppointmentController extends Controller
             'appointment' => $appointment,
             'offices' => Office::toSelect(),
             'slotLimits' => Appointment::SLOT_LIMITS,
+            'purposes' => AppointmentPurposes::toSelectMap(Office::toSelectKeys()),
         ]);
     }
 
@@ -327,6 +339,7 @@ class AppointmentController extends Controller
         $data = $request->validate([
             'office' => ['required', 'in:' . implode(',', Office::toSelectKeys())],
             'purpose' => ['required', 'string', 'max:255'],
+            'purpose_other' => ['required_if:purpose,' . AppointmentPurposes::OTHER, 'string', 'max:255'],
             'date' => ['required', 'date', 'after_or_equal:today'],
             'time_slot' => [
                 'nullable',
@@ -334,7 +347,15 @@ class AppointmentController extends Controller
                 'in:' . implode(',', TimeSlots::forOffice($office)),
             ],
             'notes' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'purpose_other.required_if' => 'Please specify your purpose.',
         ]);
+
+        // "Other" stores the purpose the student typed; a chosen preset is kept as-is.
+        $data['purpose'] = $data['purpose'] === AppointmentPurposes::OTHER
+            ? trim((string) $data['purpose_other'])
+            : $data['purpose'];
+        unset($data['purpose_other']);
 
         $timeSlot = $data['time_slot'] ?? null;
 
