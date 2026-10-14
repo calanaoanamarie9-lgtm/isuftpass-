@@ -2,8 +2,8 @@
     $steps = match ($request->status) {
         'submitted' => [
             'Wait for the Registrar\'s Office to review and approve your request.',
-            'Once approved, an Order of Payment is issued — settle it at the Cashier\'s Office.',
-            'Bring your Request Number (' . $request->request_number . ') together with your official receipt when claiming.',
+            'Once approved, print your Requisition Form and settle payment at the Cashier\'s Office.',
+            'Present your Printed Requisition Form to the Registrar\'s Office for processing.',
             'Claim your document once the status becomes Ready for Pick-up.',
         ],
         'for_signature' => [
@@ -26,6 +26,18 @@
         ],
         default => [],
     };
+
+    /*
+    |--------------------------------------------------------------------------
+    | REQUISITION FORM PRINT BUTTON
+    |--------------------------------------------------------------------------
+    | The step that tells the student to print their Requisition Form gets a
+    | one-click "Print Requisition Form" button right beside it, so they can
+    | generate the printable copy BEFORE heading to the Registrar's Office.
+    |---------------------------------------------------------------------
+    */
+
+    $requisitionPrintStep = $request->status === 'submitted' ? 1 : null;
 @endphp
 
 @if (count($steps))
@@ -56,7 +68,43 @@
                     <span class="mt-0.5 inline-flex w-6 h-6 shrink-0 items-center justify-center rounded-full bg-blue-800 text-white text-xs font-black">
                         {{ $index + 1 }}
                     </span>
-                    <span class="leading-relaxed">{{ $step }}</span>
+
+                    <div class="min-w-0 flex-1">
+                        <span class="leading-relaxed">{{ $step }}</span>
+
+                        {{-- Print Requisition Form button beside the step that asks the student to print it. --}}
+                        @if ($requisitionPrintStep !== null && $index === $requisitionPrintStep)
+                            <div class="mt-2">
+                                <a href="{{ route('student.documents.requisition', $request) }}"
+                                   target="_blank"
+                                   rel="noopener"
+                                   class="inline-flex items-center gap-2
+                                          px-3.5 py-2
+                                          rounded-lg
+                                          border border-blue-300 bg-white text-blue-800
+                                          text-xs font-bold
+                                          hover:bg-blue-100 transition">
+
+                                    <svg class="w-4 h-4"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+
+                                        <path stroke-linecap="round"
+                                              stroke-linejoin="round"
+                                              stroke-width="2"
+                                              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+
+                                    </svg>
+
+                                    Print Requisition Form
+
+                                </a>
+                            </div>
+                        @endif
+
+                    </div>
+
                 </li>
             @endforeach
         </ol>
