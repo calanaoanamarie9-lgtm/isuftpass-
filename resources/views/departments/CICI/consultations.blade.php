@@ -40,6 +40,17 @@
                             <a href="{{ route(strtolower($office) . '.consultations.edit', $service) }}"
                                class="text-xs font-bold text-blue-700 hover:text-blue-900 transition">Edit</a>
                             <form method="POST"
+                                  action="{{ route(strtolower($office) . '.consultations.toggle', $service) }}"
+                                  @if ($service->is_active)
+                                      data-confirm="Students will no longer see this service."
+                                      data-confirm-title="Deactivate this service?"
+                                      data-confirm-ok="Yes, deactivate it"
+                                  @endif>
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="text-xs font-bold {{ $service->is_active ? 'text-amber-600 hover:text-amber-800' : 'text-green-600 hover:text-green-800' }} transition">{{ $service->is_active ? 'Deactivate' : 'Reactivate' }}</button>
+                            </form>
+                            <form method="POST"
                                   action="{{ route(strtolower($office) . '.consultations.destroy', $service) }}"
                                   data-confirm="Students will no longer see this service."
                                   data-confirm-title="Remove this service?"

@@ -178,7 +178,120 @@ class ConsultationServiceManagementTest extends TestCase
                 ->assertOk()
                 ->assertSee('Add service')
                 ->assertSee($office.' Marker')
-                ->assertSee('Edit');
+                ->assertSee('Edit')
+                ->assertSee('Deactivate');
         }
+    }
+
+    /**
+     * Offices can pull a service from the catalogue without deleting it:
+     * the quick Deactivate button on the list flips is_active off, and
+     * Reactivate puts it back.
+     */
+    public function test_staff_can_deactivate_and_reactivate_their_own_service(): void
+    {
+        $service = ConsultationService::create([
+            'office' => 'Accounting',
+            'name' => 'Payment Concerns',
+            'is_active' => true,
+        ]);
+
+        $staff = $this->makeStaff('Accounting', 'accounting');
+
+        $this->actingAs($staff)
+            ->patch('/accounting/consultations/'.$service->id.'/toggle')
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $this->assertFalse($service->fresh()->is_active);
+
+        $this->actingAs($staff)
+            ->patch('/accounting/consultations/'.$service->id.'/toggle')
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $this->assertTrue($service->fresh()->is_active);
+    }
+
+    public function test_a_deactivated_service_disappears_from_the_student_catalogue(): void
+    {
+        $service = ConsultationService::create([
+            'office' => 'Accounting',
+            'name' => 'Balance Consultation',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->makeStudent())
+            ->get('/student/consultations')
+            ->assertOk()
+            ->assertSee('Balance Consultation');
+
+        $this->actingAs($this->makeStaff('Accounting', 'accounting'))
+            ->patch('/accounting/consultations/'.$service->id.'/toggle');
+
+        $this->actingAs($this->makeStudent())
+            ->get('/student/consultations')
+            ->assertOk()
+            ->assertDontSee('Balance Consultation');
+    }
+
+    public function test_staff_cannot_toggle_another_offices_service(): void
+    {
+        $service = ConsultationService::create([
+            'office' => 'Library',
+            'name' => 'Book Borrowing',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->patch('/ssc/consultations/'.$service->id.'/toggle')
+            ->assertForbidden();
+
+        $this->assertTrue($service->fresh()->is_active);
+    }
+
+    /**
+     * The list offers Reactivate once a service is hidden — the confirm
+     * dialog is only wired for the destructive direction.
+     */
+    public function test_the_list_swaps_the_button_label_with_the_state(): void
+    {
+        $service = ConsultationService::create([
+            'office' => 'COED',
+            'name' => 'Practicum Advising',
+            'is_active' => true,
+        ]);
+
+        $staff = $this->makeStaff('COED');
+
+        $this->actingAs($staff)
+            ->get('/coed/consultations')
+            ->assertOk()
+            ->assertSee('Deactivate')
+            ->assertDontSee('Reactivate');
+
+        $this->actingAs($staff)
+            ->patch('/coed/consultations/'.$service->id.'/toggle');
+
+        $this->actingAs($staff)
+            ->get('/coed/consultations')
+            ->assertOk()
+            ->assertSee('Reactivate')
+            ->assertDontSee('Deactivate');
+    }
+
+    public function test_students_cannot_toggle_services(): void
+    {
+        $service = ConsultationService::create([
+            'office' => 'Accounting',
+            'name' => 'Payment Concerns',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->makeStudent())
+            ->patch('/accounting/consultations/'.$service->id.'/toggle')
+            ->assertForbidden();
+
+        $this->assertTrue($service->fresh()->is_active);
     }
 }

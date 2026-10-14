@@ -69,6 +69,29 @@ class ConsultationServiceController extends Controller
     }
 
     /**
+     * Quick activate / deactivate from the office's service list.
+     *
+     * Deactivating keeps the service (and its history) intact — it simply
+     * disappears from the student catalogue until it is reactivated, so an
+     * office can pull a service without deleting it.
+     */
+    public function toggle(ConsultationService $consultationService): RedirectResponse
+    {
+        $this->authorizeOwnership($consultationService);
+
+        $consultationService->update([
+            'is_active' => ! $consultationService->is_active,
+        ]);
+
+        return back()->with(
+            'status',
+            $consultationService->is_active
+                ? "“{$consultationService->name}” is active again — students can see it."
+                : "“{$consultationService->name}” is now hidden from students."
+        );
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function validated(Request $request): array

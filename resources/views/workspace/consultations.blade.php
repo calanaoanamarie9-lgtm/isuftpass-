@@ -288,6 +288,26 @@
                                     </a>
 
                                     <form method="POST"
+                                          action="{{ route('workspace' . '.consultations.toggle', $service) }}"
+                                          @if ($service->is_active)
+                                              data-confirm="Students will no longer see this service."
+                                              data-confirm-title="Deactivate this service?"
+                                              data-confirm-ok="Yes, deactivate it"
+                                          @endif>
+
+                                        @csrf
+                                        @method('PATCH')
+
+                                        <button type="submit"
+                                                class="{{ $service->is_active
+                                                    ? 'text-amber-600 hover:text-amber-800'
+                                                    : 'text-green-600 hover:text-green-800' }} transition">
+                                            {{ $service->is_active ? 'Deactivate' : 'Reactivate' }}
+                                        </button>
+
+                                    </form>
+
+                                    <form method="POST"
                                           action="{{ route('workspace' . '.consultations.destroy', $service) }}"
                                           data-confirm="Students will no longer see this service."
                                           data-confirm-title="Remove this service?"

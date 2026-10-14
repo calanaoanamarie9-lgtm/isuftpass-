@@ -706,6 +706,10 @@ foreach ([
                 ->name('consultations.edit');
             Route::put('/consultations/{consultationService}', [ConsultationServiceController::class, 'update'])
                 ->name('consultations.update');
+            // Quick activate / deactivate straight from the office's list,
+            // without opening the edit form.
+            Route::patch('/consultations/{consultationService}/toggle', [ConsultationServiceController::class, 'toggle'])
+                ->name('consultations.toggle');
             Route::delete('/consultations/{consultationService}', [ConsultationServiceController::class, 'destroy'])
                 ->name('consultations.destroy');
         });
