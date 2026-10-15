@@ -674,7 +674,7 @@
                                         for="last_name"
                                         class="block text-xs font-semibold text-gray-500 mb-1"
                                     >
-                                        Last Name / Family Name <span class="text-red-500">*</span>
+                                        Last Name <span class="text-red-500">*</span>
                                     </label>
 
                                     <input
