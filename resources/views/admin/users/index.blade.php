@@ -190,7 +190,8 @@
 
                             </p>
 
-                            <p class="mt-2
+                            <p data-stat="total"
+                               class="mt-2
                                       text-3xl
                                       font-extrabold
                                       text-[#102d5b]">
@@ -252,12 +253,13 @@
 
                             </p>
 
-                            <p class="mt-2
+                            <p data-stat="active"
+                               class="mt-2
                                       text-3xl
                                       font-extrabold
                                       text-[#102d5b]">
 
-                                {{ $users->where('is_active', true)->count() }}
+                                {{ $counts['active'] }}
 
                             </p>
 
@@ -314,12 +316,13 @@
 
                             </p>
 
-                            <p class="mt-2
+                            <p data-stat="students"
+                               class="mt-2
                                       text-3xl
                                       font-extrabold
                                       text-[#102d5b]">
 
-                                {{ $users->filter(fn ($u) => $u->isStudent() && $u->classification() === 'student')->count() }}
+                                {{ $counts['students'] }}
 
                             </p>
 
@@ -381,19 +384,13 @@
 
                             </p>
 
-                            <p class="mt-2
+                            <p data-stat="office"
+                               class="mt-2
                                       text-3xl
                                       font-extrabold
                                       text-[#102d5b]">
 
-                                {{
-                                    $users->whereIn('role', [
-                                        \App\Models\User::ROLE_REGISTRAR,
-                                        \App\Models\User::ROLE_CASHIER,
-                                        \App\Models\User::ROLE_DEPARTMENT,
-                                        \App\Models\User::ROLE_ADMIN
-                                    ])->count()
-                                }}
+                                {{ $counts['office'] }}
 
                             </p>
 
@@ -423,6 +420,225 @@
                     </div>
 
                     <div class="absolute bottom-0 left-0 right-0 h-1 bg-purple-500"></div>
+
+                </div>
+
+
+                {{-- ALUMNI --}}
+                <div class="bg-white
+                            rounded-2xl
+                            border border-gray-200
+                            shadow-sm
+                            p-5
+                            relative
+                            overflow-hidden">
+
+                    <div class="flex items-center justify-between">
+
+                        <div>
+
+                            <p class="text-xs
+                                      font-bold
+                                      uppercase
+                                      tracking-wide
+                                      text-gray-400">
+
+                                Alumni
+
+                            </p>
+
+                            <p data-stat="alumni"
+                               class="mt-2
+                                      text-3xl
+                                      font-extrabold
+                                      text-[#102d5b]">
+
+                                {{ $counts['alumni'] }}
+
+                            </p>
+
+                        </div>
+
+
+                        <div class="w-12 h-12
+                                    rounded-full
+                                    bg-emerald-50
+                                    text-emerald-600
+                                    flex items-center justify-center">
+
+                            <svg class="w-6 h-6"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+
+                                <circle cx="12" cy="8" r="7"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="1.8"/>
+
+                                <polyline stroke-linecap="round"
+                                          stroke-linejoin="round"
+                                          stroke-width="1.8"
+                                          points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+
+                            </svg>
+
+                        </div>
+
+                    </div>
+
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
+
+                </div>
+
+
+                {{-- PARENT / GUARDIAN --}}
+                <div class="bg-white
+                            rounded-2xl
+                            border border-gray-200
+                            shadow-sm
+                            p-5
+                            relative
+                            overflow-hidden">
+
+                    <div class="flex items-center justify-between">
+
+                        <div>
+
+                            <p class="text-xs
+                                      font-bold
+                                      uppercase
+                                      tracking-wide
+                                      text-gray-400">
+
+                                Parent / Guardian
+
+                            </p>
+
+                            <p data-stat="parents"
+                               class="mt-2
+                                      text-3xl
+                                      font-extrabold
+                                      text-[#102d5b]">
+
+                                {{ $counts['parents'] }}
+
+                            </p>
+
+                        </div>
+
+
+                        <div class="w-12 h-12
+                                    rounded-full
+                                    bg-indigo-50
+                                    text-indigo-600
+                                    flex items-center justify-center">
+
+                            <svg class="w-6 h-6"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="1.8"
+                                      d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+
+                                <circle cx="9" cy="7" r="4"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="1.8"/>
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="1.8"
+                                      d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="1.8"
+                                      d="M16 3.13a4 4 0 0 1 0 7.75"/>
+
+                            </svg>
+
+                        </div>
+
+                    </div>
+
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500"></div>
+
+                </div>
+
+
+                {{-- GUEST --}}
+                <div class="bg-white
+                            rounded-2xl
+                            border border-gray-200
+                            shadow-sm
+                            p-5
+                            relative
+                            overflow-hidden">
+
+                    <div class="flex items-center justify-between">
+
+                        <div>
+
+                            <p class="text-xs
+                                      font-bold
+                                      uppercase
+                                      tracking-wide
+                                      text-gray-400">
+
+                                Guest
+
+                            </p>
+
+                            <p data-stat="guests"
+                               class="mt-2
+                                      text-3xl
+                                      font-extrabold
+                                      text-[#102d5b]">
+
+                                {{ $counts['guests'] }}
+
+                            </p>
+
+                        </div>
+
+
+                        <div class="w-12 h-12
+                                    rounded-full
+                                    bg-orange-50
+                                    text-orange-600
+                                    flex items-center justify-center">
+
+                            <svg class="w-6 h-6"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="1.8"
+                                      d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+
+                                <polyline stroke-linecap="round"
+                                          stroke-linejoin="round"
+                                          stroke-width="1.8"
+                                          points="10 17 15 12 10 7"/>
+
+                                <line stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="1.8"
+                                      x1="15" y1="12" x2="3" y2="12"/>
+
+                            </svg>
+
+                        </div>
+
+                    </div>
+
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-orange-500"></div>
 
                 </div>
 
@@ -524,50 +740,17 @@
                                 All roles
                             </option>
 
-                            <option value="{{ \App\Models\User::ROLE_STUDENT }}"
-                                    @selected($roleFilter === \App\Models\User::ROLE_STUDENT)>
-                                Student
-                            </option>
+                            {{-- Driven by Role::userTypes() + Role::staff() plus any
+                                 legacy role still sitting on an account, so every
+                                 office and department account is reachable here. --}}
+                            @foreach ($roleOptions as $value => $label)
 
-                            <option value="alumni"
-                                    @selected($roleFilter === 'alumni')>
-                                Alumni
-                            </option>
+                                <option value="{{ $value }}"
+                                        @selected($roleFilter === $value)>
+                                    {{ $label }}
+                                </option>
 
-                            <option value="parent"
-                                    @selected($roleFilter === 'parent')>
-                                Parent / Guardian
-                            </option>
-
-                            <option value="guest"
-                                    @selected($roleFilter === 'guest')>
-                                Guest
-                            </option>
-
-                            <option value="{{ \App\Models\User::ROLE_REGISTRAR }}"
-                                    @selected($roleFilter === \App\Models\User::ROLE_REGISTRAR)>
-                                Registrar
-                            </option>
-
-                            <option value="{{ \App\Models\User::ROLE_CASHIER }}"
-                                    @selected($roleFilter === \App\Models\User::ROLE_CASHIER)>
-                                Cashier
-                            </option>
-
-                            <option value="{{ \App\Models\User::ROLE_DEPARTMENT }}"
-                                    @selected($roleFilter === \App\Models\User::ROLE_DEPARTMENT)>
-                                Department / Office
-                            </option>
-
-                            <option value="{{ \App\Models\User::ROLE_ADMIN }}"
-                                    @selected($roleFilter === \App\Models\User::ROLE_ADMIN)>
-                                Administrator
-                            </option>
-
-                            <option value="{{ \App\Models\User::ROLE_GUARD }}"
-                                    @selected($roleFilter === \App\Models\User::ROLE_GUARD)>
-                                Guard / Security
-                            </option>
+                            @endforeach
 
                         </select>
 
@@ -942,8 +1125,14 @@
                                         \App\Models\User::ROLE_CASHIER =>
                                             'bg-yellow-50 text-yellow-700',
 
-                                        \App\Models\User::ROLE_DEPARTMENT =>
-                                            'bg-purple-50 text-purple-700',
+                                        // Every office / department account shares one
+                                        // colour so all of them read as a group.
+                                        \App\Models\User::ROLE_DEPARTMENT,
+                                        'ssc',
+                                        'accounting',
+                                        'library',
+                                        \App\Models\User::ROLE_OFFICE =>
+                                            'bg-teal-50 text-teal-700',
 
                                         \App\Models\User::ROLE_ADMIN =>
                                             'bg-gray-100 text-gray-700',
@@ -955,6 +1144,12 @@
                                             'bg-gray-100 text-gray-600',
 
                                     };
+
+                                    // The catalog label stops 'ssc' reading as 'Ssc',
+                                    // and a role the catalog has not absorbed yet still
+                                    // shows sensibly instead of falling back to "Student".
+                                    $roleLabel = \App\Enums\Role::tryFrom($role)?->label()
+                                        ?? ucfirst($role);
 
                                 @endphp
 
@@ -1035,7 +1230,7 @@
                                                      font-semibold
                                                      {{ $roleClasses }}">
 
-                                            {{ ucfirst($role) }}
+                                            {{ $roleLabel }}
 
                                         </span>
 

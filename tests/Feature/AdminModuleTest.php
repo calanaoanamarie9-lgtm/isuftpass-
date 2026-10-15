@@ -74,6 +74,65 @@ class AdminModuleTest extends TestCase
             ->assertDontSee('Parent Person');
     }
 
+    public function test_user_management_counts_and_filters_every_office_account(): void
+    {
+        $admin = $this->makeAdmin();
+
+        User::factory()->create(['role' => 'department', 'office' => 'CICI']);
+        User::factory()->create(['role' => 'office', 'office' => 'Registrar']);
+        User::factory()->create(['role' => 'osas', 'office' => 'OSAS']); // role outside the catalog
+        User::factory()->create(['role' => 'guard', 'office' => 'Main Gate']);
+
+        $html = $this->actingAs($admin)
+            ->get('/admin/users')
+            ->assertOk()
+            ->getContent();
+
+        // admin + department + office + osas + guard — every non-public account.
+        $this->assertSame(
+            1,
+            preg_match('/data-stat="office"[^>]*>\s*5\s*</', $html),
+            'Every office, department and security account should be counted.'
+        );
+
+        foreach (['department', 'office', 'guard', 'osas'] as $role) {
+            $this->assertStringContainsString(
+                'value="'.$role.'"',
+                $html,
+                "The {$role} role should be offered by the role filter."
+            );
+        }
+    }
+
+    public function test_user_management_counts_every_public_account_type(): void
+    {
+        $admin = $this->makeAdmin();
+
+        User::factory()->create(['role' => 'student', 'registration_type' => 'alumni']);
+        User::factory()->create(['role' => 'student', 'registration_type' => 'alumni']);
+        User::factory()->create(['role' => 'student', 'registration_type' => 'parent']);
+        User::factory()->create(['role' => 'student', 'registration_type' => 'guest']);
+        User::factory()->create(['role' => 'student', 'registration_type' => null]);
+
+        $html = $this->actingAs($admin)
+            ->get('/admin/users')
+            ->assertOk()
+            ->getContent();
+
+        foreach ([
+            'total' => 6,
+            'active' => 6,
+            'students' => 1,
+            'alumni' => 2,
+            'parents' => 1,
+            'guests' => 1,
+        ] as $stat => $expected) {
+            $matched = preg_match("/data-stat=\"{$stat}\"[^>]*>\\s*{$expected}\\s*</", $html);
+
+            $this->assertSame(1, $matched, "The {$stat} card should read {$expected}.");
+        }
+    }
+
     public function test_admin_can_create_and_deactivate_user(): void
     {
         $admin = $this->makeAdmin();
