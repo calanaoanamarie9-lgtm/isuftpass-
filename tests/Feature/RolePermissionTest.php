@@ -9,6 +9,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\DocumentsSeeder;
+use Database\Seeders\OsasOfficeSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -385,5 +386,37 @@ class RolePermissionTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseCount('appointments', 0);
+    }
+
+    // ---------------------------------------------------------------------
+    // Office accounts
+    // ---------------------------------------------------------------------
+
+    /**
+     * The OSAS desk used to be seeded with a bespoke 'osas' role that the
+     * catalog does not know, so it resolved to Student — student permissions
+     * and the student portal — while role:department,office kept it out of
+     * the office workspace entirely.
+     */
+    public function test_seeded_osas_account_holds_the_office_role(): void
+    {
+        $this->seed(OsasOfficeSeeder::class);
+
+        $osas = User::where('email', 'osas@isufst.edu.ph')->firstOrFail();
+
+        $this->assertSame('office', $osas->role);
+        $this->assertSame('OSAS', $osas->office);
+        $this->assertSame(RoleEnum::Office, $osas->rbacRole());
+        $this->assertSame('OSAS', $osas->officeScope());
+        $this->assertFalse($osas->canRequestDocuments());
+    }
+
+    public function test_office_role_accounts_land_on_the_office_workspace(): void
+    {
+        $office = User::factory()->create(['role' => 'office', 'office' => 'OSAS']);
+
+        $this->actingAs($office)
+            ->get('/dashboard')
+            ->assertRedirect(route('workspace.dashboard'));
     }
 }
