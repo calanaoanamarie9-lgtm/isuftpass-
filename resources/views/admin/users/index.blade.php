@@ -319,7 +319,7 @@
                                       font-extrabold
                                       text-[#102d5b]">
 
-                                {{ $users->where('role', \App\Models\User::ROLE_STUDENT)->count() }}
+                                {{ $users->filter(fn ($u) => $u->isStudent() && $u->classification() === 'student')->count() }}
 
                             </p>
 
@@ -527,6 +527,21 @@
                             <option value="{{ \App\Models\User::ROLE_STUDENT }}"
                                     @selected($roleFilter === \App\Models\User::ROLE_STUDENT)>
                                 Student
+                            </option>
+
+                            <option value="alumni"
+                                    @selected($roleFilter === 'alumni')>
+                                Alumni
+                            </option>
+
+                            <option value="parent"
+                                    @selected($roleFilter === 'parent')>
+                                Parent / Guardian
+                            </option>
+
+                            <option value="guest"
+                                    @selected($roleFilter === 'guest')>
+                                Guest
                             </option>
 
                             <option value="{{ \App\Models\User::ROLE_REGISTRAR }}"
@@ -899,9 +914,24 @@
                                     ->map(fn($part) => strtoupper(substr($part, 0, 1)))
                                     ->implode('');
 
-                                    $role = strtolower($user->role);
+                                    // Student, alumni, parent and guest all carry
+                                    // role='student' in the database; their real type
+                                    // is the registration-based classification, so show
+                                    // that instead of a flat "Student".
+                                    $role = $user->isStudent()
+                                        ? $user->classification()
+                                        : strtolower($user->role);
 
                                     $roleClasses = match ($role) {
+
+                                        'alumni' =>
+                                            'bg-emerald-50 text-emerald-700',
+
+                                        'parent' =>
+                                            'bg-purple-50 text-purple-700',
+
+                                        'guest' =>
+                                            'bg-orange-50 text-orange-700',
 
                                         \App\Models\User::ROLE_STUDENT =>
                                             'bg-green-50 text-green-700',
@@ -996,7 +1026,8 @@
                                     {{-- ROLE --}}
                                     <td class="px-6 py-4">
 
-                                        <span class="inline-flex
+                                        <span data-role-type="{{ $role }}"
+                                              class="inline-flex
                                                      items-center
                                                      px-3 py-1.5
                                                      rounded-full
@@ -1004,7 +1035,7 @@
                                                      font-semibold
                                                      {{ $roleClasses }}">
 
-                                            {{ ucfirst($user->role) }}
+                                            {{ ucfirst($role) }}
 
                                         </span>
 

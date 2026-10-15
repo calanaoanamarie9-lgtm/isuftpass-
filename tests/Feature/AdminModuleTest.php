@@ -33,6 +33,47 @@ class AdminModuleTest extends TestCase
             ->assertSee('registrar');
     }
 
+    public function test_user_management_shows_registration_type_for_public_accounts(): void
+    {
+        $admin = $this->makeAdmin();
+
+        User::factory()->create(['role' => 'student', 'name' => 'Alumni Person', 'registration_type' => 'alumni']);
+        User::factory()->create(['role' => 'student', 'name' => 'Parent Person', 'registration_type' => 'parent']);
+        User::factory()->create(['role' => 'student', 'name' => 'Guest Person', 'registration_type' => 'guest']);
+        User::factory()->create(['role' => 'student', 'name' => 'Student Person', 'registration_type' => null]);
+
+        $this->actingAs($admin)
+            ->get('/admin/users')
+            ->assertOk()
+            ->assertSee('data-role-type="alumni"', false)
+            ->assertSee('data-role-type="parent"', false)
+            ->assertSee('data-role-type="guest"', false)
+            ->assertSee('data-role-type="student"', false);
+    }
+
+    public function test_user_management_role_filter_matches_registration_type(): void
+    {
+        $admin = $this->makeAdmin();
+
+        User::factory()->create(['role' => 'student', 'name' => 'Alumni Person', 'registration_type' => 'alumni']);
+        User::factory()->create(['role' => 'student', 'name' => 'Parent Person', 'registration_type' => 'parent']);
+        User::factory()->create(['role' => 'student', 'name' => 'Student Person', 'registration_type' => null]);
+
+        $this->actingAs($admin)
+            ->get('/admin/users?role=alumni')
+            ->assertOk()
+            ->assertSee('Alumni Person')
+            ->assertDontSee('Parent Person')
+            ->assertDontSee('Student Person');
+
+        $this->actingAs($admin)
+            ->get('/admin/users?role=student')
+            ->assertOk()
+            ->assertSee('Student Person')
+            ->assertDontSee('Alumni Person')
+            ->assertDontSee('Parent Person');
+    }
+
     public function test_admin_can_create_and_deactivate_user(): void
     {
         $admin = $this->makeAdmin();

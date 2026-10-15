@@ -20,7 +20,18 @@ class UserController extends Controller
         $query = User::query();
 
         if ($role = $request->query('role')) {
-            $query->where('role', $role);
+            // Student, alumni, parent and guest all share role='student'; their
+            // real type lives in registration_type, so filter on that. The
+            // remaining (staff) roles still filter on the role column.
+            match ($role) {
+                'alumni' => $query->where('registration_type', 'alumni'),
+                'parent' => $query->whereIn('registration_type', ['parent', 'guardian']),
+                'guest' => $query->where('registration_type', 'guest'),
+                'student' => $query->where('role', User::ROLE_STUDENT)
+                    ->where(fn ($q) => $q->whereNull('registration_type')
+                        ->orWhereNotIn('registration_type', ['alumni', 'parent', 'guardian', 'guest'])),
+                default => $query->where('role', $role),
+            };
         }
 
         if ($search = trim((string) $request->query('q'))) {
