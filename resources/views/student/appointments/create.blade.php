@@ -3,6 +3,8 @@
     @php
         $errors = $errors ?? new \Illuminate\Support\ViewErrorBag;
         $appointment = $appointment ?? null;
+        $requester = $requester ?? auth()->user();
+        $requesterType = $requester->classification();
     @endphp
 
     <div class="min-h-screen bg-[#f5f7fb] py-8">
@@ -520,6 +522,124 @@
                         <div class="my-8 border-t border-gray-100"></div>
 
 
+                        {{-- SECTION: REQUESTER DETAILS (role specific) --}}
+                        @if (in_array($requesterType, ['parent', 'guest'], true))
+
+                            <div>
+
+                                <div class="flex items-center gap-3 mb-5">
+
+                                    <div class="w-8 h-8 rounded-lg bg-blue-50
+                                                flex items-center justify-center">
+
+                                        <span id="requester-step"
+                                              class="text-sm font-black text-blue-700">
+                                            4
+                                        </span>
+
+                                    </div>
+
+                                    <div>
+
+                                        <h3 class="text-sm font-black text-gray-900">
+                                            {{ $requesterType === 'parent' ? "Child's Details" : 'Visitor Identification' }}
+                                        </h3>
+
+                                        <p class="text-xs text-gray-400">
+                                            {{ $requesterType === 'parent'
+                                                ? "We need your child's Student ID to match the consultation."
+                                                : 'A valid ID is required for campus entry.' }}
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+
+                                @if ($requesterType === 'parent' && blank($requester->student_id))
+
+                                    <div>
+
+                                        <label for="student_id"
+                                               class="block text-sm font-bold text-gray-700 mb-2">
+
+                                            Child's Student ID
+                                            <span class="text-red-500">*</span>
+
+                                        </label>
+
+                                        <input type="text"
+                                               id="student_id"
+                                               name="student_id"
+                                               required
+                                               value="{{ old('student_id') }}"
+                                               placeholder="e.g. 2024-00123"
+                                               class="w-full rounded-xl border-gray-300
+                                                      bg-white text-sm text-gray-800
+                                                      shadow-sm
+                                                      focus:border-blue-600
+                                                      focus:ring-blue-600">
+
+                                        @error('student_id')
+                                            <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>
+                                        @enderror
+
+                                    </div>
+
+                                @elseif ($requesterType === 'parent')
+
+                                    <p class="text-sm text-gray-600">
+                                        Child's Student ID on file:
+                                        <span class="font-bold text-gray-900">{{ $requester->student_id }}</span>
+                                    </p>
+
+                                @elseif (blank($requester->valid_id))
+
+                                    <div>
+
+                                        <label for="valid_id"
+                                               class="block text-sm font-bold text-gray-700 mb-2">
+
+                                            Valid ID (type &amp; number)
+                                            <span class="text-red-500">*</span>
+
+                                        </label>
+
+                                        <input type="text"
+                                               id="valid_id"
+                                               name="valid_id"
+                                               required
+                                               value="{{ old('valid_id') }}"
+                                               placeholder="e.g. Driver's License N01-23-456789"
+                                               class="w-full rounded-xl border-gray-300
+                                                      bg-white text-sm text-gray-800
+                                                      shadow-sm
+                                                      focus:border-blue-600
+                                                      focus:ring-blue-600">
+
+                                        @error('valid_id')
+                                            <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>
+                                        @enderror
+
+                                    </div>
+
+                                @else
+
+                                    <p class="text-sm text-gray-600">
+                                        Valid ID on file:
+                                        <span class="font-bold text-gray-900">{{ $requester->valid_id }}</span>
+                                    </p>
+
+                                @endif
+
+                            </div>
+
+
+                            <div class="my-8 border-t border-gray-100"></div>
+
+                        @endif
+
+
                         {{-- SECTION: NOTES --}}
                         <div>
 
@@ -681,6 +801,7 @@
         const slotHint = document.getElementById('slot-hint');
         const timeSection = document.getElementById('time-section');
         const notesStep = document.getElementById('notes-step');
+        const requesterStep = document.getElementById('requester-step');
         const registrarOffice = {{ Js::from(\App\Enums\Office::Registrar->value) }};
 
         const purposeSelect = document.getElementById('purpose');
@@ -704,7 +825,17 @@
 
             if (notesStep) {
 
-                notesStep.textContent = registrar ? '3' : '4';
+                // The requester section (parent's child / guest's ID) sits
+                // between the schedule and the notes for those account types,
+                // so the notes step shifts down by one for them.
+                let step = registrar ? 3 : 4;
+
+                if (requesterStep) {
+                    step += 1;
+                    requesterStep.textContent = registrar ? '3' : '4';
+                }
+
+                notesStep.textContent = String(step);
 
             }
 

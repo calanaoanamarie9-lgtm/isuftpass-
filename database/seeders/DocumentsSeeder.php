@@ -14,31 +14,37 @@ class DocumentsSeeder extends Seeder
                 'name' => 'Transcript of Record (TOR)',
                 'description' => 'Official consolidated record of all academic subjects and grades taken.',
                 'fee' => 100.00,
+                'audience' => Document::AUDIENCE_BOTH,
             ],
             [
                 'name' => 'Certification / CAVS',
                 'description' => 'Certification of a student record or CAVS verification of signature.',
                 'fee' => 60.00,
+                'audience' => Document::AUDIENCE_BOTH,
             ],
             [
                 'name' => 'Diploma',
-                'description' => 'Official diploma issued to graduates.',
+                'description' => 'Official diploma issued to graduates. Replacement copies are issued to alumni.',
                 'fee' => 250.00,
+                'audience' => Document::AUDIENCE_ALUMNI,
             ],
             [
                 'name' => 'Transfer Credentials',
                 'description' => 'Credentials issued to students transferring to another school.',
                 'fee' => 100.00,
+                'audience' => Document::AUDIENCE_BOTH,
             ],
             [
                 'name' => 'Permanent Record (F-137-A)',
                 'description' => 'Permanent academic record of the student (Form 137-A).',
                 'fee' => 150.00,
+                'audience' => Document::AUDIENCE_STUDENT,
             ],
             [
                 'name' => 'Good Moral Character',
                 'description' => 'Certifies that the student is of good moral character.',
                 'fee' => 50.00,
+                'audience' => Document::AUDIENCE_STUDENT,
             ],
         ];
 

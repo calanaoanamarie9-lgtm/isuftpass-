@@ -5,6 +5,8 @@
         $documentRequest = $documentRequest ?? null;
         $selectedDocs = old('document_ids', $documentRequest?->documents->pluck('id')->all() ?? []);
         $isEdit = $documentRequest !== null;
+        $classification = $classification ?? auth()->user()->classification();
+        $alumni = $alumni ?? auth()->user();
     @endphp
 
     <div class="min-h-screen bg-[#f5f7fb] py-8">
@@ -488,24 +490,91 @@
                                     <div>
                                         <p class="text-[11px] font-bold uppercase
                                                   tracking-wide text-gray-400">Student ID</p>
-                                        <p class="text-sm font-bold text-gray-900 mt-0.5">{{ $profile->student_id ?? '—' }}</p>
+                                        <p class="text-sm font-bold text-gray-900 mt-0.5">{{ $profile?->student_id ?? '—' }}</p>
                                     </div>
 
                                     <div>
                                         <p class="text-[11px] font-bold uppercase
                                                   tracking-wide text-gray-400">Course</p>
-                                        <p class="text-sm font-bold text-gray-900 mt-0.5">{{ $profile->course ?? '—' }}</p>
+                                        <p class="text-sm font-bold text-gray-900 mt-0.5">{{ $profile?->course ?? $alumni->course ?? '—' }}</p>
                                     </div>
 
                                     <div>
                                         <p class="text-[11px] font-bold uppercase
                                                   tracking-wide text-gray-400">Year Level</p>
-                                        <p class="text-sm font-bold text-gray-900 mt-0.5">{{ $profile->year_level ?? '—' }}</p>
+                                        <p class="text-sm font-bold text-gray-900 mt-0.5">{{ $profile?->year_level ?? ($classification === 'alumni' ? $alumni->year_graduated : null) ?? '—' }}</p>
                                     </div>
 
                                 </div>
 
                             </div>
+
+
+                            {{-- Alumni must state their graduation details so the
+                                 Registrar can match the record. --}}
+                            @if ($classification === 'alumni')
+
+                                <div class="grid sm:grid-cols-2 gap-5 mb-5">
+
+                                    <div>
+
+                                        <label for="year_graduated"
+                                               class="block text-sm font-bold text-gray-700 mb-2">
+
+                                            Year Graduated
+                                            <span class="text-red-500">*</span>
+
+                                        </label>
+
+                                        <input type="text"
+                                               id="year_graduated"
+                                               name="year_graduated"
+                                               required
+                                               value="{{ old('year_graduated', $alumni->year_graduated) }}"
+                                               placeholder="e.g. 2024"
+                                               class="w-full rounded-xl border-gray-300
+                                                      bg-white text-sm text-gray-800
+                                                      shadow-sm
+                                                      focus:border-blue-600
+                                                      focus:ring-blue-600">
+
+                                        @error('year_graduated')
+                                            <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>
+                                        @enderror
+
+                                    </div>
+
+                                    <div>
+
+                                        <label for="alumni_course"
+                                               class="block text-sm font-bold text-gray-700 mb-2">
+
+                                            Course Completed
+                                            <span class="text-red-500">*</span>
+
+                                        </label>
+
+                                        <input type="text"
+                                               id="alumni_course"
+                                               name="course"
+                                               required
+                                               value="{{ old('course', $alumni->course) }}"
+                                               placeholder="e.g. BS Information Technology"
+                                               class="w-full rounded-xl border-gray-300
+                                                      bg-white text-sm text-gray-800
+                                                      shadow-sm
+                                                      focus:border-blue-600
+                                                      focus:ring-blue-600">
+
+                                        @error('course')
+                                            <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>
+                                        @enderror
+
+                                    </div>
+
+                                </div>
+
+                            @endif
 
 
                             <div class="grid sm:grid-cols-2 gap-5">

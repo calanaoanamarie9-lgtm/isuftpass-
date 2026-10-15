@@ -646,6 +646,44 @@
 
                     </div>
 
+
+                    {{-- AUDIENCE --}}
+                    <div class="mt-5 md:max-w-xs">
+
+                        <label class="block text-xs
+                                      font-bold
+                                      uppercase
+                                      tracking-wide
+                                      text-gray-500
+                                      mb-2">
+
+                            Available To
+
+                        </label>
+
+                        <select name="audience"
+                                class="w-full h-12
+                                       rounded-xl
+                                       border-gray-200
+                                       bg-gray-50
+                                       text-sm
+                                       px-4
+                                       focus:bg-white
+                                       focus:border-blue-600
+                                       focus:ring-blue-600">
+
+                            @foreach (\App\Models\Document::audiences() as $value => $label)
+
+                                <option value="{{ $value }}" @selected($value === \App\Models\Document::AUDIENCE_BOTH)>
+                                    {{ $label }}
+                                </option>
+
+                            @endforeach
+
+                        </select>
+
+                    </div>
+
                 </form>
 
             </div>
@@ -862,6 +900,32 @@
                                             lg:flex-nowrap
                                             items-center
                                             gap-2">
+
+
+                                    {{-- AUDIENCE --}}
+                                    <select name="audience"
+                                            title="Who may request this document"
+                                            class="h-11
+                                                   rounded-xl
+                                                   border-gray-200
+                                                   bg-gray-50
+                                                   text-xs
+                                                   font-semibold
+                                                   text-gray-600
+                                                   px-2
+                                                   focus:bg-white
+                                                   focus:border-blue-600
+                                                   focus:ring-blue-600">
+
+                                        @foreach (\App\Models\Document::audiences() as $value => $label)
+
+                                            <option value="{{ $value }}" @selected($document->audience === $value)>
+                                                {{ $label }}
+                                            </option>
+
+                                        @endforeach
+
+                                    </select>
 
 
                                     {{-- ACTIVE --}}

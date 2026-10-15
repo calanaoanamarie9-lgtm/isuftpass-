@@ -963,7 +963,7 @@
                        @click="open = false"
                        class="{{ $navClass }}">
                         <span>🔲</span>
-                        <span>My Digital ID / QR Pass</span>
+                        <span>Visitor Pass / Entry QR</span>
                     </a>
 
                 </div>

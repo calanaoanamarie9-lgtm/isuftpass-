@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\DocumentRequestReceived;
 use App\Models\Document;
 use App\Models\DocumentRequest;
+use App\Models\User;
 use App\Notifications\DocumentRequestReceivedNotification;
 use App\Notifications\DocumentRequestStatusNotification;
 use App\Support\AuditLogger;
@@ -53,28 +54,43 @@ class DocumentRequestController extends Controller
 
     public function create(): View
     {
+        $user = Auth::user();
+
+        // Parents and guests have no document-request standing.
+        abort_unless($user->canRequestDocuments(), 403);
+
         return view('student.documents.create', [
-            'documents' => Document::active()->orderBy('name')->get(),
+            'documents' => $this->availableDocuments(),
             'offices' => Office::toSelect(),
             'purposeTypes' => RequestPurposeType::toSelect(),
             'educationalStatuses' => EducationalStatus::toSelect(),
             'educationalLevels' => EducationalLevel::toSelect(),
             'claimModes' => ClaimMode::toSelectKeys(),
-            'profile' => Auth::user()->studentProfile,
+            'profile' => $user->studentProfile,
+            'classification' => $user->classification(),
+            'alumni' => $user,
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $user = Auth::user();
+
+        abort_unless($user->canRequestDocuments(), 403);
+
         $validated = $this->validatedPayload($request);
 
-        $profile = Auth::user()->studentProfile;
+        $this->authorizeDocuments($validated['document_ids']);
 
-        $documentRequest = Auth::user()->documentRequests()->create([
-            'student_name' => Auth::user()->name,
+        $this->persistAlumniDetails($user, $validated);
+
+        $profile = $user->studentProfile;
+
+        $documentRequest = $user->documentRequests()->create([
+            'student_name' => $user->name,
             'student_address' => $profile?->address ?? 'Not provided',
             'student_contact' => $profile?->contact_number ?? 'Not provided',
-            'student_course_year' => trim(($profile?->course ?? '').' '.($profile?->year_level ?? '')) ?: 'Not provided',
+            'student_course_year' => $this->courseYear($user, $profile),
             'purpose_type' => $validated['purpose_type'],
             'transfer_to' => $validated['transfer_to'] ?? null,
             'educational_status' => $validated['educational_status'],
@@ -113,15 +129,19 @@ class DocumentRequestController extends Controller
     {
         Gate::authorize('update', $documentRequest);
 
+        $user = Auth::user();
+
         return view('student.documents.edit', [
             'documentRequest' => $documentRequest->load('documents'),
-            'documents' => Document::active()->orderBy('name')->get(),
+            'documents' => $this->availableDocuments(),
             'offices' => Office::toSelect(),
             'purposeTypes' => RequestPurposeType::toSelect(),
             'educationalStatuses' => EducationalStatus::toSelect(),
             'educationalLevels' => EducationalLevel::toSelect(),
             'claimModes' => ClaimMode::toSelectKeys(),
-            'profile' => Auth::user()->studentProfile,
+            'profile' => $user->studentProfile,
+            'classification' => $user->classification(),
+            'alumni' => $user,
         ]);
     }
 
@@ -130,6 +150,10 @@ class DocumentRequestController extends Controller
         Gate::authorize('update', $documentRequest);
 
         $validated = $this->validatedPayload($request);
+
+        $this->authorizeDocuments($validated['document_ids']);
+
+        $this->persistAlumniDetails(Auth::user(), $validated);
 
         $documentRequest->update([
             'purpose_type' => $validated['purpose_type'],
@@ -188,6 +212,55 @@ class DocumentRequestController extends Controller
             ->with('status', 'Request deleted.');
     }
 
+    /**
+     * Documents the current account may request, filtered by role audience.
+     */
+    private function availableDocuments()
+    {
+        return Document::active()
+            ->visibleTo(Auth::user()->documentAudiences())
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * Refuse any selected document the account type is not entitled to.
+     */
+    private function authorizeDocuments(array $documentIds): void
+    {
+        foreach (Document::whereIn('id', $documentIds)->get() as $document) {
+            Gate::authorize('request-document', $document);
+        }
+    }
+
+    /**
+     * Alumni requests carry their graduation details; keep the account in sync.
+     */
+    private function persistAlumniDetails(User $user, array $validated): void
+    {
+        if ($user->classification() !== 'alumni') {
+            return;
+        }
+
+        $user->forceFill([
+            'year_graduated' => $validated['year_graduated'] ?? $user->year_graduated,
+            'course' => $validated['course'] ?? $user->course,
+        ])->save();
+    }
+
+    /**
+     * The "Course Year" line stored on the request. Students read it from
+     * their student profile; alumni from their graduation details.
+     */
+    private function courseYear(User $user, mixed $profile): string
+    {
+        if ($user->classification() === 'alumni') {
+            return trim(($user->course ?? '').' '.($user->year_graduated ?? '')) ?: 'Not provided';
+        }
+
+        return trim(($profile?->course ?? '').' '.($profile?->year_level ?? '')) ?: 'Not provided';
+    }
+
     private function validatedPayload(Request $request): array
     {
         foreach (['others_specification', 'transfer_to', 'representative_name'] as $field) {
@@ -208,7 +281,7 @@ class DocumentRequestController extends Controller
             $request->merge(['others' => 1]);
         }
 
-        return $request->validate([
+        $rules = [
             'document_ids' => ['required', 'array', 'min:1'],
             'document_ids.*' => ['integer', 'exists:documents,id'],
             'others' => ['nullable', 'boolean'],
@@ -219,7 +292,16 @@ class DocumentRequestController extends Controller
             'educational_level' => ['required', Rule::in(EducationalLevel::toSelectKeys())],
             'claim_mode' => ['required', Rule::in(ClaimMode::toSelectKeys())],
             'representative_name' => ['nullable', 'required_if:claim_mode,representative', 'string', 'max:191'],
-        ]);
+        ];
+
+        // Alumni requests must state the year they graduated and the course
+        // they completed, so the Registrar can match the record.
+        if (Auth::user()?->classification() === 'alumni') {
+            $rules['year_graduated'] = ['required', 'string', 'max:20'];
+            $rules['course'] = ['required', 'string', 'max:100'];
+        }
+
+        return $request->validate($rules);
     }
 
     /**

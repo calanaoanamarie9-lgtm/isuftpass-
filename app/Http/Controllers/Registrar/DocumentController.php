@@ -25,16 +25,18 @@ class DocumentController extends Controller
             'name' => ['required', 'string', 'max:255', Rule::unique('documents', 'name')],
             'description' => ['nullable', 'string', 'max:500'],
             'fee' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            'audience' => ['sometimes', Rule::in(array_keys(Document::audiences()))],
         ]);
 
         Document::create([
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'fee' => $data['fee'],
+            'audience' => $data['audience'] ?? Document::AUDIENCE_BOTH,
             'is_active' => true,
         ]);
 
-        AuditLogger::log('document.created', 'Added document service ' . $data['name'] . ' (₱' . number_format($data['fee'], 2) . ').');
+        AuditLogger::log('document.created', 'Added document service '.$data['name'].' (₱'.number_format($data['fee'], 2).').');
 
         return back()->with('status', 'Document service added.');
     }
@@ -45,6 +47,7 @@ class DocumentController extends Controller
             'name' => ['required', 'string', 'max:255', Rule::unique('documents', 'name')->ignore($document->id)],
             'description' => ['nullable', 'string', 'max:500'],
             'fee' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            'audience' => ['sometimes', Rule::in(array_keys(Document::audiences()))],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
@@ -52,10 +55,11 @@ class DocumentController extends Controller
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'fee' => $data['fee'],
+            'audience' => $data['audience'] ?? $document->audience,
             'is_active' => $request->boolean('is_active'),
         ]);
 
-        AuditLogger::log('document.updated', 'Updated document service ' . $document->name . '.');
+        AuditLogger::log('document.updated', 'Updated document service '.$document->name.'.');
 
         return back()->with('status', 'Document service updated.');
     }
@@ -68,7 +72,7 @@ class DocumentController extends Controller
 
         $document->delete();
 
-        AuditLogger::log('document.deleted', 'Deleted document service ' . $document->name . '.');
+        AuditLogger::log('document.deleted', 'Deleted document service '.$document->name.'.');
 
         return back()->with('status', 'Document service removed.');
     }

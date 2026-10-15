@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\Office;
+use App\Enums\Permission;
+use App\Enums\Role;
 use App\Models\Concerns\HasAvatarUrl;
 use App\Notifications\VerifyEmailNotification;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -78,6 +81,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'organization',
         'address',
         'purpose',
+        'valid_id',
         'relationship_to_student',
         'student_full_name',
         'position',
@@ -217,12 +221,13 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Effective role used by the sidebar/top-bar label. Alumni/parent/guest
-     * keep the underlying 'student' role in the DB (middleware still checks
-     * $this->role) but are surfaced here as their registration type so the
-     * sidebar can branch on a real 'alumni'|'parent'|'guest' role value.
+     * Effective role used by the sidebar/top-bar label and role-based
+     * authorisation. Alumni/parent/guest keep the underlying 'student' role in
+     * the DB (middleware still checks $this->role) but are surfaced here as
+     * their registration type so callers can branch on a real
+     * 'alumni'|'parent'|'guest' role value.
      */
-    public function roleRule(): string
+    public function effectiveRole(): string
     {
         return match ($this->registration_type) {
             'alumni' => 'alumni',
@@ -230,6 +235,14 @@ class User extends Authenticatable implements MustVerifyEmail
             'guest' => 'guest',
             default => $this->role ?: 'student',
         };
+    }
+
+    /**
+     * Backwards-compatible alias for effectiveRole().
+     */
+    public function roleRule(): string
+    {
+        return $this->effectiveRole();
     }
 
     /**
@@ -250,6 +263,96 @@ class User extends Authenticatable implements MustVerifyEmail
     public function classificationLabel(): string
     {
         return ucfirst($this->classification());
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Role-based access control
+    |--------------------------------------------------------------------------
+    |
+    | The catalog of roles and permissions lives in App\Enums\Role and
+    | App\Enums\Permission (mirrored into the roles / permissions tables by
+    | RolesAndPermissionsSeeder). These helpers resolve what the current
+    | account may do, and are the single source the Gates read from.
+    |
+    */
+
+    /**
+     * The RBAC role this account holds.
+     */
+    public function rbacRole(): Role
+    {
+        return Role::fromEffective($this->effectiveRole());
+    }
+
+    public function hasPermission(Permission|string $permission): bool
+    {
+        return $this->rbacRole()->hasPermission($permission);
+    }
+
+    /**
+     * Whether this account may submit document requests at all.
+     */
+    public function canRequestDocuments(): bool
+    {
+        return $this->hasPermission(Permission::RequestDocuments);
+    }
+
+    /**
+     * Document audiences this account may request.
+     *
+     * @return list<string>
+     */
+    public function documentAudiences(): array
+    {
+        return match ($this->classification()) {
+            'alumni' => ['alumni', 'both'],
+            'student' => ['student', 'both'],
+            default => [],
+        };
+    }
+
+    /**
+     * Offices this account may book, as value => label.
+     *
+     * Students reach the Registrar, SSC and Library; parents reach the deans
+     * (colleges), SSC and Cashier; guests reach the colleges and any
+     * self-registered administrative office. Alumni keep the widest reach so
+     * they can chase records across offices.
+     *
+     * @return array<string, string>
+     */
+    public function bookableOffices(): array
+    {
+        $options = Office::toSelect();
+        $builtin = array_map(fn (Office $office) => $office->value, Office::cases());
+
+        $only = fn (array $names): array => array_filter(
+            $options,
+            fn (string $value): bool => in_array($value, $names, true),
+            ARRAY_FILTER_USE_KEY,
+        );
+
+        // Self-registered offices (HR, Property Management, …) are the ones
+        // that are not built into the Office enum.
+        $general = array_filter(
+            $options,
+            fn (string $value): bool => ! in_array($value, $builtin, true),
+            ARRAY_FILTER_USE_KEY,
+        );
+
+        return match ($this->rbacRole()) {
+            Role::Student => $only(['Registrar', 'SSC', 'Library']),
+            Role::Alumni => $options,
+            Role::Parent => $only(['SSC', 'Cashier', 'CICI', 'CBMSD', 'COAG', 'COED']),
+            Role::Guest => $only(['CICI', 'CBMSD', 'COAG', 'COED']) + $general,
+            default => $options,
+        };
+    }
+
+    public function canBookOffice(string $office): bool
+    {
+        return array_key_exists($office, $this->bookableOffices());
     }
 
     /*

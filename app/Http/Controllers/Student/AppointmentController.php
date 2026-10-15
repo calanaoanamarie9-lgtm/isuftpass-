@@ -7,19 +7,28 @@ use App\Enums\Office;
 use App\Http\Controllers\Controller;
 use App\Mail\AppointmentBooked;
 use App\Models\Appointment;
+use App\Models\SlotAvailability;
+use App\Models\User;
 use App\Notifications\AppointmentBookedNotification;
 use App\Notifications\AppointmentCancelledNotification;
 use App\Support\AppointmentPurposes;
+use App\Support\QrPassCard;
+use App\Support\QrUrl;
+use App\Support\RegistrarNotifier;
 use App\Support\SafeMailer;
 use App\Support\SlotAvailabilityService;
 use App\Support\TimeSlots;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class AppointmentController extends Controller
 {
@@ -53,19 +62,19 @@ class AppointmentController extends Controller
         Gate::authorize('view', $appointment);
 
         if (! $appointment->qr_token) {
-            $appointment->forceFill(['qr_token' => (string) \Illuminate\Support\Str::uuid()])->save();
+            $appointment->forceFill(['qr_token' => (string) Str::uuid()])->save();
         }
 
         $user = Auth::user();
 
         // Encode a LAN-reachable URL so scanning opens the verification page.
-        $payload = \App\Support\QrUrl::to('/verify/appointment/' . $appointment->qr_token);
+        $payload = QrUrl::to('/verify/appointment/'.$appointment->qr_token);
 
-        $qrCode = (new \Endroid\QrCode\QrCode($payload));
+        $qrCode = (new QrCode($payload));
 
         return view('student.appointments.qr', [
             'appointment' => $appointment,
-            'qrCodeDataUri' => (new \Endroid\QrCode\Writer\SvgWriter())->write($qrCode)->getDataUri(),
+            'qrCodeDataUri' => (new SvgWriter)->write($qrCode)->getDataUri(),
             'student' => $user,
             'profile' => $user->studentProfile,
             'avatar' => $user->studentProfile?->avatar_url,
@@ -82,7 +91,7 @@ class AppointmentController extends Controller
      *
      * ?format=svg still returns the vector original for print and scaling.
      */
-    public function downloadQr(Request $request, Appointment $appointment): \Symfony\Component\HttpFoundation\Response
+    public function downloadQr(Request $request, Appointment $appointment): Response
     {
         Gate::authorize('view', $appointment);
 
@@ -97,29 +106,35 @@ class AppointmentController extends Controller
             'studentId' => $profile?->student_id ?? '',
             'course' => $profile?->course ?? '',
             'yearLevel' => $profile?->year_level ?? '',
-            'qrPayload' => \App\Support\QrUrl::to('/verify/appointment/' . $appointment->qr_token),
+            'qrPayload' => QrUrl::to('/verify/appointment/'.$appointment->qr_token),
         ];
 
         if ($request->query('format') === 'svg') {
-            return response(\App\Support\QrPassCard::svg($options))
+            return response(QrPassCard::svg($options))
                 ->header('Content-Type', 'image/svg+xml')
-                ->header('Content-Disposition', 'attachment; filename="isufstpass-appointment-' . $appointment->reference_code . '.svg"');
+                ->header('Content-Disposition', 'attachment; filename="isufstpass-appointment-'.$appointment->reference_code.'.svg"');
         }
 
-        $png = \App\Support\QrPassCard::png($options);
+        $png = QrPassCard::png($options);
 
         return response($png)
             ->header('Content-Type', 'image/png')
             ->header('Content-Length', (string) strlen($png))
-            ->header('Content-Disposition', 'attachment; filename="isufstpass-appointment-' . $appointment->reference_code . '.png"');
+            ->header('Content-Disposition', 'attachment; filename="isufstpass-appointment-'.$appointment->reference_code.'.png"');
     }
 
     public function create(Request $request): View
     {
+        $user = Auth::user();
+        $offices = $user->bookableOffices();
+
         return view('student.appointments.create', [
-            'offices' => Office::toSelect(),
+            'offices' => $offices,
             'slotLimits' => Appointment::SLOT_LIMITS,
-            'purposes' => AppointmentPurposes::toSelectMap(Office::toSelectKeys()),
+            'purposes' => AppointmentPurposes::toSelectMap(array_keys($offices)),
+
+            // Role-specific requester details (parent's child, guest's ID).
+            'requester' => $user,
 
             // Pre-filled when the student arrived from the consultation
             // catalogue: ?office=Accounting&purpose=Payment Concerns
@@ -134,7 +149,7 @@ class AppointmentController extends Controller
     public function slots(Request $request)
     {
         $data = $request->validate([
-            'office' => ['required', 'in:' . implode(',', Office::toSelectKeys())],
+            'office' => ['required', 'in:'.implode(',', Office::toSelectKeys())],
             'date' => ['required', 'date', 'after_or_equal:today'],
         ]);
 
@@ -147,7 +162,7 @@ class AppointmentController extends Controller
     public function availability(Request $request)
     {
         $data = $request->validate([
-            'office' => ['required', 'in:' . implode(',', Office::toSelectKeys())],
+            'office' => ['required', 'in:'.implode(',', Office::toSelectKeys())],
             'month' => ['required', 'date_format:Y-m'],
         ]);
 
@@ -158,28 +173,39 @@ class AppointmentController extends Controller
     {
         $office = (string) $request->input('office');
 
+        $user = Auth::user();
+
         $data = $request->validate([
-            'office' => ['required', 'in:' . implode(',', Office::toSelectKeys())],
+            'office' => ['required', 'in:'.implode(',', Office::toSelectKeys())],
             'purpose' => ['required', 'string', 'max:255'],
             // The hidden "Please specify purpose" box is emptied by the
             // TrimStrings / ConvertEmptyStringsToNull middleware, so a chosen
             // preset arrives here as null - it must stay nullable. "Other"
             // still demands text: see resolvePurpose().
-            'purpose_other' => ['required_if:purpose,' . AppointmentPurposes::OTHER, 'nullable', 'string', 'max:255'],
+            'purpose_other' => ['required_if:purpose,'.AppointmentPurposes::OTHER, 'nullable', 'string', 'max:255'],
             'date' => ['required', 'date', 'after_or_equal:today'],
             'time_slot' => [
                 'nullable',
                 Rule::requiredIf(! Office::setsTimeOnApproval($office)),
-                'in:' . implode(',', TimeSlots::forOffice($office)),
+                'in:'.implode(',', TimeSlots::forOffice($office)),
             ],
             'notes' => ['nullable', 'string', 'max:1000'],
-        ], [
+        ] + $this->requesterRules($user), [
             'purpose_other.required_if' => 'Please specify your purpose.',
         ]);
+
+        // A student cannot book an office that is outside their role's reach.
+        Gate::authorize('book-appointment', $data['office']);
 
         // "Other" stores the purpose the student typed; a chosen preset is kept as-is.
         $data['purpose'] = $this->resolvePurpose($data);
         unset($data['purpose_other']);
+
+        // The child's Student ID (parent) / valid ID (guest) belong on the
+        // account, not the appointment row.
+        $extras = array_intersect_key($data, array_flip(['student_id', 'valid_id']));
+        $data = array_diff_key($data, $extras);
+        $this->persistRequesterDetails($user, $extras);
 
         // The Registrar asks for a date alone — it answers with the time when
         // it approves, so there is no requested slot to weigh for capacity.
@@ -189,7 +215,7 @@ class AppointmentController extends Controller
             ? null
             : app(SlotAvailabilityService::class)->checkForOffice($data['office'], $data['date'], $timeSlot);
 
-        if ($check && $check['status'] === \App\Models\SlotAvailability::STATUS_BLOCKED) {
+        if ($check && $check['status'] === SlotAvailability::STATUS_BLOCKED) {
             abort(422, 'The selected time slot is closed for booking. Choose another schedule.');
         }
 
@@ -212,7 +238,7 @@ class AppointmentController extends Controller
 
         // The registrar owns the appointment pipeline: a new booking is
         // their cue to confirm — or to move it when the slot overflowed.
-        \App\Support\RegistrarNotifier::appointment(
+        RegistrarNotifier::appointment(
             $appointment,
             $overflow ? 'Appointment needs rescheduling' : 'New appointment booked',
             $overflow
@@ -278,7 +304,7 @@ class AppointmentController extends Controller
             'time_slot' => [
                 'nullable',
                 Rule::requiredIf(! Office::setsTimeOnApproval($appointment->office)),
-                'in:' . implode(',', TimeSlots::forOffice($appointment->office)),
+                'in:'.implode(',', TimeSlots::forOffice($appointment->office)),
             ],
         ]);
 
@@ -347,11 +373,22 @@ class AppointmentController extends Controller
             abort(403, 'This appointment can no longer be edited once the office has approved it.');
         }
 
+        $user = Auth::user();
+
+        $offices = $user->bookableOffices();
+
+        // Keep the appointment's own office selectable so a booking made
+        // under another role can still be edited.
+        if (! array_key_exists($appointment->office, $offices)) {
+            $offices = [$appointment->office => $appointment->office] + $offices;
+        }
+
         return view('student.appointments.create', [
             'appointment' => $appointment,
-            'offices' => Office::toSelect(),
+            'offices' => $offices,
             'slotLimits' => Appointment::SLOT_LIMITS,
-            'purposes' => AppointmentPurposes::toSelectMap(Office::toSelectKeys()),
+            'purposes' => AppointmentPurposes::toSelectMap(array_keys($offices)),
+            'requester' => $user,
         ]);
     }
 
@@ -369,22 +406,28 @@ class AppointmentController extends Controller
         $office = (string) $request->input('office');
 
         $data = $request->validate([
-            'office' => ['required', 'in:' . implode(',', Office::toSelectKeys())],
+            'office' => ['required', 'in:'.implode(',', Office::toSelectKeys())],
             'purpose' => ['required', 'string', 'max:255'],
             // Same as store(): a preset purpose submits the emptied (null)
             // specify box, so the rule stays nullable while resolvePurpose()
             // still demands text when "Other" is chosen.
-            'purpose_other' => ['required_if:purpose,' . AppointmentPurposes::OTHER, 'nullable', 'string', 'max:255'],
+            'purpose_other' => ['required_if:purpose,'.AppointmentPurposes::OTHER, 'nullable', 'string', 'max:255'],
             'date' => ['required', 'date', 'after_or_equal:today'],
             'time_slot' => [
                 'nullable',
                 Rule::requiredIf(! Office::setsTimeOnApproval($office)),
-                'in:' . implode(',', TimeSlots::forOffice($office)),
+                'in:'.implode(',', TimeSlots::forOffice($office)),
             ],
             'notes' => ['nullable', 'string', 'max:1000'],
         ], [
             'purpose_other.required_if' => 'Please specify your purpose.',
         ]);
+
+        // Only a *change* of office is re-authorised, so an existing booking
+        // made under another role does not lock its owner out.
+        if ($appointment->office !== $data['office']) {
+            Gate::authorize('book-appointment', $data['office']);
+        }
 
         // "Other" stores the purpose the student typed; a chosen preset is kept as-is.
         $data['purpose'] = $this->resolvePurpose($data);
@@ -419,6 +462,51 @@ class AppointmentController extends Controller
         return redirect()
             ->route('student.appointments.index')
             ->with('status', 'Appointment updated.');
+    }
+
+    /**
+     * Extra booking rules a public account type must satisfy: a parent must
+     * give the child's Student ID, a guest a valid ID. Only demanded when the
+     * account does not already hold the value.
+     *
+     * @return array<string, array<int, string>>
+     */
+    protected function requesterRules(User $user): array
+    {
+        $rules = [];
+
+        if ($user->classification() === 'parent' && blank($user->student_id)) {
+            $rules['student_id'] = ['required', 'string', 'max:50'];
+        }
+
+        if ($user->classification() === 'guest' && blank($user->valid_id)) {
+            $rules['valid_id'] = ['required', 'string', 'max:255'];
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Store the child's Student ID / valid ID on the account the first time it
+     * is supplied at booking.
+     *
+     * @param  array<string, mixed>  $extras
+     */
+    protected function persistRequesterDetails(User $user, array $extras): void
+    {
+        $updates = [];
+
+        if (isset($extras['student_id']) && blank($user->student_id)) {
+            $updates['student_id'] = $extras['student_id'];
+        }
+
+        if (isset($extras['valid_id']) && blank($user->valid_id)) {
+            $updates['valid_id'] = $extras['valid_id'];
+        }
+
+        if ($updates !== []) {
+            $user->forceFill($updates)->save();
+        }
     }
 
     /**
