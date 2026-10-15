@@ -385,7 +385,7 @@
                       class="grid grid-cols-1 lg:grid-cols-12 gap-3">
 
                     {{-- SEARCH --}}
-                    <div class="lg:col-span-6 relative">
+                    <div class="lg:col-span-3 relative">
 
                         <svg class="absolute left-3.5 top-1/2
                                     -translate-y-1/2
@@ -450,6 +450,45 @@
 
                             <option value="cancelled" @selected($statusFilter === 'cancelled')>
                                 Cancelled
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    {{-- USER TYPE --}}
+                    <div class="lg:col-span-3">
+
+                        <select
+                            name="user_type"
+                            onchange="this.form.submit()"
+                            class="w-full rounded-xl
+                                   border-slate-200
+                                   bg-slate-50
+                                   text-sm text-slate-600
+                                   focus:bg-white
+                                   focus:border-blue-500
+                                   focus:ring-blue-500">
+
+                            <option value="">
+                                All User Types
+                            </option>
+
+                            <option value="student" @selected($userTypeFilter === 'student')>
+                                Student
+                            </option>
+
+                            <option value="alumni" @selected($userTypeFilter === 'alumni')>
+                                Alumni
+                            </option>
+
+                            <option value="parent" @selected($userTypeFilter === 'parent')>
+                                Parent
+                            </option>
+
+                            <option value="guest" @selected($userTypeFilter === 'guest')>
+                                Guest
                             </option>
 
                         </select>

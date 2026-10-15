@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\AppointmentStatus;
 use App\Mail\AppointmentApproved;
+use App\Mail\AppointmentRescheduled;
 use App\Models\Appointment;
 use App\Models\SlotAvailability;
 use App\Models\User;
@@ -60,7 +61,7 @@ class RegistrarAppointmentTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $this->assertMatchesRegularExpression('/^APT-' . now()->format('Y') . '-[A-Z0-9]{4}$/', $appointment->reference_code);
+        $this->assertMatchesRegularExpression('/^APT-'.now()->format('Y').'-[A-Z0-9]{4}$/', $appointment->reference_code);
         $this->assertNotNull($appointment->refresh()->reference_code);
     }
 
@@ -102,7 +103,7 @@ class RegistrarAppointmentTest extends TestCase
     public function test_registrar_with_office_sees_only_own_office_appointments(): void
     {
         [$student1, $regAppt] = $this->makeStudentWithAppointment();
-        $student2 = \App\Models\User::factory()->create(['role' => 'student']);
+        $student2 = User::factory()->create(['role' => 'student']);
         $ciciAppt = $student2->appointments()->create([
             'office' => 'CICI',
             'purpose' => 'Academic Consultation',
@@ -155,6 +156,57 @@ class RegistrarAppointmentTest extends TestCase
         }
     }
 
+    public function test_registrar_can_filter_the_list_by_user_type(): void
+    {
+        $registrar = $this->makeRegistrar();
+
+        $makeAppointment = function (User $user, string $slot): Appointment {
+            return $user->appointments()->create([
+                'office' => 'Registrar',
+                'purpose' => 'Certification',
+                'date' => now()->addDays(2)->toDateString(),
+                'time_slot' => $slot,
+                'status' => AppointmentStatus::PENDING->value,
+            ]);
+        };
+
+        // A plain student (registration_type is left null for them)...
+        $student = User::factory()->create(['role' => 'student']);
+        $studentAppt = $makeAppointment($student, '09:00 AM - 10:00 AM');
+
+        // ...an alumnus...
+        $alumni = User::factory()->create(['role' => 'student', 'registration_type' => 'alumni']);
+        $alumniAppt = $makeAppointment($alumni, '10:00 AM - 11:00 AM');
+
+        // ...and a legacy "guardian" parent.
+        $parent = User::factory()->create(['role' => 'student', 'registration_type' => 'guardian']);
+        $parentAppt = $makeAppointment($parent, '11:00 AM - 12:00 PM');
+
+        // Alumni filter shows only the alumnus.
+        $this->actingAs($registrar)
+            ->get('/registrar/appointments?user_type=alumni')
+            ->assertOk()
+            ->assertSee($alumniAppt->reference_code)
+            ->assertDontSee($studentAppt->reference_code)
+            ->assertDontSee($parentAppt->reference_code);
+
+        // "Parent" also covers the legacy 'guardian' registration_type.
+        $this->actingAs($registrar)
+            ->get('/registrar/appointments?user_type=parent')
+            ->assertOk()
+            ->assertSee($parentAppt->reference_code)
+            ->assertDontSee($alumniAppt->reference_code)
+            ->assertDontSee($studentAppt->reference_code);
+
+        // "Student" is every account with no registration_type.
+        $this->actingAs($registrar)
+            ->get('/registrar/appointments?user_type=student')
+            ->assertOk()
+            ->assertSee($studentAppt->reference_code)
+            ->assertDontSee($alumniAppt->reference_code)
+            ->assertDontSee($parentAppt->reference_code);
+    }
+
     public function test_student_cannot_access_registrar_routes(): void
     {
         [$student] = $this->makeStudentWithAppointment();
@@ -173,7 +225,7 @@ class RegistrarAppointmentTest extends TestCase
         $newSlot = '02:00 PM - 03:00 PM';
 
         $this->actingAs($this->makeRegistrar())
-            ->put('/registrar/appointments/' . $appointment->id . '/reschedule', [
+            ->put('/registrar/appointments/'.$appointment->id.'/reschedule', [
                 'date' => $newDate,
                 'time_slot' => $newSlot,
                 'reschedule_reason' => 'Daily limit reached for the day',
@@ -188,7 +240,7 @@ class RegistrarAppointmentTest extends TestCase
         $this->assertEquals($newSlot, $appointment->time_slot);
         $this->assertEquals('Daily limit reached for the day', $appointment->reschedule_reason);
 
-        Mail::assertSent(\App\Mail\AppointmentRescheduled::class, function ($mail) use ($student, $appointment) {
+        Mail::assertSent(AppointmentRescheduled::class, function ($mail) use ($student, $appointment) {
             return $mail->hasTo($student->email) && $mail->appointment->is($appointment);
         });
 
@@ -217,7 +269,7 @@ class RegistrarAppointmentTest extends TestCase
         }
 
         $this->actingAs($this->makeRegistrar())
-            ->put('/registrar/appointments/' . $appointment->id . '/reschedule', [
+            ->put('/registrar/appointments/'.$appointment->id.'/reschedule', [
                 'date' => $fullDate,
                 'time_slot' => $slot,
                 'reschedule_reason' => 'Office closure',
@@ -235,7 +287,7 @@ class RegistrarAppointmentTest extends TestCase
         [, $appointment] = $this->makeStudentWithAppointment();
 
         $this->actingAs($this->makeRegistrar())
-            ->put('/registrar/appointments/' . $appointment->id . '/reschedule', [
+            ->put('/registrar/appointments/'.$appointment->id.'/reschedule', [
                 'date' => now()->addDays(4)->toDateString(),
                 'time_slot' => '01:00 PM - 02:00 PM',
                 'reschedule_reason' => '',
@@ -250,7 +302,7 @@ class RegistrarAppointmentTest extends TestCase
         $date = now()->addDays(3)->toDateString();
 
         $response = $this->actingAs($this->makeRegistrar())
-            ->getJson('/registrar/appointments/slots?office=Registrar&date=' . $date)
+            ->getJson('/registrar/appointments/slots?office=Registrar&date='.$date)
             ->assertOk()
             ->assertJsonCount(count(Appointment::TIME_SLOTS));
 
@@ -469,7 +521,7 @@ class RegistrarAppointmentTest extends TestCase
         $this->assertEquals('02:00 PM - 03:00 PM', $appointment->time_slot);
         $this->assertEquals('Office advisory', $appointment->reschedule_reason);
 
-        Mail::assertSent(\App\Mail\AppointmentRescheduled::class, function ($mail) use ($student) {
+        Mail::assertSent(AppointmentRescheduled::class, function ($mail) use ($student) {
             return $mail->hasTo($student->email)
                 && str_contains($mail->oldSchedule, '09:00 AM - 10:00 AM');
         });

@@ -2,6 +2,7 @@
 
 use App\Enums\AppointmentStatus;
 use App\Enums\DocumentRequestStatus;
+use App\Enums\Office;
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Admin\ConfigController;
@@ -41,6 +42,7 @@ use App\Http\Controllers\VerifyController;
 use App\Http\Controllers\Workspace\OfficeWorkspaceController;
 use App\Http\Controllers\Workspace\QrCheckInController;
 use App\Models\Appointment;
+use App\Models\ConsultationService;
 use App\Models\DocumentRequest;
 use App\Models\GateLog;
 use App\Models\Setting;
@@ -215,6 +217,31 @@ Route::get('/dashboard', function () {
     }
 
     if ($user->role === 'admin') {
+        $selectedOffice = request()->query('office');
+        // Validate against known office keys; silently ignore unknown values.
+        $knownOffices = ['All Offices', ...array_map(fn ($e) => $e->value, Office::cases())];
+        if ($selectedOffice && $selectedOffice !== 'All Offices' && ! in_array($selectedOffice, $knownOffices)) {
+            $selectedOffice = null;
+        }
+
+        // --- Appointments panel (recent 10, scoped when an office is selected) ---
+        $appointmentsQuery = Appointment::with('user')->latest('date')->take(10);
+        if ($selectedOffice && $selectedOffice !== 'All Offices') {
+            $appointmentsQuery->where('office', $selectedOffice);
+        }
+        $appointments = $appointmentsQuery->get();
+
+        // --- Consultation Services panel (ordered list, scoped when office selected) ---
+        $servicesQuery = ConsultationService::ordered();
+        if ($selectedOffice && $selectedOffice !== 'All Offices') {
+            $servicesQuery->where('office', $selectedOffice);
+        }
+        $services = $servicesQuery->get();
+
+        // --- Document Requests panel (always global — Registrar‑handled) ---
+        // (Rendered from $recentTransactions below; document requests have no
+        // office column so they are never scoped by the office filter.)
+
         return view('admin.dashboard', [
             'totalUsers' => User::count(),
             'roleCounts' => [
@@ -242,6 +269,12 @@ Route::get('/dashboard', function () {
                 ->latest()
                 ->limit(6)
                 ->get(),
+            // New panels for the Office Filter scope:
+            'appointments' => $appointments,
+            'services' => $services,
+            // Office filter UI data:
+            'officeFilter' => $selectedOffice,
+            'knownOfficeKeys' => $knownOffices,
         ]);
     }
 
@@ -482,6 +515,10 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
 
     // Master Logs & Audits
     Route::get('/audits', [AdminAuditLogController::class, 'index'])->name('audits.index');
+
+    // Consultation services — System Admin oversight across every office.
+    Route::patch('/consultations/{consultationService}/toggle', [ConsultationServiceController::class, 'toggle'])
+        ->name('consultations.toggle');
 
     Route::get('/help', [HelpController::class, 'index'])->name('help.index');
 });

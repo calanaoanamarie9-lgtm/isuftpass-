@@ -3,8 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Announcement;
+use App\Models\Appointment;
 use App\Models\AuditLog;
-use App\Models\Document;
+use App\Models\ConsultationService;
 use App\Models\Office;
 use App\Models\Setting;
 use App\Models\User;
@@ -281,6 +282,76 @@ class AdminModuleTest extends TestCase
             ->get('/dashboard')
             ->assertOk()
             ->assertSee('Total Accounts');
+    }
+
+    public function test_admin_dashboard_office_filter_scopes_the_panels(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $makeAppointment = function (string $office, string $purpose): Appointment {
+            $student = User::factory()->create(['role' => 'student']);
+
+            return $student->appointments()->create([
+                'office' => $office,
+                'purpose' => $purpose,
+                'date' => now()->addDays(2)->toDateString(),
+                'time_slot' => '09:00 AM - 10:00 AM',
+                'status' => 'pending',
+            ]);
+        };
+
+        $registrarAppt = $makeAppointment('Registrar', 'Certification');
+        $libraryAppt = $makeAppointment('Library', 'Library Clearance');
+
+        ConsultationService::create([
+            'office' => 'Registrar',
+            'name' => 'Enrollment Consultation',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        ConsultationService::create([
+            'office' => 'Library',
+            'name' => 'Thesis Consultation',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        // No filter: both offices appear on the master view. The services
+        // panel also renders each row (and its master toggle form).
+        $this->actingAs($admin)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee($registrarAppt->reference_code)
+            ->assertSee($libraryAppt->reference_code)
+            ->assertSee('Enrollment Consultation')
+            ->assertSee('Thesis Consultation');
+
+        // Scoped to Library: only the Library records remain.
+        $this->actingAs($admin)
+            ->get('/dashboard?office=Library')
+            ->assertOk()
+            ->assertSee($libraryAppt->reference_code)
+            ->assertDontSee($registrarAppt->reference_code)
+            ->assertSee('Thesis Consultation')
+            ->assertDontSee('Enrollment Consultation');
+    }
+
+    public function test_admin_can_toggle_a_consultation_service_across_offices(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $service = ConsultationService::create([
+            'office' => 'Library',
+            'name' => 'Thesis Consultation',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->actingAs($admin)
+            ->patch("/admin/consultations/{$service->id}/toggle")
+            ->assertRedirect();
+
+        $this->assertFalse($service->fresh()->is_active);
     }
 
     public function test_student_dashboard_shows_announcement_banner(): void

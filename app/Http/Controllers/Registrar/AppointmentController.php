@@ -9,12 +9,14 @@ use App\Mail\AppointmentApproved;
 use App\Mail\AppointmentRescheduled;
 use App\Models\Appointment;
 use App\Notifications\AppointmentApprovedNotification;
+use App\Notifications\AppointmentCancelledNotification;
 use App\Notifications\AppointmentRescheduledNotification;
 use App\Support\AuditLogger;
 use App\Support\SafeMailer;
 use App\Support\TimeSlots;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -24,37 +26,72 @@ class AppointmentController extends Controller
 {
     /**
      * Staff management list of student appointments for the account's office.
+     *
+     * Supports filtering by user classification (student/alumni/parent/guest)
+     * via the ?user_type= query parameter.
      */
     public function index(Request $request): View
     {
+        Gate::authorize('viewAny', Appointment::class);
+
         // The filter speaks the office's language: "Approved" is the label the
         // page prints for a stored "confirmed" status, so the option is turned
         // back into the value the column actually holds.
-        $filter = $request->query('status');
-        $filter = is_string($filter) ? $filter : null;
+        $statusFilter = $request->query('status');
+        $statusFilter = is_string($statusFilter) ? $statusFilter : null;
+
+        $userTypeFilter = $request->query('user_type');
+        $userTypeFilter = is_string($userTypeFilter) ? $userTypeFilter : null;
 
         $status = [
             'pending' => AppointmentStatus::PENDING->value,
             'approved' => AppointmentStatus::CONFIRMED->value,
             'rescheduled' => AppointmentStatus::RESCHEDULED->value,
             'cancelled' => AppointmentStatus::CANCELLED->value,
-        ][$filter] ?? null;
+        ][$statusFilter] ?? null;
 
-        $appointments = Appointment::with('user')
+        $appointmentsQuery = Appointment::with('user')
             ->where('office', auth()->user()->officeScope())
-            ->when($status, fn ($query) => $query->where('status', $status))
+            ->when($status, fn ($query) => $query->where('status', $status));
+
+        // Applicant classification filter. "Student" is every account that
+        // signed up as a student (registration_type is left null for them);
+        // alumni / parent / guest were typed into registration_type at signup.
+        $userTypes = [
+            'student' => 'Student',
+            'alumni' => 'Alumni',
+            'parent' => 'Parent',
+            'guest' => 'Guest',
+        ];
+
+        $userTypeFilter = is_string($userTypeFilter) && array_key_exists($userTypeFilter, $userTypes)
+            ? $userTypeFilter
+            : null;
+
+        if ($userTypeFilter === 'student') {
+            $appointmentsQuery->whereHas('user', fn ($q) => $q->whereNull('registration_type'));
+        } elseif ($userTypeFilter !== null) {
+            // "Parent" also covers the legacy 'guardian' registration_type.
+            $registrations = $userTypeFilter === 'parent' ? ['parent', 'guardian'] : [$userTypeFilter];
+            $appointmentsQuery->whereHas('user', fn ($q) => $q->whereIn('registration_type', $registrations));
+        }
+
+        $appointments = $appointmentsQuery
             ->firstComeFirstServed()
             ->paginate(12)
             ->withQueryString();
 
         return view('registrar.appointments.index', [
             'appointments' => $appointments,
-            'statusFilter' => $filter,
+            'statusFilter' => $statusFilter,
+            'userTypeFilter' => $userTypeFilter,
         ]);
     }
 
     public function show(Request $request, Appointment $appointment): View
     {
+        Gate::authorize('view', $appointment);
+
         return view('registrar.appointments.show', [
             'appointment' => $appointment->load('user'),
         ]);
@@ -78,13 +115,10 @@ class AppointmentController extends Controller
         ]);
 
         // Every workspace now reaches this endpoint, so it no longer suffices
-        // that the caller is staff: only the registrar reads across offices.
-        // A department or office account may read capacity for its own office.
-        abort_unless(
-            auth()->user()?->role === 'registrar'
-                || $data['office'] === auth()->user()->officeScope(),
-            403
-        );
+        // that the caller is staff: only the registrar (and the System Admin)
+        // reads across offices. A department or office account may read
+        // capacity for its own office — enforced by the policy.
+        Gate::authorize('readOffice', [Appointment::class, $data['office']]);
 
         return response()->json(Appointment::availableSlots($data['office'], $data['date'], $data['ignore_id'] ?? null));
     }
@@ -95,6 +129,8 @@ class AppointmentController extends Controller
      */
     public function reschedule(Request $request, Appointment $appointment): View
     {
+        Gate::authorize('manage', $appointment);
+
         return view('registrar.appointments.reschedule', [
             'appointment' => $appointment->load('user'),
             'offices' => Office::toSelectKeys(),
@@ -103,14 +139,11 @@ class AppointmentController extends Controller
 
     public function updateReschedule(Request $request, Appointment $appointment): RedirectResponse
     {
-        // Rescheduling someone else's office is the registrar's call. Workspace
-        // accounts reach this route too, so pin them to their own office — the
-        // appointment list they came from is already scoped that way.
-        abort_unless(
-            auth()->user()?->role === 'registrar'
-                || $appointment->office === auth()->user()->officeScope(),
-            403
-        );
+        // Rescheduling someone else's office is the registrar's (or the
+        // System Admin's) call. Workspace accounts reach this route too, so
+        // the policy pins them to their own office — the appointment list
+        // they came from is already scoped that way.
+        Gate::authorize('manage', $appointment);
 
         abort_if(
             in_array($appointment->status, [
@@ -148,20 +181,20 @@ class AppointmentController extends Controller
         ]);
 
         $oldSchedule = ($appointment->original_date ?? $appointment->date)->format('F j, Y')
-            . ' · '
-            . ($appointment->original_time_slot ?? $appointment->time_slot);
+            .' · '
+            .($appointment->original_time_slot ?? $appointment->time_slot);
 
         SafeMailer::send($appointment->user, new AppointmentRescheduled($appointment, $oldSchedule));
         $appointment->user->notify(new AppointmentRescheduledNotification($appointment));
 
-        AuditLogger::log('appointment.rescheduled', 'Rescheduled appointment ' . $appointment->reference_code . ' to ' . $data['date'] . ' (' . $data['time_slot'] . ').');
+        AuditLogger::log('appointment.rescheduled', 'Rescheduled appointment '.$appointment->reference_code.' to '.$data['date'].' ('.$data['time_slot'].').');
 
         // The registrar works from the appointment record itself; each of the
         // eight workspaces has its own appointment list instead. Sending a
         // workspace to registrar.appointments.show would land it on a page its
         // role cannot open — it would 403 one screen after succeeding — so go to
         // whichever index actually exists for this account.
-        $workspaceIndex = strtolower(auth()->user()->officeScope()) . '.appointments';
+        $workspaceIndex = strtolower(auth()->user()->officeScope()).'.appointments';
         $redirect = Route::has($workspaceIndex)
             ? route($workspaceIndex)
             : route('registrar.appointments.show', $appointment);
@@ -188,13 +221,10 @@ class AppointmentController extends Controller
      */
     public function confirm(Request $request, Appointment $appointment): RedirectResponse
     {
-        // Workspace accounts reach this route too — pin them to their own
-        // office; only the registrar confirms across offices.
-        abort_unless(
-            auth()->user()?->role === 'registrar'
-                || $appointment->office === auth()->user()->officeScope(),
-            403
-        );
+        // Workspace accounts reach this route too — the policy pins them to
+        // their own office; only the registrar and the System Admin confirm
+        // across offices.
+        Gate::authorize('manage', $appointment);
 
         abort_if(
             ! in_array($appointment->status, [
@@ -211,14 +241,14 @@ class AppointmentController extends Controller
             'confirmed_time' => [
                 'required',
                 'date_format:H:i',
-                'after_or_equal:' . $hours['open'],
-                'before:' . $hours['close'],
+                'after_or_equal:'.$hours['open'],
+                'before:'.$hours['close'],
             ],
         ], [
             'confirmed_time.required' => 'Pick the time you want the student to come.',
             'confirmed_time.date_format' => 'That is not a readable time.',
-            'confirmed_time.after_or_equal' => 'The office is not open that early. Choose a time at or after ' . self::clock($hours['open']) . '.',
-            'confirmed_time.before' => 'The office is closed by then. Choose a time before ' . self::clock($hours['close']) . '.',
+            'confirmed_time.after_or_equal' => 'The office is not open that early. Choose a time at or after '.self::clock($hours['open']).'.',
+            'confirmed_time.before' => 'The office is closed by then. Choose a time before '.self::clock($hours['close']).'.',
         ]);
 
         // Offices that set the time themselves (the Registrar) carry no
@@ -248,13 +278,13 @@ class AppointmentController extends Controller
 
         AuditLogger::log(
             'appointment.confirmed',
-            'Confirmed appointment ' . $appointment->reference_code . ' for ' . $appointment->date->toDateString()
-                . ', student to come at ' . $appointment->confirmed_time . '.'
+            'Confirmed appointment '.$appointment->reference_code.' for '.$appointment->date->toDateString()
+                .', student to come at '.$appointment->confirmed_time.'.'
         );
 
         return back()->with(
             'status',
-            'Appointment approved. ' . $appointment->user->name . ' has been told to come at ' . $appointment->confirmed_time . '.'
+            'Appointment approved. '.$appointment->user->name.' has been told to come at '.$appointment->confirmed_time.'.'
         );
     }
 
@@ -273,6 +303,11 @@ class AppointmentController extends Controller
      */
     public function cancel(Request $request, Appointment $appointment): RedirectResponse
     {
+        // The registrar group's middleware also admits department accounts,
+        // so the policy decides: the registrar and the System Admin cancel
+        // anywhere, an office account only its own bookings.
+        Gate::authorize('manage', $appointment);
+
         abort_if(
             in_array($appointment->status, [
                 AppointmentStatus::COMPLETED->value,
@@ -287,9 +322,9 @@ class AppointmentController extends Controller
             'cancelled_at' => now(),
         ]);
 
-        $appointment->user->notify(new \App\Notifications\AppointmentCancelledNotification($appointment));
+        $appointment->user->notify(new AppointmentCancelledNotification($appointment));
 
-        AuditLogger::log('appointment.cancelled', 'Cancelled appointment ' . $appointment->reference_code . '.');
+        AuditLogger::log('appointment.cancelled', 'Cancelled appointment '.$appointment->reference_code.'.');
 
         return back()->with('status', 'Appointment cancelled. The student has been notified.');
     }

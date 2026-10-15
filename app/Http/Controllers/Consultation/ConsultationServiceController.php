@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ConsultationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 /**
@@ -13,7 +14,8 @@ use Illuminate\View\View;
  *
  * Ownership is derived from auth()->user()->office — never from the URL — so a
  * department account that is allowed through the route middleware still cannot
- * create or edit another office's services.
+ * create or edit another office's services. The per-service decisions live in
+ * ConsultationServicePolicy (which also grants the System Admin master access).
  */
 class ConsultationServiceController extends Controller
 {
@@ -36,13 +38,13 @@ class ConsultationServiceController extends Controller
         ]);
 
         return redirect()
-            ->route($this->prefix() . '.consultations')
+            ->route($this->prefix().'.consultations')
             ->with('status', "“{$consultationService->name}” was added to your consultation services.");
     }
 
     public function edit(ConsultationService $consultationService): View
     {
-        $this->authorizeOwnership($consultationService);
+        Gate::authorize('update', $consultationService);
 
         return view('consultations.form', [
             'office' => $this->office(),
@@ -52,7 +54,7 @@ class ConsultationServiceController extends Controller
 
     public function update(Request $request, ConsultationService $consultationService): RedirectResponse
     {
-        $this->authorizeOwnership($consultationService);
+        Gate::authorize('update', $consultationService);
 
         $consultationService->update($this->validated($request));
 
@@ -61,7 +63,7 @@ class ConsultationServiceController extends Controller
 
     public function destroy(ConsultationService $consultationService): RedirectResponse
     {
-        $this->authorizeOwnership($consultationService);
+        Gate::authorize('delete', $consultationService);
 
         $consultationService->delete();
 
@@ -77,7 +79,7 @@ class ConsultationServiceController extends Controller
      */
     public function toggle(ConsultationService $consultationService): RedirectResponse
     {
-        $this->authorizeOwnership($consultationService);
+        Gate::authorize('toggle', $consultationService);
 
         $consultationService->update([
             'is_active' => ! $consultationService->is_active,
@@ -127,15 +129,6 @@ class ConsultationServiceController extends Controller
             '/\.consultations(\..*)?$/',
             '',
             (string) request()->route()?->getName()
-        );
-    }
-
-    private function authorizeOwnership(ConsultationService $consultationService): void
-    {
-        abort_unless(
-            $consultationService->office === $this->office(),
-            403,
-            'This consultation service belongs to another office.',
         );
     }
 }

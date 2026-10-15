@@ -59,6 +59,28 @@
 
             </div>
 
+            {{-- =========================================================
+                OFFICE FILTER DROPDOWN
+            ========================================================== --}}
+            <div class="bg-white rounded-xl p-4 mb-6 shadow-sm border border-gray-200">
+                <form method="GET" action="{{ route('dashboard') }}" class="flex flex-col sm:flex-row gap-3 max-w-2xl">
+                    <label for="officeFilter" class="text-sm text-gray-700">
+                        Office:
+                    </label>
+                    <select name="office" id="officeFilter"
+                            onchange="this.form.submit()"
+                            class="pl-3 pr-4 py-2 rounded border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Offices</option>
+                        @foreach ($knownOfficeKeys as $key)
+                            @continue ($key === 'All Offices')
+                            <option value="{{ $key }}"
+                                {{ $officeFilter === $key ? 'selected' : '' }}>
+                                {{ ucwords(str_replace('_', ' ', $key)) }}
+                            </option>
+                        @endforeach
+                    </select>
+                </form>
+            </div>
 
             {{-- =========================================================
                 STATISTICS
@@ -99,11 +121,11 @@
                                       stroke-linejoin="round"
                                       stroke-width="2"
                                       d="M17 20h5v-2a3 3 0 00-5.356-1.857
-                                         M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857
-                                         M7 20H2v-2a3 3 0 015.356-1.857
-                                         M7 20v-2c0-.656.126-1.283.356-1.857
-                                         m0 0a5.002 5.002 0 019.288 0
-                                         M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                           M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857
+                                           M7 20H2v-2a3 3 0 015.356-1.857
+                                           M7 20v-2c0-.656.126-1.283.356-1.857
+                                           m0 0a5.002 5.002 0 019.288 0
+                                           M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
 
                             </svg>
 
@@ -151,9 +173,9 @@
                                       stroke-linejoin="round"
                                       stroke-width="2"
                                       d="M9 12h6m-6 4h6m2 5H7
-                                         a2 2 0 01-2-2V5a2 2 0 012-2h5.586
-                                         a1 1 0 01.707.293l5.414 5.414
-                                         A1 1 0 0119 6.707V19a2 2 0 01-2 2z"/>
+                                       a2 2 0 01-2-2V5a2 2 0 012-2h5.586
+                                       a1 1 0 01.707.293l5.414 5.414
+                                       A1 1 0 0119 6.707V19a2 2 0 01-2 2z"/>
 
                             </svg>
 
@@ -201,11 +223,11 @@
                                       stroke-linejoin="round"
                                       stroke-width="2"
                                       d="M12 4V2m0 20v-2m8-8h2M2 12h2
-                                         m13.657-5.657l1.414-1.414
-                                         M4.343 19.657l-1.414 1.414
-                                         m0-17.414l1.414 1.414
-                                         m14.829 14.829l1.414 1.414
-                                         M12 8a4 4 0 100 8 4 4 0 000-8z"/>
+                                       m13.657-5.657l1.414-1.414
+                                       M4.343 19.657l-1.414 1.414
+                                       m0-17.414l1.414 1.414
+                                       m14.829 14.829l1.414 1.414
+                                       M12 8a4 4 0 100 8 4 4 0 000-8z"/>
 
                             </svg>
 
@@ -253,9 +275,9 @@
                                       stroke-linejoin="round"
                                       stroke-width="2"
                                       d="M3 10h18M7 15h1m4 0h1
-                                         m-7 4h12a3 3 0 003-3V8
-                                         a3 3 0 00-3-3H6a3 3 0 00-3 3v8
-                                         a3 3 0 003 3z"/>
+                                       m-7 4h12a3 3 0 003-3V8
+                                       a3 3 0 00-3-3H6a3 3 0 00-3 3v8
+                                       a3 3 0 003 3z"/>
 
                             </svg>
 
@@ -281,8 +303,8 @@
                 {{-- =====================================================
                     RECENT TRANSACTIONS
                 ====================================================== --}}
-                <div class="lg:col-span-2 bg-white rounded-2xl
-                            border border-gray-200 shadow-sm overflow-hidden">
+                <div class="bg-white rounded-2xl border border-gray-200
+                            shadow-sm overflow-hidden">
 
                     {{-- Header --}}
                     <div class="px-6 py-5 border-b border-gray-200
@@ -377,14 +399,14 @@
                                         <td class="px-6 py-4">
 
                                             <span class="inline-flex items-center
-                                                         px-2.5 py-1 rounded-lg
-                                                         bg-blue-50 text-blue-700
-                                                         border border-blue-100
-                                                         text-xs font-semibold">
+                                                          px-2.5 py-1 rounded-lg
+                                                          bg-blue-50 text-blue-700
+                                                          border border-blue-100
+                                                          text-xs font-semibold">
 
                                                 <span class="w-1.5 h-1.5
-                                                             rounded-full
-                                                             bg-blue-600 mr-1.5">
+                                                                  rounded-full
+                                                                  bg-blue-600 mr-1.5">
                                                 </span>
 
                                                 {{ ucwords(str_replace('_', ' ', $tx->status)) }}
@@ -442,191 +464,342 @@
 
 
                 {{-- =====================================================
-                    ACCOUNT OVERVIEW
+                    APPOINTMENTS
                 ====================================================== --}}
                 <div class="bg-white rounded-2xl border border-gray-200
                             shadow-sm overflow-hidden">
 
                     {{-- Header --}}
-                    <div class="px-6 py-5 border-b border-gray-200">
+                    <div class="px-6 py-5 border-b border-gray-200
+                                flex items-center justify-between">
 
-                        <h2 class="text-base font-bold text-[#102d5b]">
-                            Accounts Overview
-                        </h2>
+                        <div>
 
-                        <p class="text-xs text-gray-400 mt-1">
-                            User distribution by account type
-                        </p>
+                            <h2 class="text-base font-bold text-[#102d5b]">
+                                Appointments
+                            </h2>
+
+                            <p class="text-xs text-gray-400 mt-1">
+                                Recent appointments across offices
+                            </p>
+
+                        </div>
 
                     </div>
 
 
-                    <div class="p-6">
+                    {{-- List --}}
+                    <div class="p-4">
 
+                        @forelse ($appointments as $appointment)
 
-                        {{-- Students --}}
-                        <div class="flex items-center justify-between py-3">
+                            <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
 
-                            <div class="flex items-center gap-3">
+                                <div class="flex items-center gap-3">
 
-                                <span class="w-2.5 h-2.5 rounded-full
-                                             bg-green-500"></span>
+                                    <span class="text-sm text-gray-600">
+                                        {{ $appointment->reference_code }}
+                                    </span>
 
-                                <span class="text-sm font-medium text-gray-700">
-                                    Students
-                                </span>
-
-                            </div>
-
-                            <span class="text-sm font-bold text-gray-900">
-                                {{ $roleCounts['students'] }}
-                            </span>
-
-                        </div>
-
-
-                        {{-- Administrators --}}
-                        <div class="flex items-center justify-between py-3">
-
-                            <div class="flex items-center gap-3">
-
-                                <span class="w-2.5 h-2.5 rounded-full
-                                             bg-blue-600"></span>
-
-                                <span class="text-sm font-medium text-gray-700">
-                                    Administrators
-                                </span>
-
-                            </div>
-
-                            <span class="text-sm font-bold text-gray-900">
-                                {{ $roleCounts['admins'] }}
-                            </span>
-
-                        </div>
-
-
-                        {{-- Registrar --}}
-                        <div class="flex items-center justify-between py-3">
-
-                            <div class="flex items-center gap-3">
-
-                                <span class="w-2.5 h-2.5 rounded-full
-                                             bg-yellow-500"></span>
-
-                                <span class="text-sm font-medium text-gray-700">
-                                    Registrar Staff
-                                </span>
-
-                            </div>
-
-                            <span class="text-sm font-bold text-gray-900">
-                                {{ $roleCounts['registrars'] }}
-                            </span>
-
-                        </div>
-
-
-                        {{-- Cashier --}}
-                        <div class="flex items-center justify-between py-3">
-
-                            <div class="flex items-center gap-3">
-
-                                <span class="w-2.5 h-2.5 rounded-full
-                                             bg-indigo-600"></span>
-
-                                <span class="text-sm font-medium text-gray-700">
-                                    Cashier Staff
-                                </span>
-
-                            </div>
-
-                            <span class="text-sm font-bold text-gray-900">
-                                {{ $roleCounts['cashiers'] }}
-                            </span>
-
-                        </div>
-
-
-                        {{-- Department --}}
-                        <div class="flex items-center justify-between py-3">
-
-                            <div class="flex items-center gap-3">
-
-                                <span class="w-2.5 h-2.5 rounded-full
-                                             bg-cyan-500"></span>
-
-                                <span class="text-sm font-medium text-gray-700">
-                                    Department Staff
-                                </span>
-
-                            </div>
-
-                            <span class="text-sm font-bold text-gray-900">
-                                {{ $roleCounts['departments'] }}
-                            </span>
-
-                        </div>
-
-
-                        {{-- Department Offices --}}
-                        @if ($departmentOffices->isNotEmpty())
-
-                            <div class="pt-5 mt-2 border-t border-gray-100">
-
-                                <p class="text-xs font-bold uppercase
-                                          tracking-wide text-gray-400 mb-3">
-                                    Offices
-                                </p>
-
-                                <div class="space-y-2">
-
-                                    @foreach ($departmentOffices as $office => $count)
-
-                                        <div class="flex items-center
-                                                    justify-between
-                                                    px-3 py-2 rounded-lg
-                                                    bg-gray-50">
-
-                                            <span class="text-xs font-medium
-                                                         text-gray-600">
-                                                {{ $office ?: 'General' }}
-                                            </span>
-
-                                            <span class="text-xs font-bold
-                                                         text-[#102d5b]">
-                                                {{ $count }}
-                                            </span>
-
-                                        </div>
-
-                                    @endforeach
+                                    <span class="text-sm font-medium text-gray-900">
+                                        {{ $appointment->user->name }}
+                                    </span>
 
                                 </div>
 
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg
+                                             bg-blue-50 text-blue-700
+                                             border border-blue-100
+                                             text-xs font-semibold">
+
+                                    <span class="w-1.5 h-1.5
+                                      rounded-full
+                                      bg-blue-600 mr-1.5">
+                                    </span>
+
+                                    {{ ucwords(str_replace('_', ' ', $appointment->status)) }}
+
+                                </span>
+
                             </div>
 
-                        @endif
+                        @empty
 
-
-                        {{-- Active Requests --}}
-                        <div class="mt-6 p-4 rounded-xl
-                                    bg-blue-50 border border-blue-100">
-
-                            <p class="text-xs font-bold uppercase
-                                      tracking-wide text-blue-600">
-                                Active Requests
+                            <p class="text-center text-gray-500 py-4">
+                                No appointments yet
                             </p>
 
-                            <p class="mt-1 text-lg font-black text-[#102d5b]">
-                                {{ $activeRequests }}
-                            </p>
+                        @endforelse
 
-                            <p class="text-xs text-blue-700 mt-1">
-                                Active document request(s) across offices.
+                    </div>
+
+                </div>
+
+
+                {{-- =====================================================
+                    CONSULTATION SERVICES
+                ====================================================== --}}
+                <div class="bg-white rounded-2xl border border-gray-200
+                            shadow-sm overflow-hidden">
+
+                    {{-- Header --}}
+                    <div class="px-6 py-5 border-b border-gray-200
+                                flex items-center justify-between">
+
+                        <div>
+
+                            <h2 class="text-base font-bold text-[#102d5b]">
+                                Consultation Services
+                            </h2>
+
+                            <p class="text-xs text-gray-400 mt-1">
+                                Office-managed consultation services
                             </p>
 
                         </div>
+
+                    </div>
+
+
+                    {{-- List --}}
+                    <div class="p-4">
+
+                        @forelse ($services as $service)
+
+                            <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+
+                                <div class="flex items-center gap-3">
+
+                                    <span class="text-sm text-gray-600">
+                                        {{ $service->name }}
+                                    </span>
+
+                                    @if ($service->is_active)
+                                        <span class="inline-flex items-center px-2 py-1 rounded bg-green-100 text-green-800 text-xs">
+                                            Active
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-1 rounded bg-red-100 text-red-800 text-xs">
+                                            Hidden
+                                        </span>
+                                    @endif
+
+                                </div>
+
+                                <form method="POST"
+                                      action="{{ route('admin.consultations.toggle', $service) }}">
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button type="submit"
+                                            class="text-sm underline
+                                                   {{ $service->is_active ? 'text-blue-600' : 'text-gray-500 opacity-60' }}">
+                                        {{ $service->is_active ? 'Deactivate' : 'Reactivate' }}
+                                    </button>
+
+                                </form>
+
+                            </div>
+
+                        @empty
+
+                            <p class="text-center text-gray-500 py-4">
+                                No consultation services
+                            </p>
+
+                        @endforelse
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {{-- =========================================================
+                ACCOUNT OVERVIEW
+            ========================================================== --}}
+            <div class="bg-white rounded-2xl border border-gray-200
+                        shadow-sm overflow-hidden">
+
+                {{-- Header --}}
+                <div class="px-6 py-5 border-b border-gray-200">
+
+                    <h2 class="text-base font-bold text-[#102d5b]">
+                        Accounts Overview
+                    </h2>
+
+                    <p class="text-xs text-gray-400 mt-1">
+                        User distribution by account type
+                    </p>
+
+                </div>
+
+
+                <div class="p-6">
+
+
+                    {{-- Students --}}
+                    <div class="flex items-center justify-between py-3">
+
+                        <div class="flex items-center gap-3">
+
+                            <span class="w-2.5 h-2.5 rounded-full
+                                     bg-green-500"></span>
+
+                            <span class="text-sm font-medium text-gray-700">
+                                Students
+                            </span>
+
+                        </div>
+
+                        <span class="text-sm font-bold text-gray-900">
+                            {{ $roleCounts['students'] }}
+                        </span>
+
+                    </div>
+
+
+                    {{-- Administrators --}}
+                    <div class="flex items-center justify-between py-3">
+
+                        <div class="flex items-center gap-3">
+
+                            <span class="w-2.5 h-2.5 rounded-full
+                                     bg-blue-600"></span>
+
+                            <span class="text-sm font-medium text-gray-700">
+                                Administrators
+                            </span>
+
+                        </div>
+
+                        <span class="text-sm font-bold text-gray-900">
+                            {{ $roleCounts['admins'] }}
+                        </span>
+
+                    </div>
+
+
+                    {{-- Registrar --}}
+                    <div class="flex items-center justify-between py-3">
+
+                        <div class="flex items-center gap-3">
+
+                            <span class="w-2.5 h-2.5 rounded-full
+                                     bg-yellow-500"></span>
+
+                            <span class="text-sm font-medium text-gray-700">
+                                Registrar Staff
+                            </span>
+
+                        </div>
+
+                        <span class="text-sm font-bold text-gray-900">
+                            {{ $roleCounts['registrars'] }}
+                        </span>
+
+                    </div>
+
+
+                    {{-- Cashier --}}
+                    <div class="flex items-center justify-between py-3">
+
+                        <div class="flex items-center gap-3">
+
+                            <span class="w-2.5 h-2.5 rounded-full
+                                     bg-indigo-600"></span>
+
+                            <span class="text-sm font-medium text-gray-700">
+                                Cashier Staff
+                            </span>
+
+                        </div>
+
+                        <span class="text-sm font-bold text-gray-900">
+                            {{ $roleCounts['cashiers'] }}
+                        </span>
+
+                    </div>
+
+
+                    {{-- Department --}}
+                    <div class="flex items-center justify-between py-3">
+
+                        <div class="flex items-center gap-3">
+
+                            <span class="w-2.5 h-2.5 rounded-full
+                                     bg-cyan-500"></span>
+
+                            <span class="text-sm font-medium text-gray-700">
+                                Department Staff
+                            </span>
+
+                        </div>
+
+                        <span class="text-sm font-bold text-gray-900">
+                            {{ $roleCounts['departments'] }}
+                        </span>
+
+                    </div>
+
+
+                    {{-- Department Offices --}}
+                    @if ($departmentOffices->isNotEmpty())
+
+                        <div class="pt-5 mt-2 border-t border-gray-100">
+
+                            <p class="text-xs font-bold uppercase
+                                      tracking-wide text-gray-400 mb-3">
+                                Offices
+                            </p>
+
+                            <div class="space-y-2">
+
+                                @foreach ($departmentOffices as $office => $count)
+
+                                    <div class="flex items-center
+                                                justify-between
+                                                px-3 py-2 rounded-lg
+                                                bg-gray-50">
+
+                                        <span class="text-xs font-medium
+                                                  text-gray-600">
+                                            {{ $office ?: 'General' }}
+                                        </span>
+
+                                        <span class="text-xs font-bold
+                                                  text-[#102d5b]">
+                                            {{ $count }}
+                                        </span>
+
+                                    </div>
+
+                                @endforeach
+
+                            </div>
+
+                        </div>
+
+                    @endif
+
+
+                    {{-- Active Requests --}}
+                    <div class="mt-6 p-4 rounded-xl
+                                bg-blue-50 border border-blue-100">
+
+                        <p class="text-xs font-bold uppercase
+                                  tracking-wide text-blue-600">
+                            Active Requests
+                        </p>
+
+                        <p class="mt-1 text-lg font-black text-[#102d5b]">
+                            {{ $activeRequests }}
+                        </p>
+
+                        <p class="text-xs text-blue-700 mt-1">
+                            Active document request(s) across offices.
+                        </p>
 
                     </div>
 
