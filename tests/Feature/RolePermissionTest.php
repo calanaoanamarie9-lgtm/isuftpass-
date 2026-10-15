@@ -230,10 +230,26 @@ class RolePermissionTest extends TestCase
     {
         $this->seed(DocumentsSeeder::class);
 
+        $this->assertSame('student', Document::where('name', 'Certificate of Grades (COG)')->value('audience'));
         $this->assertSame('alumni', Document::where('name', 'Diploma')->value('audience'));
         $this->assertSame('student', Document::where('name', 'Good Moral Character')->value('audience'));
         $this->assertSame('student', Document::where('name', 'Permanent Record (F-137-A)')->value('audience'));
         $this->assertSame('both', Document::where('name', 'Transcript of Record (TOR)')->value('audience'));
+    }
+
+    public function test_student_can_request_cog_but_alumni_cannot(): void
+    {
+        $this->seed(DocumentsSeeder::class);
+
+        $this->actingAs($this->user('student'))
+            ->get('/student/document-requests/create')
+            ->assertOk()
+            ->assertSee('Certificate of Grades (COG)');
+
+        $this->actingAs($this->user('student', 'alumni'))
+            ->get('/student/document-requests/create')
+            ->assertOk()
+            ->assertDontSee('Certificate of Grades (COG)');
     }
 
     // ---------------------------------------------------------------------

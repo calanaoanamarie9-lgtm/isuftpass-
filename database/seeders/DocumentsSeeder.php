@@ -17,6 +17,12 @@ class DocumentsSeeder extends Seeder
                 'audience' => Document::AUDIENCE_BOTH,
             ],
             [
+                'name' => 'Certificate of Grades (COG)',
+                'description' => 'Official certification of the grades a student earned in a term or school year.',
+                'fee' => 60.00,
+                'audience' => Document::AUDIENCE_STUDENT,
+            ],
+            [
                 'name' => 'Certification / CAVS',
                 'description' => 'Certification of a student record or CAVS verification of signature.',
                 'fee' => 60.00,
