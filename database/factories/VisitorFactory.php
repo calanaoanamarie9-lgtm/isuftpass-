@@ -18,7 +18,7 @@ class VisitorFactory extends Factory
         return [
             'name' => fake()->name(),
             'purpose' => fake()->randomElement(['Meeting', 'Delivery', 'Campus tour', 'Interview']),
-            'destination_office' => fake()->randomElement(['Registrar', 'OSAS', 'Cashier', 'Library']),
+            'destination_office' => fake()->randomElement(['Registrar', 'SSC', 'Cashier', 'Library']),
             'contact_number' => fake()->numerify('09#########'),
             'valid_until' => CampusTime::today(),
             'status' => Visitor::STATUS_ACTIVE,

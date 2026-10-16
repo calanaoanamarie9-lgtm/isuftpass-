@@ -26,7 +26,6 @@ class DatabaseSeeder extends Seeder
             OsasOfficeSeeder::class,
             AccountingOfficeSeeder::class,
             LibraryOfficeSeeder::class,
-            GuidanceOfficeSeeder::class,
             ConsultationServiceSeeder::class,
             WorkspaceSeeder::class,
         ]);

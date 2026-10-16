@@ -315,39 +315,17 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * Offices this account may book, as value => label.
      *
-     * Students reach the Registrar, SSC and Library; parents reach the deans
-     * (colleges), SSC and Cashier; guests reach the colleges and any
-     * self-registered administrative office. Alumni keep the widest reach so
-     * they can chase records across offices.
+     * Every role sees the same nine canonical offices — SSC, Registrar,
+     * Cashier, Accounting, Library and the four colleges — because the
+     * booking form must offer exactly that list. Validation, the
+     * book-appointment gate and the form dropdown all read from this
+     * method, so the three can never disagree.
      *
      * @return array<string, string>
      */
     public function bookableOffices(): array
     {
-        $options = Office::toSelect();
-        $builtin = array_map(fn (Office $office) => $office->value, Office::cases());
-
-        $only = fn (array $names): array => array_filter(
-            $options,
-            fn (string $value): bool => in_array($value, $names, true),
-            ARRAY_FILTER_USE_KEY,
-        );
-
-        // Self-registered offices (HR, Property Management, …) are the ones
-        // that are not built into the Office enum.
-        $general = array_filter(
-            $options,
-            fn (string $value): bool => ! in_array($value, $builtin, true),
-            ARRAY_FILTER_USE_KEY,
-        );
-
-        return match ($this->rbacRole()) {
-            Role::Student => $only(['Registrar', 'SSC', 'Library']),
-            Role::Alumni => $options,
-            Role::Parent => $only(['SSC', 'Cashier', 'CICI', 'CBMSD', 'COAG', 'COED']),
-            Role::Guest => $only(['CICI', 'CBMSD', 'COAG', 'COED']) + $general,
-            default => $options,
-        };
+        return Office::toSelect();
     }
 
     public function canBookOffice(string $office): bool

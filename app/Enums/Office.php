@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use App\Models\User;
+
 enum Office: string
 {
     case SSC = 'SSC';
@@ -17,21 +19,30 @@ enum Office: string
     /**
      * Options formatted for HTML select inputs.
      *
-     * The enum's built-in offices come first; any self-registered office
-     * whose account was approved by an admin is merged in after them, so a
-     * new office becomes bookable the moment it is accepted — no deploy
-     * needed. Validation rules built from toSelectKeys() accept them too.
+     * The enum's built-in nine offices come first. Self-registered offices
+     * (e.g. Property Management) are merged in after them so a new office
+     * becomes bookable the moment an admin approves it — no deploy needed.
+     *
+     * Legacy office names (OSAS, Admin, Guidance) are explicitly excluded
+     * even if an old account row still carries one of those values, so the
+     * rename to SSC does not surface the old name in any form or gate.
      */
     public static function toSelect(): array
     {
-        $options = collect(self::cases())
+        $builtin = collect(self::cases())
             ->mapWithKeys(fn (self $office) => [$office->value => $office->label()]);
 
+        // Values that must never appear in the dropdown regardless of what
+        // is stored in the users table.
+        $deprecated = ['OSAS', 'Admin', 'Guidance'];
+
         foreach (self::registeredOffices() as $name) {
-            $options->put($name, $name);
+            if (! $builtin->has($name) && ! in_array($name, $deprecated, true)) {
+                $builtin->put($name, $name);
+            }
         }
 
-        return $options->all();
+        return $builtin->all();
     }
 
     public static function toSelectKeys(): array
@@ -67,9 +78,9 @@ enum Office: string
         }
 
         try {
-            $cache = \App\Models\User::query()
-                ->where('role', \App\Models\User::ROLE_OFFICE)
-                ->where('approval_status', \App\Models\User::APPROVAL_APPROVED)
+            $cache = User::query()
+                ->where('role', User::ROLE_OFFICE)
+                ->where('approval_status', User::APPROVAL_APPROVED)
                 ->where('is_active', true)
                 ->whereNotNull('office')
                 ->distinct()
@@ -99,6 +110,21 @@ enum Office: string
     {
         $typed = trim((string) preg_replace('/\s+/u', ' ', $typed));
 
+        // Map legacy / renamed office identifiers to their current enum value
+        // so that old appointment rows, seeder calls, and typed registrations
+        // still resolve correctly after the rename.
+        $aliases = [
+            'OSAS' => self::SSC->value,
+            'Office of Student Affairs & Services' => self::SSC->value,
+            'Office of Student Affairs and Services' => self::SSC->value,
+        ];
+
+        foreach ($aliases as $alias => $canonical) {
+            if (strcasecmp($typed, $alias) === 0) {
+                return $canonical;
+            }
+        }
+
         foreach (self::cases() as $office) {
             if (strcasecmp($typed, $office->value) === 0 || strcasecmp($typed, $office->label()) === 0) {
                 return $office->value;
@@ -114,7 +140,7 @@ enum Office: string
             self::SSC => 'Student Support Center (SSC)',
             self::Registrar => "Registrar's Office",
             self::Cashier => "Cashier's Office",
-            self::Accounting => "Accounting Office",
+            self::Accounting => 'Accounting Office',
             self::Library => 'Library Office',
             self::Cici => 'College of Informatics and Computing Innovation (CICI)',
             self::CBMSD => 'College of Business Management and Sustainable Development (CBMSD)',

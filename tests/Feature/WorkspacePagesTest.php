@@ -251,7 +251,7 @@ class WorkspacePagesTest extends TestCase
             ->postJson('/ssc/availability/save', ['date' => now()->addDays(3)->toDateString(), 'type' => 'open'])
             ->assertForbidden();
         $this->actingAs($student)
-            ->getJson('/ssc/appointments/slots?office=OSAS&date='.now()->addDays(3)->toDateString())
+            ->getJson('/ssc/appointments/slots?office=SSC&date='.now()->addDays(3)->toDateString())
             ->assertForbidden();
         $this->actingAs($student)
             ->putJson('/ssc/appointments/'.$appointment->id.'/reschedule', [

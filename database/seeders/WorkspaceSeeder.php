@@ -7,20 +7,21 @@ use App\Enums\Office as OfficeEnum;
 use App\Models\Appointment;
 use App\Models\Office;
 use App\Models\User;
+use App\Support\TimeSlots;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 /**
- * Makes every one of the eight workspaces usable on a fresh database.
+ * Makes every one of the seven workspaces usable on a fresh database.
  *
  * Two gaps are closed here, and both are invisible until you open a workspace:
  *
  *  1. Registry rows. AvailabilityController resolves the office with
- *     Office::where('name', ...)->firstOrFail(), but only OSAS, Registrar,
- *     Guidance, Accounting, Cashier and Admin existed — so COED, CICI, COAG,
- *     CBMSD and Library would 404 the moment anyone saved availability. The
- *     enum already describes every office; this writes those descriptions into
- *     the table the rest of the app actually reads.
+ *     Office::where('name', ...)->firstOrFail(), but the early seeding only
+ *     covered OSAS (now SSC), Registrar, Guidance, Accounting, Cashier and
+ *     Admin — so COED, CICI, COAG, CBMSD and Library would 404 the moment
+ *     anyone saved availability. The enum already describes every office;
+ *     this writes those descriptions into the table the app actually reads.
  *
  *  2. Appointments. The dashboard tiles are counts over appointments scoped to
  *     one office, so a clean database rendered eight dashboards of zeros with
@@ -41,7 +42,7 @@ class WorkspaceSeeder extends Seeder
 
     private const WORKSPACES = [
         'COED', 'CICI', 'COAG', 'CBMSD',
-        'OSAS', 'Accounting', 'Library', 'Guidance',
+        'SSC', 'Accounting', 'Library',
     ];
 
     public function run(): void
@@ -116,7 +117,7 @@ class WorkspaceSeeder extends Seeder
             }
 
             // Demo bookings must land in slots that office actually offers.
-            $slots = \App\Support\TimeSlots::forOffice($office);
+            $slots = TimeSlots::forOffice($office);
 
             for ($i = 0; $i < $shortfall; $i++) {
                 $student = $students[$studentIndex++ % $students->count()];
@@ -159,7 +160,7 @@ class WorkspaceSeeder extends Seeder
         }
 
         if ($created > 0) {
-            $this->command?->info("Seeded {$created} appointment(s) across the eight workspaces.");
+            $this->command?->info("Seeded {$created} appointment(s) across the seven workspaces.");
         }
     }
 }

@@ -26,14 +26,9 @@ class ConsultationServiceSeeder extends Seeder
                 ['Official Receipt & Payment Records', 'Assistance with payment records, official receipts, and verification of financial transactions.'],
                 ['General Accounting Consultation', 'For other student financial concerns that require assistance from the Accounting Office.'],
             ],
-            'Guidance' => [
-                ['Personal Counseling', 'Schedule a private consultation for personal concerns, emotions, adjustment, or other student-related matters.'],
-                ['Academic Counseling', 'Consultation regarding academic concerns, study difficulties, and student academic adjustment.'],
-                ['Career Guidance', 'Get guidance related to career planning, career interests, employment preparation, and future career decisions.'],
-                ['Course & Study Planning', 'Assistance with study planning, academic direction, and concerns related to student educational goals.'],
-                ['Wellness Consultation', 'Request a consultation for student wellness, adjustment, personal development, and well-being concerns.'],
-                ['General Guidance Consultation', 'For other student concerns that require assistance or consultation from the Guidance Office.'],
-            ],
+            // The Guidance office is retired: its services are no longer
+            // offered, so seeding them would put Guidance back in the
+            // student consultation catalogue.
             'Library' => [
                 ['Library Orientation', 'Get introduced to library facilities, collections, services, rules, and available resources.'],
                 ['Research Assistance', 'Get assistance in finding books, journals, articles, and other academic research materials.'],
@@ -42,12 +37,12 @@ class ConsultationServiceSeeder extends Seeder
                 ['Online Database Assistance', 'Assistance with accessing online journals, academic databases, and electronic resources.'],
                 ['General Library Consultation', 'For other library-related concerns, questions, and services that require staff assistance.'],
             ],
-            'OSAS' => [
+            'SSC' => [
                 ['Student Affairs', 'Consultation regarding student affairs, concerns, and available student services.'],
                 ['Student Services', 'Get assistance with student-related services, programs, and concerns.'],
                 ['Scholarship & Assistance', 'Ask about scholarships, student assistance, and available support programs.'],
                 ['Student Organizations', 'Consultation about student organizations, activities, and organizational concerns.'],
-                ['Other Concerns', 'For other student concerns that require consultation with the OSAS Office.'],
+                ['Other Concerns', 'For other student concerns that require consultation with the Student Support Center.'],
                 ['General Consultation', 'Book a consultation for a concern that does not fall under the listed services.'],
             ],
             'CICI' => $this->departmentTypes(),
@@ -69,7 +64,7 @@ class ConsultationServiceSeeder extends Seeder
             }
         }
 
-        $this->command?->info('Consultation services seeded for ' . count($offices) . ' offices / departments.');
+        $this->command?->info('Consultation services seeded for '.count($offices).' offices / departments.');
     }
 
     /**

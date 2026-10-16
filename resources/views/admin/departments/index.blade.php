@@ -683,7 +683,7 @@
                         </h3>
 
                         <p class="mt-1 text-sm text-gray-400">
-                            Add offices such as Registrar, Cashier, or OSAS.
+                            Add offices such as Registrar, Cashier, or SSC.
                         </p>
 
                     </div>

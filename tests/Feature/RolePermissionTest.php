@@ -257,22 +257,30 @@ class RolePermissionTest extends TestCase
     // Appointments
     // ---------------------------------------------------------------------
 
-    public function test_student_booking_page_only_offers_student_offices(): void
+    public function test_booking_page_shows_all_nine_offices(): void
     {
+        // All nine offices are available to every user role.
         $this->actingAs($this->user('student'))
             ->get('/student/appointments/create')
             ->assertOk()
+            ->assertSee('Student Support Center (SSC)')
             ->assertSee('Registrar')
-            ->assertSee('SSC')
+            ->assertSee('Accounting')
+            ->assertSee('Cashier')
             ->assertSee('Library')
-            ->assertDontSee('Accounting');
+            ->assertSee('CICI')
+            ->assertSee('CBMSD')
+            ->assertSee('COAG')
+            ->assertSee('COED');
     }
 
-    public function test_student_cannot_book_an_office_outside_their_role(): void
+    public function test_student_can_book_any_office(): void
     {
         Mail::fake();
         Notification::fake();
 
+        // Students now have access to all nine offices; booking Accounting
+        // should succeed (redirect) rather than be forbidden.
         $this->actingAs($this->user('student'))
             ->post('/student/appointments', [
                 'office' => 'Accounting',
@@ -280,9 +288,7 @@ class RolePermissionTest extends TestCase
                 'date' => now()->addDays(3)->toDateString(),
                 'time_slot' => '09:00 AM - 10:00 AM',
             ])
-            ->assertForbidden();
-
-        $this->assertDatabaseCount('appointments', 0);
+            ->assertRedirect(route('student.appointments.index'));
     }
 
     public function test_parent_booking_page_asks_for_the_childs_student_id(): void
@@ -369,7 +375,7 @@ class RolePermissionTest extends TestCase
         $this->assertSame("Driver's License N01-23-456789", $guest->refresh()->valid_id);
     }
 
-    public function test_guest_cannot_book_the_registrar(): void
+    public function test_guest_can_book_the_registrar(): void
     {
         Mail::fake();
         Notification::fake();
@@ -377,15 +383,17 @@ class RolePermissionTest extends TestCase
         $guest = $this->user('student', 'guest');
         $guest->forceFill(['valid_id' => 'Passport P123456'])->save();
 
+        // The booking form offers the same nine offices to every role, so a
+        // guest reaches the Registrar like anyone else.
         $this->actingAs($guest)
             ->post('/student/appointments', [
                 'office' => 'Registrar',
                 'purpose' => 'Transcript of Records',
                 'date' => now()->addDays(3)->toDateString(),
             ])
-            ->assertForbidden();
+            ->assertRedirect(route('student.appointments.index'));
 
-        $this->assertDatabaseCount('appointments', 0);
+        $this->assertDatabaseCount('appointments', 1);
     }
 
     // ---------------------------------------------------------------------
@@ -396,24 +404,25 @@ class RolePermissionTest extends TestCase
      * The OSAS desk used to be seeded with a bespoke 'osas' role that the
      * catalog does not know, so it resolved to Student — student permissions
      * and the student portal — while role:department,office kept it out of
-     * the office workspace entirely.
+     * the office workspace entirely. It is now the Student Support Center:
+     * the account keeps its legacy email but books and works as SSC.
      */
-    public function test_seeded_osas_account_holds_the_office_role(): void
+    public function test_seeded_ssc_office_account_holds_the_office_role(): void
     {
         $this->seed(OsasOfficeSeeder::class);
 
-        $osas = User::where('email', 'osas@isufst.edu.ph')->firstOrFail();
+        $ssc = User::where('email', 'osas@isufst.edu.ph')->firstOrFail();
 
-        $this->assertSame('office', $osas->role);
-        $this->assertSame('OSAS', $osas->office);
-        $this->assertSame(RoleEnum::Office, $osas->rbacRole());
-        $this->assertSame('OSAS', $osas->officeScope());
-        $this->assertFalse($osas->canRequestDocuments());
+        $this->assertSame('office', $ssc->role);
+        $this->assertSame('SSC', $ssc->office);
+        $this->assertSame(RoleEnum::Office, $ssc->rbacRole());
+        $this->assertSame('SSC', $ssc->officeScope());
+        $this->assertFalse($ssc->canRequestDocuments());
     }
 
     public function test_office_role_accounts_land_on_the_office_workspace(): void
     {
-        $office = User::factory()->create(['role' => 'office', 'office' => 'OSAS']);
+        $office = User::factory()->create(['role' => 'office', 'office' => 'SSC']);
 
         $this->actingAs($office)
             ->get('/dashboard')
