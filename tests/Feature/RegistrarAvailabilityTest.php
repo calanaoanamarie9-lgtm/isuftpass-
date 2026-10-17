@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\SlotAvailability;
 use App\Models\User;
 use App\Support\SlotAvailabilityService;
+use App\Support\TimeSlots;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -37,27 +38,38 @@ class RegistrarAvailabilityTest extends TestCase
     }
 
     /**
-     * The registrar sets a day Open or Closed and nothing finer: the typed
-     * From / To window and the office's slot-times editor both live on the
-     * nine workspace pages. This page keeps only the two day settings.
+     * The registrar picks which of the office's own slots a date opens —
+     * one tick each, straight off the list. The typed From / To window and
+     * the office's slot-times editor both live on the nine workspace pages;
+     * this page carries neither.
      */
-    public function test_the_registrar_page_carries_no_time_editors(): void
+    public function test_the_registrar_page_offers_a_slots_picker_not_the_editors(): void
     {
-        $this->actingAs($this->makeRegistrar())
+        $html = $this->actingAs($this->makeRegistrar())
             ->get('/registrar/availability')
             ->assertOk()
             ->assertSee('Open Entire Day')
             ->assertSee('Close Entire Day')
-            // The typed From / To window is gone.
+            ->assertSee('Specific Slots')
+            // The picker is the office's own list, one tick per slot.
+            ->assertSee('Open Slots')
+            ->assertSee('x-model="selectedSlots"', false)
+            // The typed From / To window is not here.
             ->assertDontSee('Specific Time Range')
             ->assertDontSee('Type the hours to open')
             ->assertDontSee('x-model="rangeFrom"', false)
             ->assertDontSee('x-model="rangeTo"', false)
             ->assertDontSee('Select range')
-            // And so is the office's slot-times editor.
+            // And neither is the office's slot-times editor.
             ->assertDontSee('Slot Times')
             ->assertDontSee('Back to hourly')
-            ->assertDontSee('Add Slot');
+            ->assertDontSee('Add Slot')
+            ->getContent();
+
+        // Every slot offered is the office's own, in the office's own order.
+        foreach (TimeSlots::forOffice('Registrar') as $slot) {
+            $this->assertStringContainsString('value="'.$slot.'"', $html);
+        }
     }
 
     /**
@@ -192,11 +204,8 @@ class RegistrarAvailabilityTest extends TestCase
         // number, but nothing marks the eleventh person as "bukas na".
         $this->assertStringNotContainsString('Bukas na', $html);
 
-        // The hourly checkbox list this replaces is gone.
-        $this->assertDoesNotMatchRegularExpression(
-            '/type="checkbox"\s+value="[^"]+"\s+x-model="selectedSlots"/',
-            $html
-        );
+        // The day's slots are picked per date off the office's own list —
+        // see test_the_registrar_page_offers_a_slots_picker_not_the_editors.
     }
 
     public function test_every_booking_is_shown_with_its_state_and_only_live_ones_take_a_number(): void
