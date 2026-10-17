@@ -37,18 +37,27 @@ class RegistrarAvailabilityTest extends TestCase
     }
 
     /**
-     * The page's manual time window: type a From and To time and the slots
-     * inside it are opened, rather than choosing the hours off a list.
+     * The registrar sets a day Open or Closed and nothing finer: the typed
+     * From / To window and the office's slot-times editor both live on the
+     * nine workspace pages. This page keeps only the two day settings.
      */
-    public function test_registrar_availability_offers_a_manual_time_window(): void
+    public function test_the_registrar_page_carries_no_time_editors(): void
     {
         $this->actingAs($this->makeRegistrar())
             ->get('/registrar/availability')
             ->assertOk()
-            ->assertSee('Specific Time Range')
-            ->assertSee('Type the hours to open')
-            ->assertSee('x-model="rangeFrom"', false)
-            ->assertSee('x-model="rangeTo"', false);
+            ->assertSee('Open Entire Day')
+            ->assertSee('Close Entire Day')
+            // The typed From / To window is gone.
+            ->assertDontSee('Specific Time Range')
+            ->assertDontSee('Type the hours to open')
+            ->assertDontSee('x-model="rangeFrom"', false)
+            ->assertDontSee('x-model="rangeTo"', false)
+            ->assertDontSee('Select range')
+            // And so is the office's slot-times editor.
+            ->assertDontSee('Slot Times')
+            ->assertDontSee('Back to hourly')
+            ->assertDontSee('Add Slot');
     }
 
     /**

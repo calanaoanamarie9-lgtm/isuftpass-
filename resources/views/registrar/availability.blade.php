@@ -117,9 +117,14 @@
 
             {{-- =====================================================
                 OFFICE HOURS (drives the slot list below)
+
+                The registrar edits its hours here, but not its slot
+                times: the per-slot editor lives on the nine workspace
+                pages, so this card posts whatever rows the office
+                already has, unchanged.
             =====================================================
             --}}
-            <x-office-hours />
+            <x-office-hours :slot-times="false" />
 
             {{-- =====================================================
                 MAIN GRID
@@ -371,184 +376,6 @@
 
                                 </label>
 
-
-                                {{-- SPECIFIC TIME RANGE --}}
-                                <label
-                                    class="flex cursor-pointer
-                                           items-center
-                                           gap-3
-                                           rounded-xl
-                                           border
-                                           px-4 py-3
-                                           transition"
-                                    :class="availabilityType === 'slots'
-                                        ? 'border-yellow-300 bg-yellow-50'
-                                        : 'border-gray-100 bg-gray-50 hover:border-blue-200'"
-                                >
-
-                                    <input
-                                        type="radio"
-                                        name="availability_type"
-                                        value="slots"
-                                        x-model="availabilityType"
-                                        class="h-5 w-5
-                                               border-gray-300
-                                               text-yellow-600
-                                               focus:ring-yellow-500"
-                                    >
-
-                                    <div class="flex-1">
-
-                                        <p class="text-sm
-                                                  font-bold
-                                                  text-gray-800">
-
-                                            Specific Time Range
-
-                                        </p>
-
-                                        <p class="text-[11px]
-                                                  text-gray-400">
-
-                                            Type the hours to open — only the
-                                            slots inside that window can be booked.
-
-                                        </p>
-
-                                    </div>
-
-                                    <span
-                                        x-show="availabilityType === 'slots'"
-                                        class="text-[9px]
-                                               font-extrabold
-                                               uppercase
-                                               text-yellow-600">
-
-                                        Selected
-
-                                    </span>
-
-                                </label>
-
-
-                            </div>
-
-
-                            {{-- =================================================
-                                MANUAL TIME WINDOW
-                                Type a From and To time: every hourly slot
-                                inside the window opens for the day, so a
-                                whole afternoon is set with two typed times
-                                instead of a list to pick from.
-                            ================================================== --}}
-                            <div
-                                x-show="availabilityType === 'slots'"
-                                x-transition
-                                class="mt-3
-                                       rounded-2xl
-                                       border border-yellow-100
-                                       bg-yellow-50/50
-                                       p-4"
-                            >
-
-                                <div class="flex flex-wrap items-end gap-3">
-
-                                    <label class="block">
-                                        <span class="text-[10px]
-                                                      font-bold
-                                                      uppercase
-                                                      tracking-wide
-                                                      text-gray-400">
-                                            From
-                                        </span>
-                                        <input
-                                            type="time"
-                                            x-model="rangeFrom"
-                                            @change="applyTimeRange()"
-                                            class="mt-1 block h-11
-                                                   rounded-xl
-                                                   border-gray-200
-                                                   text-sm font-semibold text-gray-700
-                                                   focus:border-yellow-400 focus:ring-yellow-400"
-                                        >
-                                    </label>
-
-                                    <label class="block">
-                                        <span class="text-[10px]
-                                                      font-bold
-                                                      uppercase
-                                                      tracking-wide
-                                                      text-gray-400">
-                                            To
-                                        </span>
-                                        <input
-                                            type="time"
-                                            x-model="rangeTo"
-                                            @change="applyTimeRange()"
-                                            class="mt-1 block h-11
-                                                   rounded-xl
-                                                   border-gray-200
-                                                   text-sm font-semibold text-gray-700
-                                                   focus:border-yellow-400 focus:ring-yellow-400"
-                                        >
-                                    </label>
-
-                                    <button
-                                        type="button"
-                                        @click="applyTimeRange()"
-                                        class="h-11 px-5
-                                               rounded-xl
-                                               bg-yellow-500 hover:bg-yellow-600
-                                               text-white text-xs font-extrabold
-                                               shadow-sm transition">
-                                        Select range
-                                    </button>
-
-                                </div>
-
-                                <p class="mt-2.5 text-[11px]
-                                          font-semibold text-gray-500">
-                                    Every hourly slot inside the window is opened
-                                    for this date. Example: 1:00 PM to 4:00 PM
-                                    opens the 1–2, 2–3 and 3–4 PM slots.
-                                </p>
-
-                                <p x-show="rangeError"
-                                   x-transition
-                                   class="mt-1.5 text-[11px] font-bold text-red-500"
-                                   x-text="rangeError"></p>
-
-                                {{-- The hours the window opened: a read-only
-                                     summary, since this page deliberately
-                                     carries no hourly checkbox list. --}}
-                                <div class="mt-3 pt-3 border-t border-yellow-100/60"
-                                     x-show="selectedSlots.length">
-
-                                    <span class="text-[10px]
-                                                  font-bold
-                                                  uppercase
-                                                  tracking-wide
-                                                  text-gray-400">
-                                        Open Slots
-                                    </span>
-
-                                    <div class="mt-1.5 flex flex-wrap gap-1.5">
-                                        <template x-for="slot in selectedSlots" :key="slot">
-                                            <span class="px-2 py-0.5 rounded-lg
-                                                         bg-white
-                                                         border border-yellow-100
-                                                         text-[11px] font-bold text-gray-700"
-                                                  x-text="slot"></span>
-                                        </template>
-                                    </div>
-
-                                </div>
-
-                                <p x-show="! selectedSlots.length"
-                                   class="mt-3 pt-3 border-t border-yellow-100/60
-                                          text-[11px] font-bold text-gray-400">
-                                    Nothing selected yet — type a From and To time above.
-                                </p>
 
                             </div>
 
@@ -1204,13 +1031,6 @@
 
                 selectedSlots: [...@json($timeSlots)],
 
-                /* The manual From / To window (see applyTimeRange below). */
-                rangeFrom: '',
-
-                rangeTo: '',
-
-                rangeError: '',
-
                 schedule: @json($schedule),
 
                 /* =====================================================
@@ -1449,78 +1269,6 @@
 
 
                 /* =====================================================
-                   MANUAL TIME WINDOW
-                   Typing a From and To time selects every hourly slot
-                   inside that window, so the day's hours are entered by
-                   hand instead of chosen off a list. The form's chips
-                   show exactly what will be saved.
-                ===================================================== */
-                applyTimeRange() {
-
-                    this.rangeError = '';
-
-                    if (!this.rangeFrom || !this.rangeTo) {
-                        return;
-                    }
-
-                    const from = this.clockMinutes(this.rangeFrom);
-
-                    const to = this.clockMinutes(this.rangeTo);
-
-                    if (from < 0 || to < 0 || from >= to) {
-                        this.rangeError = 'The From time must be earlier than the To time.';
-                        return;
-                    }
-
-                    const grid = [...@json($timeSlots)];
-
-                    const picked = grid.filter(slot => {
-
-                        const [start, end] = slot.split(' - ');
-
-                        return this.labelMinutes(start) >= from
-                            && this.labelMinutes(end) <= to;
-
-                    });
-
-                    if (picked.length === 0) {
-                        this.rangeError = 'No slots fall inside that window — check the office hours above.';
-                        return;
-                    }
-
-                    this.selectedSlots = picked;
-
-                },
-
-
-                /* '01:00 PM' (half of a slot label) -> minutes past midnight. */
-                labelMinutes(label) {
-
-                    const match = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(String(label).trim());
-
-                    if (!match) return -1;
-
-                    const hour = (parseInt(match[1], 10) % 12)
-                        + (match[3].toUpperCase() === 'PM' ? 12 : 0);
-
-                    return hour * 60 + parseInt(match[2], 10);
-
-                },
-
-
-                /* 'HH:MM' (a time input's value) -> minutes past midnight. */
-                clockMinutes(value) {
-
-                    const match = /^(\d{1,2}):(\d{2})$/.exec(String(value));
-
-                    if (!match) return -1;
-
-                    return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
-
-                },
-
-
-                /* =====================================================
                    PREVIEW
                 ===================================================== */
                 openPreview() {
@@ -1532,8 +1280,8 @@
                     // How many of the day's slots are still unfilled: a day
                     // holds slotsPerDay people, the ones already booked have
                     // taken their place, and the rest of the day is open. A
-                    // specific time range holds fewer slots than the full
-                    // day, so only the typed window's slots count.
+                    // partly open day — set from a workspace — holds fewer
+                    // slots than the full day, so only its open slots count.
                     const open = this.availabilityType === 'slots'
                         ? Math.min(this.selectedSlots.length, this.slotsPerDay)
                         : this.slotsPerDay;
@@ -1587,14 +1335,6 @@
 
                         this.selectedSlots =
                             data.slots || [];
-
-                        // The typed window describes what was just loaded,
-                        // not the previous date's selection.
-                        this.rangeFrom = '';
-
-                        this.rangeTo = '';
-
-                        this.rangeError = '';
 
                     })
 

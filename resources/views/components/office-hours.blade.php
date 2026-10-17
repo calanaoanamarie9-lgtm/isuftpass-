@@ -1,4 +1,4 @@
-@props(['office' => null])
+@props(['office' => null, 'slotTimes' => true])
 
 {{--
     Editing card for one office's hours and its slot times.
@@ -8,6 +8,11 @@
     to 9:30 — retimes that slot on every date's list, on the booking form,
     on the calendar, and in the capacity table. A card with no rows of its
     own falls back to the hours above, one slot to the hour.
+
+    Pages that only want the hours pass slot-times="false" — the
+    registrar's own Availability page does. The hours still save there,
+    and any slot rows the office already has are carried along unchanged,
+    so a page without the editor can never wipe the times an office set.
 --}}
 @php
     $hoursOffice = $office ?: (auth()->user()?->officeScope() ?? 'Registrar');
@@ -91,7 +96,11 @@
             </div>
         </div>
 
-        {{-- The office's slot times: one editable row per bookable slot. --}}
+        {{-- The office's slot times: one editable row per bookable slot.
+             On a page that passed slot-times="false" this editor is not
+             rendered at all — but the rows are still seeded and posted, so
+             the office's own times ride along with the hours untouched. --}}
+        @if ($slotTimes)
         <div class="mt-5 pt-4 border-t border-gray-100">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -141,6 +150,7 @@
                 No rows left — saving rebuilds the day from the hours above.
             </p>
         </div>
+        @endif
 
         <p class="mt-3 text-right text-[11px] font-semibold text-red-500"
            x-show="error" x-text="error"></p>
