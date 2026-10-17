@@ -6,14 +6,14 @@ use App\Models\Appointment;
 use App\Models\Office;
 
 /**
- * The bookable time slots of an office, derived from the hours it keeps.
+ * The bookable time slots of an office.
  *
- * Slots run hourly from the opening time to the closing time, so how many
- * slots an office offers in a day is whatever its hours add up to: open it
- * later or close it later and the day grows. The hours are edited on the
- * office's own Availability page, and every list in the system — the
- * booking form, the calendar, the availability checkboxes, the capacity
- * table — reads the same answer from here.
+ * An office's day is either the times it typed itself — rows of {start,
+ * end} edited on its own Availability page, so 8:00 - 9:00 can be retimed
+ * to 8:30 - 9:30 — or, when it has none, every hour from its opening time
+ * to its closing time. Either way one list answers every slot question in
+ * the system: the booking form, the calendar, the availability checkboxes,
+ * the capacity table, and validation all read it from here.
  *
  * An office with no row yet falls back to Appointment::TIME_SLOTS, the
  * default eight-to-five day.
@@ -21,18 +21,67 @@ use App\Models\Office;
 class TimeSlots
 {
     public const DEFAULT_OPEN = '08:00';
+
     public const DEFAULT_CLOSE = '17:00';
 
     /**
-     * Hourly slot labels for an office, e.g. '08:00 AM - 09:00 AM'.
+     * The slot labels an office books by, e.g. '08:00 AM - 09:00 AM'.
      *
      * @return list<string>
      */
     public static function forOffice(?string $office): array
     {
-        $hours = self::hoursFor($office);
+        $row = $office === null ? null : self::officeRow($office);
 
-        return self::between($hours['open'], $hours['close']);
+        if ($labels = self::fromDefinitions($row?->slot_definitions)) {
+            return $labels;
+        }
+
+        return self::between(
+            $row?->open_time ?: self::DEFAULT_OPEN,
+            $row?->close_time ?: self::DEFAULT_CLOSE
+        );
+    }
+
+    /**
+     * Labels from an office's own slot rows ([{start, end}, ...] in H:i).
+     *
+     * One unreadable or backwards row gives back null for the whole list:
+     * an office is handed either the times it typed or the run its hours
+     * imply, never half of each.
+     *
+     * @return list<string>|null
+     */
+    private static function fromDefinitions(mixed $definitions): ?array
+    {
+        if (! is_array($definitions) || $definitions === []) {
+            return null;
+        }
+
+        $labels = [];
+
+        foreach ($definitions as $definition) {
+            if (! is_array($definition) || ! isset($definition['start'], $definition['end'])) {
+                return null;
+            }
+
+            $start = self::minutes((string) $definition['start']);
+            $end = self::minutes((string) $definition['end']);
+
+            if ($start < 0 || $end <= $start) {
+                return null;
+            }
+
+            $label = self::label($start).' - '.self::label($end);
+
+            if (in_array($label, $labels, true)) {
+                return null;
+            }
+
+            $labels[] = $label;
+        }
+
+        return $labels;
     }
 
     /**
@@ -71,7 +120,7 @@ class TimeSlots
         $slots = [];
 
         for ($from = $start; $from + 60 <= $end; $from += 60) {
-            $slots[] = self::label($from) . ' - ' . self::label($from + 60);
+            $slots[] = self::label($from).' - '.self::label($from + 60);
         }
 
         return $slots ?: Appointment::TIME_SLOTS;
@@ -84,7 +133,7 @@ class TimeSlots
     private static function officeRow(string $office): ?Office
     {
         return Office::query()->where('name', $office)->first()
-            ?? Office::query()->where('name', 'like', '%' . $office . '%')->first();
+            ?? Office::query()->where('name', 'like', '%'.$office.'%')->first();
     }
 
     /**

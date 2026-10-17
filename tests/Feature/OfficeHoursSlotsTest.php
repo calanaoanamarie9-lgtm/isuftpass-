@@ -12,9 +12,11 @@ use Tests\TestCase;
 
 /**
  * An office's day is not a fixed list of eight slots. The opening and closing
- * time an office keeps decide how many hourly slots it offers, and every
- * office edits its own hours on its own Availability page — the registrar's,
- * and each of the eight workspaces'.
+ * time an office keeps decide how many hourly slots it offers — and each of
+ * those slots can be retimed on the office's Availability page, 8:00 - 9:00
+ * becoming 8:30 - 9:30 for every list in the system at once. Every office
+ * edits its own hours on its own Availability page — the registrar's, and
+ * each of the eight workspaces'.
  */
 class OfficeHoursSlotsTest extends TestCase
 {
@@ -275,5 +277,188 @@ class OfficeHoursSlotsTest extends TestCase
         $rules = SlotAvailability::where('office_id', $office->id)->whereDate('date', $date)->get();
         $this->assertNotEmpty($rules);
         $this->assertTrue($rules->every(fn ($r) => $r->status === 'available' && $r->max_capacity === 12));
+    }
+
+    /**
+     * The office retimes a slot on its Availability page — 8:00 - 9:00
+     * becomes 8:30 - 9:30 — and the whole system follows: the office's own
+     * list, the day already set open, and the booking form students see.
+     * The day's setting walks onto the new time instead of being lost with
+     * the old label.
+     */
+    public function test_slot_times_can_be_edited_office_wide(): void
+    {
+        $office = $this->registerOffice('SSC');
+
+        $staff = $this->makeStaff('SSC', 'ssc');
+        $date = now()->addDays(3)->toDateString();
+
+        $this->actingAs($staff)
+            ->postJson('/ssc/availability/save', ['date' => $date, 'type' => 'open'])
+            ->assertOk();
+
+        // The first slot retimed; the rest of the day left hourly.
+        $rows = [['start' => '08:30', 'end' => '09:30']];
+
+        foreach (range(9, 16) as $hour) {
+            $rows[] = ['start' => sprintf('%02d:00', $hour), 'end' => sprintf('%02d:00', $hour + 1)];
+        }
+
+        $this->actingAs($staff)
+            ->postJson('/ssc/availability/hours', [
+                'open_time' => '08:00',
+                'close_time' => '17:00',
+                'slot_definitions' => $rows,
+            ])
+            ->assertOk()
+            ->assertJsonPath('count', 9);
+
+        $slots = TimeSlots::forOffice('SSC');
+
+        $this->assertSame('08:30 AM - 09:30 AM', $slots[0]);
+        $this->assertSame('09:00 AM - 10:00 AM', $slots[1]);
+        $this->assertCount(9, $slots);
+
+        // The day set open keeps its setting, on the retimed labels.
+        $this->actingAs($staff)
+            ->get('/ssc/availability/settings/'.$date)
+            ->assertOk()
+            ->assertJsonPath('type', 'open');
+
+        $this->assertSame(
+            9,
+            SlotAvailability::query()
+                ->where('office_id', $office->id)
+                ->whereDate('date', $date)
+                ->count(),
+            'Retiming a slot must move its row, not add a second one.'
+        );
+
+        $this->assertTrue(
+            SlotAvailability::query()
+                ->where('office_id', $office->id)
+                ->whereDate('date', $date)
+                ->where('time_slot', '08:30 AM - 09:30 AM')
+                ->exists(),
+            'The day\'s setting must follow its slot onto the new time.'
+        );
+
+        // Students are offered the retimed slot — and only that one.
+        $offered = collect(
+            $this->actingAs(User::factory()->create(['role' => 'student']))
+                ->getJson('/student/appointments/slots?office=SSC&date='.$date)
+                ->json()
+        )->keyBy('time');
+
+        $this->assertTrue($offered['08:30 AM - 09:30 AM']['is_open'] ?? false);
+        $this->assertArrayNotHasKey('08:00 AM - 09:00 AM', $offered);
+
+        // The Availability page's card hands the office its retimed rows.
+        $this->actingAs($staff)
+            ->get('/ssc/availability')
+            ->assertOk()
+            ->assertSee('{"start":"08:30","end":"09:30"}', false);
+    }
+
+    /**
+     * A changed slot list must never quietly reopen a day the office closed.
+     * Retiming the first slot carries the day's blocked rule onto the new
+     * label, and a slot added to the list takes the day's standing: closed.
+     */
+    public function test_retiming_slots_leaves_a_closed_day_closed(): void
+    {
+        $office = $this->registerOffice('SSC');
+
+        $staff = $this->makeStaff('SSC', 'ssc');
+        $date = now()->addDays(4)->toDateString();
+
+        $this->actingAs($staff)
+            ->postJson('/ssc/availability/save', ['date' => $date, 'type' => 'closed'])
+            ->assertOk();
+
+        // Retimed first slot, the day's hours, and one slot added past the
+        // old closing time.
+        $rows = [['start' => '08:30', 'end' => '09:30']];
+
+        foreach (range(9, 17) as $hour) {
+            $rows[] = ['start' => sprintf('%02d:00', $hour), 'end' => sprintf('%02d:00', $hour + 1)];
+        }
+
+        $this->actingAs($staff)
+            ->postJson('/ssc/availability/hours', [
+                'open_time' => '08:00',
+                'close_time' => '18:00',
+                'slot_definitions' => $rows,
+            ])
+            ->assertOk()
+            ->assertJsonPath('count', 10);
+
+        $this->actingAs($staff)
+            ->get('/ssc/availability/settings/'.$date)
+            ->assertOk()
+            ->assertJsonPath('type', 'closed');
+
+        foreach (['08:30 AM - 09:30 AM', '05:00 PM - 06:00 PM'] as $label) {
+            $rule = SlotAvailability::query()
+                ->where('office_id', $office->id)
+                ->whereDate('date', $date)
+                ->where('time_slot', $label)
+                ->first();
+
+            $this->assertNotNull($rule, $label.' must carry the day over onto the new list.');
+            $this->assertSame(SlotAvailability::STATUS_BLOCKED, $rule->status);
+        }
+
+        $offered = collect(
+            $this->actingAs(User::factory()->create(['role' => 'student']))
+                ->getJson('/student/appointments/slots?office=SSC&date='.$date)
+                ->json()
+        );
+
+        $this->assertTrue($offered->every(fn ($slot) => ! $slot['is_open']));
+    }
+
+    /**
+     * Rows are read as whole pairs: on the clock, ending after they start,
+     * and no pair twice — a repeated pair would name one slot twice, which
+     * no day can hold. A rejected save leaves the office's times alone.
+     */
+    public function test_slot_times_must_be_pairs_on_the_clock(): void
+    {
+        $office = $this->registerOffice('SSC');
+        $staff = $this->makeStaff('SSC', 'ssc');
+
+        $this->actingAs($staff)
+            ->postJson('/ssc/availability/hours', [
+                'open_time' => '08:00',
+                'close_time' => '17:00',
+                'slot_definitions' => [['start' => '09:30', 'end' => '08:30']],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('slot_definitions');
+
+        $this->actingAs($staff)
+            ->postJson('/ssc/availability/hours', [
+                'open_time' => '08:00',
+                'close_time' => '17:00',
+                'slot_definitions' => [['start' => 'half past eight', 'end' => '09:30']],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('slot_definitions');
+
+        $this->actingAs($staff)
+            ->postJson('/ssc/availability/hours', [
+                'open_time' => '08:00',
+                'close_time' => '17:00',
+                'slot_definitions' => [
+                    ['start' => '08:00', 'end' => '09:00'],
+                    ['start' => '08:00', 'end' => '09:00'],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('slot_definitions');
+
+        $this->assertNull($office->fresh()->slot_definitions);
+        $this->assertSame('08:00', $office->fresh()->open_time);
     }
 }

@@ -32,7 +32,7 @@ class AvailabilityController extends Controller
     public function month(Request $request, SlotAvailabilityService $service)
     {
         $data = $request->validate([
-            'office' => ['nullable', 'in:' . implode(',', \App\Enums\Office::toSelectKeys())],
+            'office' => ['nullable', 'in:'.implode(',', \App\Enums\Office::toSelectKeys())],
             'month' => ['required', 'date_format:Y-m'],
         ]);
 
@@ -150,7 +150,7 @@ class AvailabilityController extends Controller
             'date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
             'type' => ['required', 'in:open,closed,slots'],
             'slots' => ['nullable', 'array'],
-            'slots.*' => ['string', 'in:' . implode(',', $slots)],
+            'slots.*' => ['string', 'in:'.implode(',', $slots)],
             'max_capacity' => ['nullable', 'integer', 'min:1', 'max:999'],
         ]);
 
@@ -160,7 +160,7 @@ class AvailabilityController extends Controller
             default => array_values(array_intersect($slots, $data['slots'] ?? [])),
         };
 
-        $capacity = !empty($data['max_capacity']) ? (int) $data['max_capacity'] : null;
+        $capacity = ! empty($data['max_capacity']) ? (int) $data['max_capacity'] : null;
 
         foreach ($slots as $slot) {
             $existing = SlotAvailability::query()
@@ -206,18 +206,24 @@ class AvailabilityController extends Controller
         $savedMonth = Carbon::parse($data['date'])->format('Y-m');
 
         return response()->json([
-            'message' => $office->name . ' availability has been updated.',
+            'message' => $office->name.' availability has been updated.',
             'month' => $savedMonth,
             'schedule' => $this->buildSchedule($savedMonth),
         ]);
     }
 
     /**
-     * Persist the office's opening and closing time and default capacity.
+     * Persist the office's opening and closing time, default capacity, and
+     * the slot times it keeps.
      *
-     * The slot list of the whole system is derived from these two times, so
-     * saving them here is how an office changes how many slots it handles in
-     * a day — every Availability page owns this form for its own office.
+     * Two ways to say when the office serves: post the hours alone and the
+     * day rebuilds itself one slot to the hour from them, or post
+     * slot_definitions — the office's own {start, end} rows, as the
+     * Availability page's card does — and those times become the slot list
+     * every date, booking form, and validation rule reads: 8:00 - 9:00
+     * retyped as 8:30 - 9:30 applies everywhere at once. Days already set
+     * are moved onto the new list so their open and closed choices stay
+     * set; appointments keep the times they were booked at.
      */
     public function saveHours(Request $request): JsonResponse
     {
@@ -225,20 +231,31 @@ class AvailabilityController extends Controller
             'open_time' => ['required', 'date_format:H:i'],
             'close_time' => ['required', 'date_format:H:i', 'after:open_time'],
             'default_slot_capacity' => ['nullable', 'integer', 'min:1', 'max:999'],
+            'slot_definitions' => ['nullable', 'array', 'max:120', $this->slotRowsRule()],
         ]);
 
         $office = Office::where('name', $this->officeKey())->firstOrFail();
 
-        $office->update(array_filter($data, fn ($val) => $val !== null));
+        $previous = TimeSlots::forOffice($office->name);
+
+        $office->open_time = $data['open_time'];
+        $office->close_time = $data['close_time'];
+        $office->default_slot_capacity = $data['default_slot_capacity'] ?? $office->default_slot_capacity;
+        // Rows sent win; none sent (or none left) means back to the hours.
+        $office->slot_definitions = $this->normalizeSlotRows($data['slot_definitions'] ?? null);
+        $office->save();
+
+        $slots = TimeSlots::forOffice($office->name);
+
+        $this->rekeyDayRules($office, $previous, $slots);
 
         AuditLogger::log(
             'office.hours',
             'Set office hours to '.$data['open_time'].' - '.$data['close_time']
-                . (isset($data['default_slot_capacity']) ? ' (capacity: '.$data['default_slot_capacity'].')' : '')
-                . ' for '.$office->name.'.'
+                .(isset($data['default_slot_capacity']) ? ' (capacity: '.$data['default_slot_capacity'].')' : '')
+                .($office->slot_definitions ? ' Slot times: '.count($slots).' a day.' : '')
+                .' for '.$office->name.'.'
         );
-
-        $slots = TimeSlots::forOffice($office->name);
 
         return response()->json([
             'message' => $office->name.' is now open '.$data['open_time'].' - '.$data['close_time'].' ('.count($slots).' slots/day, '.($office->default_slot_capacity).' capacity/slot).',
@@ -246,6 +263,152 @@ class AvailabilityController extends Controller
             'slots' => $slots,
             'default_slot_capacity' => $office->default_slot_capacity,
         ]);
+    }
+
+    /**
+     * The slot rows read as a whole list: a clock time at each end, an end
+     * after its own start, and no row twice. The pair-wise checks only make
+     * sense with a row in hand, so they are made once here — a duplicated
+     * pair would name one slot twice, which no day can hold.
+     */
+    private function slotRowsRule(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail): void {
+            $seen = [];
+
+            foreach ((array) $value as $index => $row) {
+                $number = $index + 1;
+                $start = is_array($row) ? ($row['start'] ?? null) : null;
+                $end = is_array($row) ? ($row['end'] ?? null) : null;
+
+                if (! is_string($start) || ! is_string($end)
+                    || ! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $start)
+                    || ! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $end)) {
+                    $fail('Slot '.$number.' needs a start and an end time on the clock, like 08:30.');
+
+                    continue;
+                }
+
+                // Zero-padded H:i compares as cleanly as any string: the
+                // later clock time is the later one.
+                if ($end <= $start) {
+                    $fail('Slot '.$number.' must end after it starts.');
+
+                    continue;
+                }
+
+                if (isset($seen[$start.$end])) {
+                    $fail('Slot '.$number.' repeats an earlier slot.');
+
+                    continue;
+                }
+
+                $seen[$start.$end] = true;
+            }
+        };
+    }
+
+    /**
+     * The submitted rows as they are stored, or null when none were sent
+     * (or none are left) — such an office has its day read hour by hour
+     * from its hours instead.
+     *
+     * @return array<int, array{start: string, end: string}>|null
+     */
+    private function normalizeSlotRows(mixed $definitions): ?array
+    {
+        $rows = collect(is_array($definitions) ? $definitions : [])
+            ->filter(fn ($row) => is_array($row) && isset($row['start'], $row['end']))
+            ->map(fn ($row) => ['start' => (string) $row['start'], 'end' => (string) $row['end']])
+            ->values()
+            ->all();
+
+        return $rows === [] ? null : $rows;
+    }
+
+    /**
+     * Move every day already set onto a changed slot list.
+     *
+     * A day set slot by slot carries one row per label of the list as it
+     * was. Retiming a slot swaps its label, so without this the day's
+     * choice for that hour would fall out of the list — a closed day would
+     * quietly reopen, an open day would read as partly open. Two passes put
+     * it right. A vanished label walks onto whatever now sits at its old
+     * position, which is the everyday case of one row's time being edited.
+     * A label with no row yet — a slot the office added — takes the day's
+     * standing: open only on a day with nothing blocked, blocked whenever
+     * the day blocks anything, so a new time can never silently open a day
+     * the office had closed. Default (all-dates) rules follow the first
+     * pass only: a new slot there simply falls back to the office's own
+     * default capacity, while a default rule is a limit, not a day's state.
+     */
+    private function rekeyDayRules(Office $office, array $previous, array $slots): void
+    {
+        if ($previous === $slots) {
+            return;
+        }
+
+        $days = SlotAvailability::query()
+            ->where('office_id', $office->id)
+            ->get()
+            ->groupBy(fn (SlotAvailability $rule) => $rule->date ?: '__default__');
+
+        foreach ($days as $key => $rules) {
+            $held = $rules->pluck('time_slot')->all();
+
+            foreach ($previous as $index => $gone) {
+                if (in_array($gone, $slots, true)) {
+                    continue;
+                }
+
+                $target = $slots[$index] ?? null;
+
+                // A row already sits where this one would land — leave it
+                // be rather than collide on the day's unique rows.
+                if ($target === null || in_array($target, $held, true)) {
+                    continue;
+                }
+
+                SlotAvailability::query()
+                    ->where('office_id', $office->id)
+                    ->where('time_slot', $gone)
+                    ->when($key === '__default__',
+                        fn ($query) => $query->whereNull('date'),
+                        fn ($query) => $query->whereDate('date', $key))
+                    ->update(['time_slot' => $target]);
+
+                $held[] = $target;
+            }
+
+            if ($key === '__default__') {
+                continue;
+            }
+
+            $blocked = $rules->contains(
+                fn (SlotAvailability $rule) => $rule->status === SlotAvailability::STATUS_BLOCKED
+            );
+            $capacity = $rules->first()?->max_capacity ?: $office->default_slot_capacity;
+
+            foreach ($slots as $slot) {
+                if (in_array($slot, $held, true)) {
+                    continue;
+                }
+
+                SlotAvailability::updateOrCreate(
+                    [
+                        'office_id' => $office->id,
+                        'date' => $key,
+                        'time_slot' => $slot,
+                    ],
+                    [
+                        'max_capacity' => $capacity,
+                        'status' => $blocked
+                            ? SlotAvailability::STATUS_BLOCKED
+                            : SlotAvailability::STATUS_AVAILABLE,
+                    ]
+                );
+            }
+        }
     }
 
     /**

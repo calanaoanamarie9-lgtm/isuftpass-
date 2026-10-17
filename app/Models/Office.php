@@ -17,12 +17,14 @@ class Office extends Model
         'default_slot_capacity',
         'open_time',
         'close_time',
+        'slot_definitions',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'slot_definitions' => 'array',
         ];
     }
 
