@@ -37,6 +37,21 @@ class RegistrarAvailabilityTest extends TestCase
     }
 
     /**
+     * The page's manual time window: type a From and To time and the slots
+     * inside it are opened, rather than choosing the hours off a list.
+     */
+    public function test_registrar_availability_offers_a_manual_time_window(): void
+    {
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability')
+            ->assertOk()
+            ->assertSee('Specific Time Range')
+            ->assertSee('Type the hours to open')
+            ->assertSee('x-model="rangeFrom"', false)
+            ->assertSee('x-model="rangeTo"', false);
+    }
+
+    /**
      * Book a student into the Registrar on a given date, under a name of our
      * choosing when the test cares who is on the list and in what order.
      */
@@ -90,16 +105,19 @@ class RegistrarAvailabilityTest extends TestCase
 
             if ($escaped) {
                 $escaped = false;
+
                 continue;
             }
 
             if ($character === '\\') {
                 $escaped = true;
+
                 continue;
             }
 
             if ($character === '"') {
                 $inString = ! $inString;
+
                 continue;
             }
 
@@ -268,13 +286,16 @@ class RegistrarAvailabilityTest extends TestCase
 
         // The registrar's day runs 08:00-16:00, so counting clock hours
         // would report eight. The day's size is handed over as its own
-        // number instead, and both the list and the preview read off it.
+        // number instead, and both the list and the preview read off it —
+        // a typed time window can only shrink that number, never replace
+        // it with the hours on a clock.
         $this->assertStringContainsString(
             'slotsPerDay: '.Appointment::SLOTS_PER_DAY,
             $html,
             'The day must be sized by its slots, not by the hours the office keeps.'
         );
-        $this->assertStringContainsString('this.slotsPerDay - this.rosterCount', $html);
+        $this->assertStringContainsString('this.slotsPerDay', $html);
+        $this->assertStringContainsString('open - this.rosterCount', $html);
     }
 
     public function test_student_cannot_access_availability_management(): void
@@ -404,7 +425,7 @@ class RegistrarAvailabilityTest extends TestCase
         }
 
         $this->actingAs($this->makeRegistrar())
-            ->getJson('/registrar/availability/schedule?month=' . substr($date, 0, 7))
+            ->getJson('/registrar/availability/schedule?month='.substr($date, 0, 7))
             ->assertOk()
             ->assertJsonPath('schedule.0.id', $date)
             ->assertJsonPath('schedule.0.type', 'closed');
@@ -461,7 +482,7 @@ class RegistrarAvailabilityTest extends TestCase
         $month = substr($date, 0, 7);
 
         $html = $this->actingAs($this->makeRegistrar())
-            ->get('/registrar/availability?month=' . $month)
+            ->get('/registrar/availability?month='.$month)
             ->assertOk()
             ->getContent();
 

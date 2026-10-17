@@ -62,8 +62,54 @@ class OfficeHoursSlotsTest extends TestCase
             ->assertSee('Office Hours')
             ->assertSee('value="08:00"', false)
             ->assertSee('value="17:00"', false)
+            // The Specific Slots panel opens with the manual From / To window.
+            ->assertSee('x-model="rangeFrom"', false)
+            ->assertSee('x-model="rangeTo"', false)
+            ->assertSee('Type a time window')
             ->assertDontSee('Daily Slots')
             ->assertDontSee('slots per day');
+    }
+
+    /**
+     * What the Availability page's manual From / To window posts: a subset of
+     * the day's hourly slots. The date reads back as partly open, students are
+     * still offered the whole grid, and only the typed window's slots open.
+     */
+    public function test_a_typed_time_window_opens_only_the_slots_inside_it(): void
+    {
+        $this->registerOffice('SSC');
+
+        $date = now()->addDays(3)->toDateString();
+
+        // The 1:00 PM to 4:00 PM window: three hourly slots inside it.
+        $window = ['01:00 PM - 02:00 PM', '02:00 PM - 03:00 PM', '03:00 PM - 04:00 PM'];
+
+        $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->postJson('/ssc/availability/save', [
+                'date' => $date,
+                'type' => 'slots',
+                'slots' => $window,
+            ])
+            ->assertOk();
+
+        $schedule = $this->actingAs($this->makeStaff('SSC', 'ssc'))
+            ->getJson('/ssc/availability/schedule?month='.substr($date, 0, 7))
+            ->json('schedule');
+
+        $this->assertSame(
+            'slots',
+            collect($schedule)->firstWhere('id', $date)['type'] ?? null,
+            'A typed window must read back as partly open, not the entire day.'
+        );
+
+        $offered = collect(
+            $this->actingAs(User::factory()->create(['role' => 'student']))
+                ->getJson('/student/appointments/slots?office=SSC&date='.$date)
+                ->json()
+        )->keyBy('time');
+
+        $this->assertTrue($offered['01:00 PM - 02:00 PM']['is_open'] ?? false);
+        $this->assertFalse($offered['09:00 AM - 10:00 AM']['is_open'] ?? true);
     }
 
     public function test_saving_later_hours_grows_the_slot_list_everywhere(): void

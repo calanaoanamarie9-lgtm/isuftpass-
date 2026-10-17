@@ -55,6 +55,37 @@
                         </div>
 
                         <div x-show="type === 'slots'" x-transition class="space-y-3">
+                            {{-- MANUAL WINDOW: type the hours instead of ticking one box at a time. --}}
+                            <div class="p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-100">
+                                <div class="flex flex-wrap items-end gap-3">
+                                    <label class="block">
+                                        <span class="text-xs font-bold text-indigo-950">From</span>
+                                        <input type="time" x-model="rangeFrom" @change="applyTimeRange()"
+                                               class="mt-1 block rounded-xl border-gray-200 text-sm font-semibold text-gray-700 focus:border-indigo-400 focus:ring-indigo-400">
+                                    </label>
+
+                                    <label class="block">
+                                        <span class="text-xs font-bold text-indigo-950">To</span>
+                                        <input type="time" x-model="rangeTo" @change="applyTimeRange()"
+                                               class="mt-1 block rounded-xl border-gray-200 text-sm font-semibold text-gray-700 focus:border-indigo-400 focus:ring-indigo-400">
+                                    </label>
+
+                                    <button type="button" @click="applyTimeRange()"
+                                            class="h-9 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-sm transition">
+                                        Select range
+                                    </button>
+                                </div>
+
+                                <p class="mt-2 text-[11px] font-semibold text-gray-500">
+                                    Type a time window (e.g. 1:00 PM – 4:00 PM) — every hourly slot inside it
+                                    gets ticked below. Adjust the boxes by hand afterwards if needed.
+                                </p>
+
+                                <p x-show="rangeError" x-transition
+                                   class="mt-1.5 text-[11px] font-bold text-red-500"
+                                   x-text="rangeError"></p>
+                            </div>
+
                             <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100">
                                 <div class="flex items-center justify-between gap-2">
                                     <span class="text-xs font-bold text-blue-950">Open first:</span>
@@ -183,6 +214,9 @@
             slots: @json($timeSlots),
             allSlots: @json($timeSlots),
             slotCount: {{ count($timeSlots) }},
+            rangeFrom: '',
+            rangeTo: '',
+            rangeError: '',
             capacity: null,
             saving: false,
             loading: true,
@@ -228,6 +262,60 @@
                 this.slotCount = this.slots.length;
             },
 
+            /**
+             * Manual From / To window: tick every hourly slot that fits
+             * entirely inside the typed range, so a whole afternoon can be
+             * opened by typing two times instead of clicking each box.
+             */
+            applyTimeRange() {
+                this.rangeError = '';
+
+                if (!this.rangeFrom || !this.rangeTo) {
+                    return;
+                }
+
+                const from = this.clockMinutes(this.rangeFrom);
+                const to = this.clockMinutes(this.rangeTo);
+
+                if (from < 0 || to < 0 || from >= to) {
+                    this.rangeError = 'The From time must be earlier than the To time.';
+                    return;
+                }
+
+                const picked = this.allSlots.filter(slot => {
+                    const [start, end] = slot.split(' - ');
+                    return this.labelMinutes(start) >= from && this.labelMinutes(end) <= to;
+                });
+
+                if (picked.length === 0) {
+                    this.rangeError = 'No slots fall inside that window — check the office hours above.';
+                    return;
+                }
+
+                this.slots = picked;
+                this.slotCount = picked.length;
+            },
+
+            /* '01:00 PM' (half of a slot label) -> minutes past midnight. */
+            labelMinutes(label) {
+                const match = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(String(label).trim());
+
+                if (!match) return -1;
+
+                const hour = (parseInt(match[1], 10) % 12) + (match[3].toUpperCase() === 'PM' ? 12 : 0);
+
+                return hour * 60 + parseInt(match[2], 10);
+            },
+
+            /* 'HH:MM' (a time input's value) -> minutes past midnight. */
+            clockMinutes(value) {
+                const match = /^(\d{1,2}):(\d{2})$/.exec(String(value));
+
+                if (!match) return -1;
+
+                return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+            },
+
             async onDateChange() {
                 if (!this.date) return;
                 try {
@@ -240,6 +328,9 @@
                     this.slots = data.slots && data.slots.length ? data.slots : (this.type === 'open' ? [...this.allSlots] : []);
                     this.slotCount = this.type === 'open' ? this.allSlots.length : this.slots.length;
                     this.capacity = data.max_capacity || null;
+                    this.rangeFrom = '';
+                    this.rangeTo = '';
+                    this.rangeError = '';
                 } catch (e) {}
             },
 
@@ -261,6 +352,9 @@
                 this.type = 'open';
                 this.slots = [...this.allSlots];
                 this.slotCount = this.allSlots.length;
+                this.rangeFrom = '';
+                this.rangeTo = '';
+                this.rangeError = '';
                 this.capacity = null;
                 this.editing = false;
                 this.message = '';
