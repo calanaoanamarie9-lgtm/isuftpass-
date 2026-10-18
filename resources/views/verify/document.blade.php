@@ -25,10 +25,6 @@
                         class="w-full h-full object-contain"
                     >
                 </div>
-                <div>
-                    <h1 class="font-extrabold text-lg tracking-wide">ISUFSTPASS</h1>
-                    <p class="text-xs text-blue-200">Digital Campus Transaction System</p>
-                </div>
             </div>
         </div>
     </header>
@@ -137,27 +133,78 @@
 
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
 
-                    <div>
+                    {{-- Logo / Brand --}}
+                    <div class="flex items-center gap-3">
 
-                        <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
-                            Digital Claim Pass
+                        <div class="w-12 h-12 sm:w-14 sm:h-14 shrink-0">
+                            <img src="{{ asset('img/isufstpass_circle_transparent.png') }}"
+                                 alt="ISUFSTPASS"
+                                 class="w-full h-full object-contain">
+                        </div>
+
+                        <div>
+                            <p class="text-[10px] sm:text-xs font-bold tracking-[0.18em] text-blue-200 uppercase">
+                                ILOILO STATE UNIVERSITY OF FISHERIES SCIENCE AND TECHNOLOGY
+                            </p>
+
+                            <h2 class="text-lg sm:text-xl font-black text-white tracking-wide">
+                                ISUFSTPASS
+                            </h2>
+                        </div>
+
+                    </div>
+
+                    {{-- Title + Status --}}
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:gap-5 sm:justify-end gap-3">
+
+                        <div>
+
+                            <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
+                                Digital Claim Pass
+                            </h1>
+
+                            <p class="mt-1 text-sm text-blue-100">
+                                Present this QR code to authorized staff
+                                for verification.
+                            </p>
+
+                        </div>
+
+                        {{-- STATUS --}}
+                        <div>
+                            <span class="inline-flex items-center gap-2 px-5 py-2 rounded-full border {{ $statusClass }} text-xs font-black uppercase tracking-wide shadow-sm">
+                                <span class="w-2 h-2 rounded-full {{ $statusDotClass }}"></span>
+                                {{ strtoupper($statusLabel) }}
+                            </span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            {{-- ====================================================
+                 MASTHEAD
+            ===================================================== --}}
+            <div class="px-6 sm:px-10 pt-6">
+
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 shrink-0">
+                        <img src="{{ asset('img/isufstpass_circle_transparent.png') }}"
+                             alt="ISUFSTPASS"
+                             class="w-full h-full object-contain">
+                    </div>
+
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-black text-gray-900 tracking-wide">
+                            ISUFSTPASS
                         </h1>
 
-                        <p class="mt-1 text-sm text-blue-100">
-                            Present this QR code to authorized staff
-                            for verification.
+                        <p class="text-sm font-semibold text-gray-500">
+                            Digital Campus Transaction System
                         </p>
-
                     </div>
-
-                    {{-- STATUS --}}
-                    <div>
-                        <span class="inline-flex items-center gap-2 px-5 py-2 rounded-full border {{ $statusClass }} text-xs font-black uppercase tracking-wide shadow-sm">
-                            <span class="w-2 h-2 rounded-full {{ $statusDotClass }}"></span>
-                            {{ strtoupper($statusLabel) }}
-                        </span>
-                    </div>
-
                 </div>
 
             </div>

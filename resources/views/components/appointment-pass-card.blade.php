@@ -55,7 +55,7 @@
 
                 <div>
                     <p class="text-[10px] sm:text-xs font-bold tracking-[0.18em] text-blue-200 uppercase">
-                        ILOILO STATE UNIVERSITY
+                        ILOILO STATE UNIVERSITY OF FISHERIES SCIENCE AND TECHNOLOGY
                     </p>
 
                     <h2 class="text-lg sm:text-xl font-black text-white tracking-wide">
