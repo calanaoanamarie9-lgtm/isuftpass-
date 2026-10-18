@@ -28,10 +28,15 @@ class QrPassCard
 {
     /** Card geometry, shared by both renderers. */
     private const W = 640;
+
     private const H = 1010;
+
     private const RADIUS = 28;
+
     private const HEADER_H = 170;
+
     private const FOOTER_Y = 976;
+
     private const QR = [155, 556, 330];
 
     /** The same hexes the SVG uses, as GD palette entries. */
@@ -82,33 +87,33 @@ class QrPassCard
         // Header band
         $svg[] = '<rect width="640" height="170" fill="#102d5b"/>';
         if ($logo) {
-            $svg[] = '<image x="34" y="45" width="80" height="80" xlink:href="' . $logo . '" href="' . $logo . '"/>';
+            $svg[] = '<image x="34" y="45" width="80" height="80" xlink:href="'.$logo.'" href="'.$logo.'"/>';
         }
         $tx = $logo ? 134 : 44;
-        $svg[] = '<text x="' . $tx . '" y="92" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="800" fill="#ffffff">ISUFSTPASS</text>';
-        $svg[] = '<text x="' . $tx . '" y="122" font-family="Arial, Helvetica, sans-serif" font-size="15" letter-spacing="3" fill="#9db8e8">DIGITAL STUDENT ID</text>';
+        $svg[] = '<text x="'.$tx.'" y="92" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="800" fill="#ffffff">ISUFSTPASS</text>';
+        $svg[] = '<text x="'.$tx.'" y="122" font-family="Arial, Helvetica, sans-serif" font-size="15" letter-spacing="3" fill="#9db8e8">DIGITAL STUDENT ID</text>';
 
         // Identity block
         $y = 216;
         foreach ($identity as [$label, $value]) {
             $size = mb_strlen((string) $value) > 30 ? 19 : 24;
-            $svg[] = '<text x="44" y="' . $y . '" font-family="Arial, Helvetica, sans-serif" font-size="13" letter-spacing="2" fill="#94a3b8">' . $e(mb_strtoupper($label)) . '</text>';
-            $svg[] = '<text x="44" y="' . ($y + 30) . '" font-family="Arial, Helvetica, sans-serif" font-size="' . $size . '" font-weight="700" fill="#0f172a">' . $e($value !== '' ? $value : '&#8212;') . '</text>';
+            $svg[] = '<text x="44" y="'.$y.'" font-family="Arial, Helvetica, sans-serif" font-size="13" letter-spacing="2" fill="#94a3b8">'.$e(mb_strtoupper($label)).'</text>';
+            $svg[] = '<text x="44" y="'.($y + 30).'" font-family="Arial, Helvetica, sans-serif" font-size="'.$size.'" font-weight="700" fill="#0f172a">'.$e($value !== '' ? $value : '&#8212;').'</text>';
             $y += 64;
         }
 
         $svg[] = '<line x1="44" y1="486" x2="596" y2="486" stroke="#e2e8f0" stroke-width="2"/>';
 
         // Transaction section
-        $svg[] = '<text x="320" y="532" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="800" letter-spacing="1" fill="#1d4ed8">' . $e(mb_strtoupper($sectionLabel)) . '</text>';
+        $svg[] = '<text x="320" y="532" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="800" letter-spacing="1" fill="#1d4ed8">'.$e(mb_strtoupper($sectionLabel)).'</text>';
 
-        $qrUri = (new PngWriter())->write(new QrCode($qrPayload))->getDataUri();
-        $svg[] = '<image x="155" y="556" width="330" height="330" xlink:href="' . $qrUri . '" href="' . $qrUri . '"/>';
+        $qrUri = (new PngWriter)->write(new QrCode($qrPayload))->getDataUri();
+        $svg[] = '<image x="155" y="556" width="330" height="330" xlink:href="'.$qrUri.'" href="'.$qrUri.'"/>';
 
-        $svg[] = '<text x="320" y="926" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="800" fill="#0f172a">' . $e($refCode) . '</text>';
+        $svg[] = '<text x="320" y="926" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="800" fill="#0f172a">'.$e($refCode).'</text>';
 
         if ($caption !== '') {
-            $svg[] = '<text x="320" y="954" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#64748b">' . $e($caption) . '</text>';
+            $svg[] = '<text x="320" y="954" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#64748b">'.$e($caption).'</text>';
         }
 
         // Verified footer
@@ -250,7 +255,7 @@ class QrPassCard
     {
         [$x, $y, $box] = self::QR;
 
-        $raw = (string) (new PngWriter())->write(new QrCode($payload))->getString();
+        $raw = (string) (new PngWriter)->write(new QrCode($payload))->getString();
         $qr = @imagecreatefromstring($raw);
 
         if ($qr === false) {
@@ -424,14 +429,35 @@ class QrPassCard
     }
 
     /**
-     * The brand asset is JPEG bytes behind a .png name, so imagecreatefrompng
-     * rejects it. imagecreatefromstring sniffs the real format.
+     * The logo printed into every downloadable pass.
+     *
+     * The circular seal with a transparent background is the brand asset
+     * chosen for downloads; the original file stays a fallback so a missing
+     * asset never ships an unbranded card.
+     */
+    private static function logoPath(): string
+    {
+        foreach (['img/isufstpass_circle_transparent.png', 'img/isufstpass-logo.png'] as $file) {
+            $path = public_path($file);
+
+            if (is_file($path)) {
+                return $path;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * The brand asset may be JPEG bytes behind a .png name, so
+     * imagecreatefrompng rejects it. imagecreatefromstring sniffs the real
+     * format.
      */
     private static function logoImage(): ?\GdImage
     {
-        $path = public_path('img/isufstpass-logo.png');
+        $path = self::logoPath();
 
-        if (! is_file($path)) {
+        if ($path === '') {
             return null;
         }
 
@@ -448,16 +474,16 @@ class QrPassCard
         $src = self::logoImage();
 
         if ($src === null) {
-            $path = public_path('img/isufstpass-logo.png');
+            $path = self::logoPath();
 
             // Keep the SVG branded even if the bytes cannot be decoded.
-            if (! is_file($path)) {
+            if ($path === '') {
                 return null;
             }
 
             $raw = (string) file_get_contents($path);
 
-            return $raw !== '' ? 'data:image/png;base64,' . base64_encode($raw) : null;
+            return $raw !== '' ? 'data:image/png;base64,'.base64_encode($raw) : null;
         }
 
         $size = 160;
@@ -490,6 +516,6 @@ class QrPassCard
         imagedestroy($src);
         imagedestroy($dst);
 
-        return $data ? 'data:image/png;base64,' . base64_encode($data) : null;
+        return $data ? 'data:image/png;base64,'.base64_encode($data) : null;
     }
 }
