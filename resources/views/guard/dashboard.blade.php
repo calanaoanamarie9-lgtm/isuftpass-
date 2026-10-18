@@ -157,7 +157,11 @@
                                     :class="soundOn
                                         ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100 hover:bg-blue-100'
                                         : 'bg-gray-50 text-gray-500 ring-1 ring-gray-200 hover:bg-gray-100'">
-                                <span x-text="soundOn ? '🔊 Sound' : '🔇 Muted'">Sound</span>
+                                <span class="inline-flex items-center gap-1.5">
+                                    <svg x-show="soundOn" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z"/></svg>
+                                    <svg x-show="!soundOn" style="display: none" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 9.75 19.5 12m0 0 2.25 2.25M19.5 12l2.25-2.25m-10.5-6 4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z"/></svg>
+                                    <span x-text="soundOn ? 'Sound' : 'Muted'">Sound</span>
+                                </span>
                             </button>
 
 
