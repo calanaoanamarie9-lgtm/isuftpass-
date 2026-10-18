@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Registrar;
 use App\Enums\AppointmentStatus;
 use App\Enums\Office;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ApproveScheduleRequest;
 use App\Mail\AppointmentApproved;
 use App\Mail\AppointmentRescheduled;
 use App\Models\Appointment;
@@ -219,43 +220,49 @@ class AppointmentController extends Controller
      * and the student is told it by email and in the system — an approval they
      * never hear about is not an approval.
      */
-    public function confirm(Request $request, Appointment $appointment): RedirectResponse
+    public function confirm(ApproveScheduleRequest $request, Appointment $appointment): RedirectResponse
     {
         // Workspace accounts reach this route too — the policy pins them to
         // their own office; only the registrar and the System Admin confirm
-        // across offices.
+        // across offices. The FormRequest checks this same ability before
+        // validation runs; the line here is what the method itself defends.
         Gate::authorize('manage', $appointment);
 
+        // "Edit" on an already-approved booking reopens this same form to
+        // move the window, so a confirmed appointment may be answered again.
+        // Every other state stays locked.
         abort_if(
             ! in_array($appointment->status, [
                 AppointmentStatus::PENDING->value,
                 AppointmentStatus::FOR_RESCHEDULE->value,
+                AppointmentStatus::CONFIRMED->value,
             ], true),
             422,
-            'Only pending or for-reschedule appointments can be confirmed.'
+            'Only pending, for-reschedule or approved appointments can be approved.'
         );
 
-        $hours = TimeSlots::hoursFor($appointment->office);
+        $data = $request->validated();
 
-        $data = $request->validate([
-            'confirmed_time' => [
-                'required',
-                'date_format:H:i',
-                'after_or_equal:'.$hours['open'],
-                'before:'.$hours['close'],
-            ],
-        ], [
-            'confirmed_time.required' => 'Pick the time you want the student to come.',
-            'confirmed_time.date_format' => 'That is not a readable time.',
-            'confirmed_time.after_or_equal' => 'The office is not open that early. Choose a time at or after '.self::clock($hours['open']).'.',
-            'confirmed_time.before' => 'The office is closed by then. Choose a time before '.self::clock($hours['close']).'.',
-        ]);
+        // The registrar page sends a whole window and the day to hold it on;
+        // the office dashboards still send the single legacy time. Both
+        // reduce to a start, an optional end, and a date — the date the
+        // appointment already carries when no new one was asked for.
+        $start = $data['start_time'] ?? $data['confirmed_time'];
+        $end = $data['end_time'] ?? null;
+        $date = $data['scheduled_date'] ?? $appointment->date->toDateString();
+        $alreadyApproved = $appointment->status === AppointmentStatus::CONFIRMED->value;
 
         // Offices that set the time themselves (the Registrar) carry no
         // requested slot, so there is no slot capacity to weigh here — the
-        // day's own queue handles that.
+        // day's own queue handles that. An appointment answering itself never
+        // blocks its own edit, so it is left out of the count.
         if ($appointment->time_slot !== null) {
-            $remaining = Appointment::remainingSlots($appointment->office, $appointment->date->toDateString(), $appointment->time_slot);
+            $remaining = Appointment::remainingSlots(
+                $appointment->office,
+                $date,
+                $appointment->time_slot,
+                $alreadyApproved ? $appointment->id : null
+            );
 
             if ($remaining < 1) {
                 return back()->with(
@@ -267,24 +274,36 @@ class AppointmentController extends Controller
 
         $appointment->update([
             'status' => AppointmentStatus::CONFIRMED->value,
-            'confirmed_time' => self::clock($data['confirmed_time']),
+            'date' => $date,
+            'start_time' => $start,
+            'end_time' => $end,
+            // The pass card, both emails and every notification read this one
+            // string as the time to arrive, so it stays the start of the
+            // window — the range lives beside it.
+            'confirmed_time' => self::clock($start),
             'confirmed_at' => now(),
+            'approved_by' => $request->user()?->id,
         ]);
 
         // The student booked a date and a hoped-for slot; this is the office
-        // telling them when to actually arrive.
+        // telling them when to actually arrive. An edit sends it again — the
+        // time they were told about has moved.
         SafeMailer::send($appointment->user, new AppointmentApproved($appointment));
         $appointment->user->notify(new AppointmentApprovedNotification($appointment));
+
+        $answer = $end !== null
+            ? 'between '.self::clock($start).' and '.self::clock($end)
+            : 'at '.$appointment->confirmed_time;
 
         AuditLogger::log(
             'appointment.confirmed',
             'Confirmed appointment '.$appointment->reference_code.' for '.$appointment->date->toDateString()
-                .', student to come at '.$appointment->confirmed_time.'.'
+                .', student to come '.$answer.'.'
         );
 
         return back()->with(
             'status',
-            'Appointment approved. '.$appointment->user->name.' has been told to come at '.$appointment->confirmed_time.'.'
+            'Appointment approved. '.$appointment->user->name.' has been told to come '.$answer.'.'
         );
     }
 

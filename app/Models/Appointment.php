@@ -69,10 +69,13 @@ class Appointment extends Model
         'original_time_slot',
         'time_slot',
         'confirmed_time',
+        'start_time',
+        'end_time',
         'reschedule_reason',
         'status',
         'notes',
         'confirmed_at',
+        'approved_by',
         'checked_in_at',
         'rescheduled_at',
         'completed_at',
@@ -110,6 +113,43 @@ class Appointment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The staff account that approved this appointment, when one is set.
+     */
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /**
+     * The approved window spelled the way the office reads it — "8:00 AM – 9:00 AM".
+     *
+     * Falls back to a single confirmed time, then to the requested slot, so a
+     * booking approved before the range existed still prints something true.
+     */
+    public function scheduledRange(): string
+    {
+        if ($this->start_time && $this->end_time) {
+            return self::clockLabel($this->start_time).' – '.self::clockLabel($this->end_time);
+        }
+
+        if ($this->start_time) {
+            return self::clockLabel($this->start_time);
+        }
+
+        return $this->timeToCome();
+    }
+
+    /**
+     * A stored time column ("08:00:00" or "08:00") as "8:00 AM".
+     */
+    private static function clockLabel(string $time): string
+    {
+        [$hour, $minute] = array_map('intval', explode(':', $time));
+
+        return sprintf('%d:%02d %s', $hour % 12 ?: 12, $minute, $hour < 12 ? 'AM' : 'PM');
     }
 
     public function feedback(): MorphMany
