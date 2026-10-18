@@ -55,25 +55,26 @@
 
 
                 {{-- Desktop Navigation --}}
+                {{-- Neutral until the scrollspy marks the section in view --}}
                 <nav class="hidden md:flex items-center gap-7 text-sm font-medium">
 
                     <a href="#home"
-                       class="text-gray-700 hover:text-blue-700 transition">
+                       class="text-gray-600 border-b-2 border-transparent hover:text-blue-700 transition">
                         Home
                     </a>
 
                     <a href="#services"
-                       class="text-gray-700 hover:text-blue-700 transition">
+                       class="text-gray-600 border-b-2 border-transparent hover:text-blue-700 transition">
                         Services
                     </a>
 
                     <a href="#how-it-works"
-                       class="text-gray-700 hover:text-blue-700 transition">
+                       class="text-gray-600 border-b-2 border-transparent hover:text-blue-700 transition">
                         How It Works
                     </a>
 
                     <a href="#about"
-                       class="text-gray-700 hover:text-blue-700 transition">
+                       class="text-gray-600 border-b-2 border-transparent hover:text-blue-700 transition">
                         About
                     </a>
 
@@ -90,7 +91,7 @@
     ========================================================== --}}
     <section
         id="home"
-        class="relative min-h-[700px] overflow-hidden bg-[#12347d]"
+        class="relative min-h-[700px] overflow-hidden bg-[#12347d] scroll-mt-24"
     >
 
         {{-- CAMPUS BACKGROUND IMAGE --}}
@@ -278,7 +279,7 @@
     {{-- =========================================================
         SERVICES
     ========================================================== --}}
-    <section id="services" class="py-20 bg-white">
+    <section id="services" class="py-20 bg-white scroll-mt-24">
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -500,7 +501,7 @@
     {{-- =========================================================
         HOW IT WORKS
     ========================================================== --}}
-    <section id="how-it-works" class="py-20 bg-gray-50">
+    <section id="how-it-works" class="py-20 bg-gray-50 scroll-mt-24">
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -800,7 +801,7 @@
     {{-- =========================================================
         ABOUT
     ========================================================== --}}
-    <section id="about" class="py-20 bg-white">
+    <section id="about" class="py-20 bg-white scroll-mt-24">
 
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
 
@@ -984,6 +985,120 @@
         </div>
 
     </footer>
+
+    {{-- =========================================================
+        SCROLLSPY — highlight the section in view on the sticky nav
+    ========================================================== --}}
+    <script>
+        (function () {
+            'use strict';
+
+            const header = document.querySelector('header');
+            const nav = header ? header.querySelector('nav') : null;
+
+            if (!nav) return;
+
+            // Pair every top-nav anchor with its section, dropping dead ones.
+            const targets = Array.prototype.slice
+                .call(nav.querySelectorAll('a[href^="#"]'))
+                .map(function (link) {
+                    return {
+                        link: link,
+                        section: document.querySelector(link.getAttribute('href')),
+                    };
+                })
+                .filter(function (target) {
+                    return target.section !== null;
+                });
+
+            if (!targets.length) return;
+
+            const ACTIVE = ['text-blue-600', 'font-semibold', 'border-blue-600'];
+            const INACTIVE = ['text-gray-600', 'border-transparent'];
+
+            let current = null;
+
+            function setActive(section) {
+                if (section === current) return;
+                current = section;
+
+                targets.forEach(function (target) {
+                    const active = target.section === section;
+
+                    ACTIVE.forEach(function (cls) {
+                        target.link.classList.toggle(cls, active);
+                    });
+
+                    INACTIVE.forEach(function (cls) {
+                        target.link.classList.toggle(cls, !active);
+                    });
+
+                    if (active) {
+                        target.link.setAttribute('aria-current', 'location');
+                    } else {
+                        target.link.removeAttribute('aria-current');
+                    }
+                });
+            }
+
+            // Sections crossing this band — just under the sticky header,
+            // ending mid-viewport — are the candidates for "current".
+            const visible = new Set();
+
+            function resolve() {
+                const doc = document.documentElement;
+
+                // Pinned to the top always means Home.
+                if (window.scrollY <= 1) {
+                    return setActive(targets[0].section);
+                }
+
+                // Pinned to the bottom the band may hold only the footer, so
+                // the last section owns the highlight.
+                if (Math.ceil(window.scrollY) + window.innerHeight >= doc.scrollHeight - 1) {
+                    return setActive(targets[targets.length - 1].section);
+                }
+
+                // A fast fling can leave the band empty for a frame — keep
+                // the previous highlight rather than flickering off.
+                const inView = targets.filter(function (target) {
+                    return visible.has(target.section);
+                });
+
+                if (inView.length) {
+                    setActive(inView[0].section);
+                }
+            }
+
+            const observer = new IntersectionObserver(
+                function (entries) {
+                    entries.forEach(function (entry) {
+                        if (entry.isIntersecting) {
+                            visible.add(entry.target);
+                        } else {
+                            visible.delete(entry.target);
+                        }
+                    });
+
+                    resolve();
+                },
+                {
+                    rootMargin: '-' + (header.offsetHeight + 1) + 'px 0px -55% 0px',
+                    threshold: 0,
+                }
+            );
+
+            // Correct state immediately (deep links land mid-page).
+            setActive(targets[0].section);
+
+            targets.forEach(function (target) {
+                observer.observe(target.section);
+            });
+
+            // Clicking a link smooth-scrolls; the observer follows along and
+            // re-highlights every section passed on the way.
+        })();
+    </script>
 
 </body>
 </html>
