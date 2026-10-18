@@ -3,7 +3,7 @@
 
     Every standalone <head> in the app includes this partial, so the favicon,
     manifest link and theme colour can never drift from page to page. The icon
-    files are derived from img/isufstpass-logo.png — run `php artisan
+    files are derived from img/isufstpass_circle_transparent.png — run `php artisan
     icons:generate` after changing the logo rather than hand-editing them.
 
     theme-color matches the sidebar and mobile top bar (#12347d) so the browser

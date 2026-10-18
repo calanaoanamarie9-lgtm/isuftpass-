@@ -20,7 +20,7 @@
             <div class="flex items-center gap-3">
                 <div class="w-12 h-12 bg-white rounded-xl p-1 flex items-center justify-center">
                     <img
-                        src="{{ asset('img/isufstpass-logo.png') }}"
+                        src="{{ asset('img/isufstpass_circle_transparent.png') }}"
                         alt="ISUFSTPASS"
                         class="w-full h-full object-contain"
                     >

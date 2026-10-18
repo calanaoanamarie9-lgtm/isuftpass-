@@ -25,7 +25,7 @@
                                 overflow-hidden
                                 shrink-0">
 
-                        <img src="{{ asset('img/isufstpass-logo.png') }}"
+                        <img src="{{ asset('img/isufstpass_circle_transparent.png') }}"
                              alt="ISUFSTPASS"
                              class="w-full h-full object-contain">
 

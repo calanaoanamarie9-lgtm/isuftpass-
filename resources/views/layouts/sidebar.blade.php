@@ -89,7 +89,7 @@
         <div class="relative flex items-center gap-3">
             <div class="w-9 h-9 flex items-center justify-center shrink-0">
                 <img
-                    src="{{ asset('img/isufstpass-logo.png') }}"
+                    src="{{ asset('img/isufstpass_circle_transparent.png') }}"
                     alt="ISUFSTPASS"
                     class="w-9 h-9 object-contain"
                 >

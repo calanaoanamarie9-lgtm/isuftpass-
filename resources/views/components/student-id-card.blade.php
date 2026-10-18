@@ -33,7 +33,7 @@
         <div class="flex items-center gap-2.5">
 
             <div class="w-11 h-11 shrink-0">
-                <img src="{{ asset('img/isufstpass-logo.png') }}"
+                <img src="{{ asset('img/isufstpass_circle_transparent.png') }}"
                      alt="ISUFSTPASS"
                      class="w-full h-full object-contain">
             </div>

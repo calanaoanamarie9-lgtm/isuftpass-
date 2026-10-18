@@ -258,7 +258,7 @@
                                 >
 
                                     <img
-                                        src="{{ asset('img/isufstpass-logo.png') }}"
+                                        src="{{ asset('img/isufstpass_circle_transparent.png') }}"
                                         alt="ISUFSTPASS"
                                         class="w-9 h-9 object-contain"
                                     >

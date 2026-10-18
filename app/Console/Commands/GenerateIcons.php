@@ -8,16 +8,15 @@ use Illuminate\Support\Facades\File;
 /**
  * Derive every favicon/PWA asset from the one approved brand asset so the icon
  * set can never drift from the seal that ships on the site. Run it after
- * replacing public/img/isufstpass-logo.png.
+ * replacing public/img/isufstpass_circle_transparent.png.
  *
  *     php artisan icons:generate
  *
  * Notes on the source asset:
- *  - 1254x1254 square: a circular seal on a #FCFCFC field with ~2% margin.
- *  - Despite the .png extension the bytes are JPEG, so there is no alpha
- *    channel. Every output is therefore flattened onto that same #FCFCFC
- *    field rather than composited over transparency, which would render the
- *    corners black when iOS installs the touch icon.
+ *  - 1000x1010 circular seal on a transparent background.
+ *  - Transparency is flattened onto the #FCFCFC field at load: every icon
+ *    output is opaque, and letting unsaved alpha reach iOS/Android would
+ *    render the corners black when the icon is installed.
  */
 class GenerateIcons extends Command
 {
@@ -42,19 +41,19 @@ class GenerateIcons extends Command
      * and the touch icon keeps a margin because iOS squircles the corners.
      */
     private const ICONS = [
-        'icon-192.png'          => [192, 1.0],
-        'icon-512.png'          => [512, 1.0],
+        'icon-192.png' => [192, 1.0],
+        'icon-512.png' => [512, 1.0],
         'icon-maskable-512.png' => [512, 0.80],
-        'apple-touch-icon.png'  => [180, 0.92],
+        'apple-touch-icon.png' => [180, 0.92],
     ];
 
     protected $signature = 'icons:generate';
 
-    protected $description = 'Derive favicon.ico and the PWA icon set from public/img/isufstpass-logo.png';
+    protected $description = 'Derive favicon.ico and the PWA icon set from public/img/isufstpass_circle_transparent.png';
 
     public function handle(): int
     {
-        $source = public_path('img/isufstpass-logo.png');
+        $source = public_path('img/isufstpass_circle_transparent.png');
 
         if (! File::exists($source)) {
             $this->error("Source logo not found: {$source}");
@@ -69,6 +68,15 @@ class GenerateIcons extends Command
 
             return self::FAILURE;
         }
+
+        // Flatten the transparent seal onto the brand field: every icon
+        // output is opaque, and unsaved alpha would show as black corners.
+        $flat = imagecreatetruecolor(imagesx($logo), imagesy($logo));
+        imagealphablending($flat, true);
+        imagefill($flat, 0, 0, imagecolorallocate($flat, ...self::FIELD));
+        imagecopy($flat, $logo, 0, 0, 0, 0, imagesx($logo), imagesy($logo));
+        imagedestroy($logo);
+        $logo = $flat;
 
         $directory = public_path('img/icons');
         File::ensureDirectoryExists($directory);

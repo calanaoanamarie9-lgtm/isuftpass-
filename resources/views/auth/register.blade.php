@@ -61,7 +61,7 @@
                                         shadow-xl shadow-black/20">
 
                                 <img
-                                    src="{{ asset('img/isufstpass-logo.png') }}"
+                                    src="{{ asset('img/isufstpass_circle_transparent.png') }}"
                                     alt="ISUFSTPASS Logo"
                                     class="w-12 h-12 object-contain"
                                 >
@@ -359,7 +359,7 @@
                                     shadow-sm">
 
                             <img
-                                src="{{ asset('img/isufstpass-logo.png') }}"
+                                src="{{ asset('img/isufstpass_circle_transparent.png') }}"
                                 alt="ISUFSTPASS"
                                 class="w-14 h-14 object-contain"
                             >

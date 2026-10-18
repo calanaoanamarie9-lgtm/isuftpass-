@@ -36,7 +36,7 @@
                 <a href="{{ url('/') }}" class="flex items-center gap-3">
 
                     <img
-                        src="{{ asset('img/isufstpass-logo.png') }}"
+                        src="{{ asset('img/isufstpass_circle_transparent.png') }}"
                         alt="ISUFSTPASS Logo"
                         class="w-12 h-12 object-contain"
                     >
@@ -864,7 +864,7 @@
                     <div class="flex items-center gap-3">
 
                         <img
-                            src="{{ asset('img/isufstpass-logo.png') }}"
+                            src="{{ asset('img/isufstpass_circle_transparent.png') }}"
                             alt="ISUFSTPASS"
                             class="w-11 h-11 object-contain"
                         >

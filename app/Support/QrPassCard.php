@@ -429,29 +429,19 @@ class QrPassCard
     }
 
     /**
-     * The logo printed into every downloadable pass.
-     *
-     * The circular seal with a transparent background is the brand asset
-     * chosen for downloads; the original file stays a fallback so a missing
-     * asset never ships an unbranded card.
+     * The logo printed into every downloadable pass: the circular seal with
+     * a transparent background.
      */
     private static function logoPath(): string
     {
-        foreach (['img/isufstpass_circle_transparent.png', 'img/isufstpass-logo.png'] as $file) {
-            $path = public_path($file);
+        $path = public_path('img/isufstpass_circle_transparent.png');
 
-            if (is_file($path)) {
-                return $path;
-            }
-        }
-
-        return '';
+        return is_file($path) ? $path : '';
     }
 
     /**
-     * The brand asset may be JPEG bytes behind a .png name, so
-     * imagecreatefrompng rejects it. imagecreatefromstring sniffs the real
-     * format.
+     * Decode through imagecreatefromstring so the real format is sniffed
+     * regardless of the .png name.
      */
     private static function logoImage(): ?\GdImage
     {

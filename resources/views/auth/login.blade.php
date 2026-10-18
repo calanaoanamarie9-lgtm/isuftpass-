@@ -37,7 +37,7 @@
                     <div class="flex items-center gap-4">
                         <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
                             <img
-                                src="{{ asset('img/isufstpass-logo.png') }}"
+                                src="{{ asset('img/isufstpass_circle_transparent.png') }}"
                                 alt="ISUFSTPASS Logo"
                                 class="w-12 h-12 object-contain"
                             >
@@ -131,7 +131,7 @@
 
                         <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
                             <img
-                                src="{{ asset('img/isufstpass-logo.png') }}"
+                                src="{{ asset('img/isufstpass_circle_transparent.png') }}"
                                 alt="ISUFSTPASS"
                                 class="w-10 h-10 object-contain"
                             >

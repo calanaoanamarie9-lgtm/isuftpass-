@@ -30,7 +30,7 @@
                 <div class="px-6 py-4 bg-slate-950 flex items-center
                             justify-between gap-4">
                     <div class="flex items-center gap-3">
-                        <img src="{{ asset('img/isufstpass-logo.png') }}"
+                        <img src="{{ asset('img/isufstpass_circle_transparent.png') }}"
                              alt="ISUFSTPASS"
                              class="w-9 h-9 rounded-lg bg-white p-0.5">
                         <div>
