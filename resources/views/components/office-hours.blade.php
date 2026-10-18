@@ -106,7 +106,7 @@
                 <div>
                     <p class="text-sm font-extrabold text-blue-950">Slot Times</p>
                     <p class="mt-0.5 text-[11px] font-semibold text-gray-400">
-                        Every bookable slot of the day. Retype a pair of times — 8:00 to 9:00 can become 8:30 to 9:30 — then save.
+                        Every bookable slot of the day. Click a slot to retime it — 8:00 to 9:00 can become 8:30 to 9:30 — then save the office hours.
                     </p>
                 </div>
 
@@ -126,22 +126,81 @@
 
             <div class="mt-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 <template x-for="(row, index) in slotRows" :key="index">
-                    <div class="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 h-10">
-                        <input type="time" step="60"
-                               x-model="row.start"
-                               @input="retimed"
-                               aria-label="Slot starts"
-                               class="border-0 bg-transparent p-0 text-sm font-semibold text-gray-700 focus:ring-0">
-                        <span class="text-xs font-bold text-gray-300">&ndash;</span>
-                        <input type="time" step="60"
-                               x-model="row.end"
-                               @input="retimed"
-                               aria-label="Slot ends"
-                               class="border-0 bg-transparent p-0 text-sm font-semibold text-gray-700 focus:ring-0">
-                        <button type="button"
-                                @click="removeSlot(index)"
-                                class="ml-auto text-lg leading-none text-gray-300 transition hover:text-red-500"
-                                aria-label="Remove this slot">&times;</button>
+                    <div class="rounded-xl transition"
+                         :class="editing === index
+                             ? 'border border-blue-300 bg-white p-2.5 shadow-sm'
+                             : 'border border-gray-200 bg-gray-50 px-3 h-10 flex items-center gap-2'">
+
+                        {{-- VIEW MODE — the slot as a static label.
+                             Click it to retime the pair in place. --}}
+                        <template x-if="editing !== index">
+                            <div class="flex w-full min-w-0 items-center gap-2">
+                                <button type="button"
+                                        @click="startEdit(index)"
+                                        :aria-label="'Edit slot ' + range(row)"
+                                        class="min-w-0 flex-1 truncate text-left text-sm font-semibold text-gray-700 transition hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded">
+                                    <span x-text="range(row)"></span>
+                                </button>
+
+                                <button type="button"
+                                        @click="removeSlot(index)"
+                                        class="shrink-0 text-lg leading-none text-gray-300 transition hover:text-red-500"
+                                        aria-label="Remove this slot">&times;</button>
+                            </div>
+                        </template>
+
+                        {{-- EDIT MODE — the label becomes the two clock inputs,
+                             with Save and Cancel right beneath them. --}}
+                        <template x-if="editing === index">
+                            <div data-slot-editing>
+                                <div class="flex items-center gap-2">
+                                    <input type="time" step="60"
+                                           x-model="draft.start"
+                                           @keyup.enter="commitEdit"
+                                           @keyup.escape="cancelEdit"
+                                           aria-label="Slot starts"
+                                           class="min-w-0 flex-1 rounded-lg border-gray-200 text-sm font-semibold text-gray-700 focus:border-blue-400 focus:ring-blue-400">
+                                    <span class="text-xs font-bold text-gray-300">&ndash;</span>
+                                    <input type="time" step="60"
+                                           x-model="draft.end"
+                                           @keyup.enter="commitEdit"
+                                           @keyup.escape="cancelEdit"
+                                           aria-label="Slot ends"
+                                           class="min-w-0 flex-1 rounded-lg border-gray-200 text-sm font-semibold text-gray-700 focus:border-blue-400 focus:ring-blue-400">
+                                </div>
+
+                                <div class="mt-2 flex items-center gap-2">
+                                    <button type="button"
+                                            @click="commitEdit"
+                                            :disabled="!draftValid"
+                                            class="inline-flex h-7 items-center gap-1 rounded-lg bg-blue-600 px-2.5 text-[11px] font-extrabold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">
+                                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                             stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M4.5 12.75l6 6 9-13.5" />
+                                        </svg>
+                                        Save
+                                    </button>
+
+                                    <button type="button"
+                                            @click="cancelEdit"
+                                            class="inline-flex h-7 items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 text-[11px] font-extrabold text-gray-600 transition hover:bg-gray-50">
+                                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                             stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                        Cancel
+                                    </button>
+
+                                    <p x-show="!draftValid"
+                                       class="text-[10px] font-bold text-red-500">
+                                        End must be after start
+                                    </p>
+                                </div>
+                            </div>
+                        </template>
+
                     </div>
                 </template>
             </div>
@@ -171,6 +230,12 @@
             saving: false,
             error: '',
 
+            // In-line editing: `editing` is the index of the row whose label
+            // has been clicked open, `draft` the pair being retimed. Nothing
+            // touches slotRows until Save — Cancel simply drops the draft.
+            editing: null,
+            draft: { start: '', end: '' },
+
             init() {
                 this.syncWithHours();
             },
@@ -183,17 +248,16 @@
             /** Hours changed: a list nobody retimed keeps following them. */
             hoursChanged() {
                 if (this.followsHours) {
+                    // A rebuilt list invalidates whichever row was open.
+                    this.editing = null;
                     this.slotRows = this.hourlyRows(this.open, this.close);
                 }
 
                 this.syncWithHours();
             },
 
-            retimed() {
-                this.syncWithHours();
-            },
-
             backToHourly() {
+                this.editing = null;
                 this.slotRows = this.hourlyRows(this.open, this.close);
                 this.syncWithHours();
             },
@@ -201,14 +265,90 @@
             addSlot() {
                 const last = this.slotRows[this.slotRows.length - 1];
                 const start = last ? last.end : this.open;
+                const end = this.plusHour(start);
 
-                this.slotRows.push({ start, end: this.plusHour(start) });
+                this.slotRows.push({ start, end });
+
+                // A fresh row lands straight in edit mode: its whole point
+                // is to be given a time nobody has typed yet.
+                this.draft = { start, end };
+                this.editing = this.slotRows.length - 1;
+
                 this.syncWithHours();
             },
 
             removeSlot(index) {
                 this.slotRows.splice(index, 1);
+
+                if (this.editing === index) {
+                    this.editing = null;
+                } else if (this.editing > index) {
+                    this.editing--;
+                }
+
                 this.syncWithHours();
+            },
+
+            /**
+             * Open a row's label as its two clock inputs. The draft is a
+             * copy, so nothing about the row can change until Save.
+             */
+            startEdit(index) {
+                const row = this.slotRows[index];
+
+                this.draft = { start: row.start, end: row.end };
+                this.editing = index;
+
+                this.$nextTick(() => {
+                    const input = this.$root.querySelector('[data-slot-editing] input');
+
+                    if (input) input.focus();
+                });
+            },
+
+            /** Commit the draft onto its row and close the editor. */
+            commitEdit() {
+                if (!this.draftValid) return;
+
+                this.slotRows.splice(this.editing, 1, {
+                    start: this.draft.start,
+                    end: this.draft.end,
+                });
+
+                this.editing = null;
+                this.syncWithHours();
+            },
+
+            /** Drop the draft: the row still holds its original pair. */
+            cancelEdit() {
+                this.editing = null;
+            },
+
+            /** A pair is only committable when it reads and ends after it starts. */
+            get draftValid() {
+                const start = this.toMinutes(this.draft.start);
+                const end = this.toMinutes(this.draft.end);
+
+                return start >= 0 && end > start;
+            },
+
+            /** One row as the system prints its labels: 08:00 AM - 09:00 AM. */
+            range(row) {
+                return this.pretty(row.start) + ' - ' + this.pretty(row.end);
+            },
+
+            /** H:i on the clock to the 12-hour label appointments store. */
+            pretty(clock) {
+                const at = this.toMinutes(clock);
+
+                if (at < 0) return clock || '';
+
+                const hour24 = Math.floor(at / 60);
+                const hour12 = String(hour24 % 12 || 12).padStart(2, '0');
+
+                return hour12
+                    + ':' + String(at % 60).padStart(2, '0')
+                    + ' ' + (hour24 < 12 ? 'AM' : 'PM');
             },
 
             /** Whole hours from opening to closing, the way the server builds them. */
