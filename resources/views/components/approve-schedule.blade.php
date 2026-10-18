@@ -171,7 +171,10 @@
 
         @endif
 
-        {{-- THE POPOVER — anchored under whichever button opened it. --}}
+        {{-- THE POPOVER — anchored under whichever button opened it, over
+             the cards below. The appointment card does not clip it (see the
+             action bar note in the show page), so it can open the natural
+             downward way and stay fully on screen. --}}
         <div x-show="open"
              x-cloak
              x-transition:enter="transition ease-out duration-200"

@@ -78,10 +78,10 @@
                 MAIN HEADER
             ========================================================== --}}
             <div class="mt-6 bg-white rounded-3xl border border-slate-200
-                        shadow-sm overflow-hidden">
+                        shadow-sm">
 
                 {{-- Blue Header --}}
-                <div class="relative overflow-hidden
+                <div class="relative overflow-hidden rounded-t-3xl
                             bg-gradient-to-br from-blue-950
                             via-blue-900 to-indigo-900">
 
@@ -225,9 +225,11 @@
 
 
                 {{-- =====================================================
-                    ACTION BAR
+                    ACTION BAR — the approve popover hangs below this bar,
+                    so the bar takes the card's rounded bottom corners and
+                    the card itself no longer clips what opens past it.
                 ====================================================== --}}
-                <div class="px-6 sm:px-8 py-4 bg-white
+                <div class="px-6 sm:px-8 py-4 bg-white rounded-b-3xl
                             border-t border-slate-100">
 
                     <div class="flex flex-wrap items-center gap-2">
