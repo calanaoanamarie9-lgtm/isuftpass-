@@ -44,7 +44,9 @@ class AppointmentQrTest extends TestCase
 
         $this->get($url)
             ->assertOk()
-            ->assertSee('Valid Appointment')
+            // No verdict banner over the pass — the page IS the pass; only
+            // the gate record below it may speak for the scan.
+            ->assertDontSee('Valid Appointment')
             ->assertSee($student->name)
             ->assertSee('Entry recorded')
             ->assertSee($appointment->reference_code)

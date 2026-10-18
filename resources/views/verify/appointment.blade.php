@@ -33,63 +33,16 @@
 <body class="min-h-screen bg-[#f5f7fa] font-sans">
 
     {{--
-        What a scanner opens. The card in the middle is the student's own
-        Appointment Verification Pass — the shared x-appointment-pass-card —
-        so the reference, date, time slot, purpose and date booked read here
-        are the same pixels the student was handed at booking. Everything
-        else on this page is scan context: the verdict above it, the gate
-        record below it.
+        What a scanner opens. The page is the student's own Appointment
+        Verification Pass — the shared x-appointment-pass-card — so the
+        reference, date, time slot, purpose and date booked read here are
+        the same pixels the student was handed at booking, with nothing
+        added above it. The only extra line is the gate record below:
+        who scanned in, where and when.
     --}}
     <main class="min-h-screen py-6 sm:py-10 px-4">
 
         <div class="w-full max-w-6xl mx-auto">
-
-
-            <!-- Verdict -->
-            <div class="mb-5 rounded-2xl bg-green-600 shadow-lg
-                        px-5 sm:px-6 py-4 text-white
-                        flex flex-wrap items-center gap-4">
-
-                <div class="w-12 h-12 shrink-0 bg-white rounded-full
-                            flex items-center justify-center">
-
-                    <svg
-                        class="w-7 h-7 text-green-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="3"
-                            d="M5 13l4 4L19 7"
-                        />
-                    </svg>
-
-                </div>
-
-                <div class="min-w-0">
-                    <h1 class="text-xl sm:text-2xl font-extrabold">
-                        Valid Appointment
-                    </h1>
-
-                    <p class="text-sm text-green-100">
-                        QR Code successfully verified
-                    </p>
-                </div>
-
-                <div class="ml-auto text-right min-w-0">
-                    <p class="text-sm font-bold truncate">
-                        {{ $student->name }}
-                    </p>
-
-                    <p class="text-xs text-green-100">
-                        {{ $student->email }}
-                    </p>
-                </div>
-
-            </div>
 
 
             <!-- The pass — byte-identical to the student's card -->
@@ -110,7 +63,7 @@
                     </span>
 
                     <span class="text-sm font-semibold text-gray-600">
-                        Main Gate
+                        {{ $student->name }} &bull; Main Gate
                     </span>
 
                 </div>
