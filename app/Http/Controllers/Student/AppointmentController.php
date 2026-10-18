@@ -18,8 +18,6 @@ use App\Support\RegistrarNotifier;
 use App\Support\SafeMailer;
 use App\Support\SlotAvailabilityService;
 use App\Support\TimeSlots;
-use Endroid\QrCode\QrCode;
-use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -67,14 +65,11 @@ class AppointmentController extends Controller
 
         $user = Auth::user();
 
-        // Encode a LAN-reachable URL so scanning opens the verification page.
-        $payload = QrUrl::to('/verify/appointment/'.$appointment->qr_token);
-
-        $qrCode = (new QrCode($payload));
-
+        // The card builds its own QR from Appointment::passQrDataUri() — the
+        // same method the scanned page and the registrar's station render,
+        // so every surface prints a byte-identical code for this booking.
         return view('student.appointments.qr', [
             'appointment' => $appointment,
-            'qrCodeDataUri' => (new SvgWriter)->write($qrCode)->getDataUri(),
             'student' => $user,
             'profile' => $user->studentProfile,
             'avatar' => $user->studentProfile?->avatar_url,

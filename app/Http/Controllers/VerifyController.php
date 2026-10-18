@@ -6,6 +6,9 @@ use App\Models\Appointment;
 use App\Models\DocumentRequest;
 use App\Models\GateLog;
 use App\Models\StudentProfile;
+use App\Support\QrUrl;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Http\Request;
 
 /**
@@ -80,9 +83,9 @@ class VerifyController extends Controller
 
         // The scanned page shows the same claim pass — QR included — as the
         // student's view details, so the payload is rebuilt here.
-        $qrCodeDataUri = (new \Endroid\QrCode\Writer\SvgWriter())
-            ->write(new \Endroid\QrCode\QrCode(
-                \App\Support\QrUrl::to('/verify/document/' . $documentRequest->claim_token)
+        $qrCodeDataUri = (new SvgWriter)
+            ->write(new QrCode(
+                QrUrl::to('/verify/document/'.$documentRequest->claim_token)
             ))
             ->getDataUri();
 
@@ -92,10 +95,21 @@ class VerifyController extends Controller
         ]);
     }
 
+    /**
+     * /verify/appointment/{token} — what the appointment QR encodes.
+     *
+     * The payload carries this appointment's own qr_token, and the printed
+     * card also shows its reference number, so either form resolves to the
+     * one booking: the page below is the student's own Appointment
+     * Verification Pass, rendered from the same shared card component, so
+     * a scanner reads exactly what the student was handed at booking.
+     */
     public function appointment(Request $request, string $token)
     {
         $appointment = Appointment::query()
-            ->where('qr_token', $token)
+            ->where(fn ($query) => $query
+                ->where('qr_token', $token)
+                ->orWhere('reference_code', $token))
             ->with(['user.studentProfile'])
             ->first();
 
@@ -114,6 +128,8 @@ class VerifyController extends Controller
             'scanned_at' => now(),
         ]);
 
+        // Staff scanning lands on the registrar's verification station,
+        // which renders this same pass card for the appointment it found.
         if ($this->isStaff($request)) {
             return redirect()->route('registrar.qr.index', ['q' => $token]);
         }

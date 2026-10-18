@@ -30,53 +30,31 @@
     ])
 </head>
 
-<body class="min-h-screen bg-slate-100 font-sans">
+<body class="min-h-screen bg-[#f5f7fa] font-sans">
 
-    <!-- Header -->
-    <header class="bg-blue-950 text-white shadow-lg">
+    {{--
+        What a scanner opens. The card in the middle is the student's own
+        Appointment Verification Pass — the shared x-appointment-pass-card —
+        so the reference, date, time slot, purpose and date booked read here
+        are the same pixels the student was handed at booking. Everything
+        else on this page is scan context: the verdict above it, the gate
+        record below it.
+    --}}
+    <main class="min-h-screen py-6 sm:py-10 px-4">
 
-        <div class="max-w-4xl mx-auto px-5 py-4">
-
-            <div class="flex items-center gap-3">
-
-                <div class="w-12 h-12 bg-white rounded-xl p-1 flex items-center justify-center">
-                    <img
-                        src="{{ asset('img/isufstpass-logo.png') }}"
-                        alt="ISUFSTPASS"
-                        class="w-full h-full object-contain"
-                    >
-                </div>
-
-                <div>
-                    <h1 class="font-extrabold text-lg tracking-wide">
-                        ISUFSTPASS
-                    </h1>
-
-                    <p class="text-xs text-blue-200">
-                        Digital Campus Transaction System
-                    </p>
-                </div>
-
-            </div>
-
-        </div>
-
-    </header>
+        <div class="w-full max-w-6xl mx-auto">
 
 
-    <!-- Main -->
-    <main class="max-w-4xl mx-auto px-4 py-6 sm:py-10">
+            <!-- Verdict -->
+            <div class="mb-5 rounded-2xl bg-green-600 shadow-lg
+                        px-5 sm:px-6 py-4 text-white
+                        flex flex-wrap items-center gap-4">
 
-        <!-- Verification Status -->
-        <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-200">
-
-            <!-- Success Header -->
-            <div class="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-8 text-center text-white">
-
-                <div class="mx-auto w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
+                <div class="w-12 h-12 shrink-0 bg-white rounded-full
+                            flex items-center justify-center">
 
                     <svg
-                        class="w-12 h-12 text-green-600"
+                        class="w-7 h-7 text-green-600"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -91,254 +69,81 @@
 
                 </div>
 
-                <h2 class="mt-5 text-2xl sm:text-3xl font-extrabold">
-                    Valid Appointment
-                </h2>
+                <div class="min-w-0">
+                    <h1 class="text-xl sm:text-2xl font-extrabold">
+                        Valid Appointment
+                    </h1>
 
-                <p class="mt-2 text-sm text-green-100">
-                    QR Code successfully verified
+                    <p class="text-sm text-green-100">
+                        QR Code successfully verified
+                    </p>
+                </div>
+
+                <div class="ml-auto text-right min-w-0">
+                    <p class="text-sm font-bold truncate">
+                        {{ $student->name }}
+                    </p>
+
+                    <p class="text-xs text-green-100">
+                        {{ $student->email }}
+                    </p>
+                </div>
+
+            </div>
+
+
+            <!-- The pass — byte-identical to the student's card -->
+            <x-appointment-pass-card :appointment="$appointment" />
+
+
+            <!-- Scan record -->
+            <div class="mt-5 rounded-2xl bg-white border border-gray-200
+                        shadow-sm px-5 sm:px-6 py-4
+                        flex flex-wrap items-center justify-between gap-3">
+
+                <div class="flex items-center gap-3 min-w-0">
+
+                    <span class="px-3 py-1 rounded-full text-xs font-extrabold
+                                 uppercase tracking-wider
+                                 bg-green-100 text-green-800">
+                        Entry recorded
+                    </span>
+
+                    <span class="text-sm font-semibold text-gray-600">
+                        Main Gate
+                    </span>
+
+                </div>
+
+                <p class="text-xs text-gray-500">
+                    Scanned on {{ $scan->scanned_at->format('F j, Y') }}
+                    &bull; {{ $scan->scanned_at->format('g:i A') }}
                 </p>
 
             </div>
 
 
-            <!-- Scan Direction -->
-            <div class="bg-blue-950 px-5 sm:px-8 py-4 text-white">
+            <!-- Footer -->
+            <div class="text-center mt-6">
 
-                <div class="flex items-center justify-between gap-x-3 gap-y-2 flex-wrap">
+                <p class="text-xs font-bold text-blue-900">
+                    ISUFSTPASS
+                </p>
 
-                    <div class="flex items-center gap-3 min-w-0">
+                <p class="text-[10px] text-gray-400 mt-1">
+                    QR Code-Based Transaction Management System
+                </p>
 
-                        <span
-                            class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-green-400 text-green-950"
-                        >
-
-                            Entry recorded
-
-                        </span>
-
-                        <span class="text-sm text-blue-200">
-                            Main Gate
-                        </span>
-
-                    </div>
-
-                    <p class="text-xs text-blue-300">
-                        {{ $scan->scanned_at->format('M j, Y') }} at {{ $scan->scanned_at->format('g:i A') }}
-                    </p>
-
-                </div>
+                <p class="text-[10px] text-gray-400 mt-2 font-semibold">
+                    Iloilo State University of Fisheries Science and Technology
+                </p>
 
             </div>
-
-
-            <!-- Appointment Information -->
-            <div class="p-6 sm:p-8">
-
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-
-                    <div class="bg-blue-50 rounded-xl p-4">
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-blue-500">
-                            Reference No.
-                        </p>
-
-                        <p class="mt-1 font-bold text-gray-900 break-words">
-                            {{ $appointment->reference_code }}
-                        </p>
-                    </div>
-
-
-                    <div class="bg-blue-50 rounded-xl p-4">
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-blue-500">
-                            Office
-                        </p>
-
-                        <p class="mt-1 font-bold text-gray-900 break-words">
-                            {{ $appointment->office }}
-                        </p>
-                    </div>
-
-
-                    <div class="bg-blue-50 rounded-xl p-4">
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-blue-500">
-                            Date
-                        </p>
-
-                        <p class="mt-1 font-bold text-gray-900 break-words">
-                            {{ $appointment->date->format('M j, Y') }}
-                        </p>
-                    </div>
-
-
-                    <div class="bg-blue-50 rounded-xl p-4">
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-blue-500">
-                            Time Slot
-                        </p>
-
-                        <p class="mt-1 font-bold text-gray-900 break-words">
-                            {{ $appointment->timeToCome() }}
-                        </p>
-                    </div>
-
-                </div>
-
-
-                <!-- Purpose -->
-                <div class="mt-5 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
-
-                    <p class="text-[10px] font-bold uppercase tracking-widest text-blue-500">
-                        Purpose
-                    </p>
-
-                    <p class="mt-1.5 font-semibold text-gray-800 break-words">
-                        {{ $appointment->purpose }}
-                    </p>
-
-                    @if ($appointment->notes)
-
-                        <p class="mt-3 pt-3 border-t border-blue-100 text-sm text-gray-600 break-words">
-                            {{ $appointment->notes }}
-                        </p>
-
-                    @endif
-
-                </div>
-
-
-                <!-- Student -->
-                <div class="mt-6 flex flex-col sm:flex-row items-center sm:items-start gap-5">
-
-                    <!-- Profile Picture -->
-                    <div class="w-20 h-20 rounded-2xl overflow-hidden bg-blue-950 flex items-center justify-center shrink-0">
-
-                        @if ($student->studentProfile?->avatar)
-
-                            <img
-                                src="{{ $student->studentProfile->avatar_url }}"
-                                alt="Student Profile"
-                                class="w-full h-full object-cover"
-                            >
-
-                        @else
-
-                            <span class="text-3xl font-extrabold text-yellow-400">
-                                {{ strtoupper(substr($student->name, 0, 1)) }}
-                            </span>
-
-                        @endif
-
-                    </div>
-
-
-                    <!-- Student Details -->
-                    <div class="text-center sm:text-left min-w-0">
-
-                        <p class="text-xs font-bold uppercase tracking-widest text-blue-600">
-                            Student
-                        </p>
-
-                        <h3 class="mt-1 text-xl sm:text-2xl font-extrabold text-gray-900">
-                            {{ $student->name }}
-                        </h3>
-
-                        <p class="mt-1 text-sm text-gray-500 break-words">
-                            {{ $student->email }}
-                        </p>
-
-                        <p class="mt-1 text-sm text-gray-500">
-                            {{ $student->studentProfile?->course }}
-
-                            @if ($student->studentProfile?->year_level)
-                                &middot; Year {{ $student->studentProfile->year_level }}
-                            @endif
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <!-- Gate Verification -->
-                <div class="mt-6 rounded-2xl border border-green-200 bg-green-50 p-5">
-
-                    <div class="flex items-center gap-4">
-
-                        <div class="w-12 h-12 rounded-xl bg-green-600 flex items-center justify-center shrink-0">
-
-                            <svg
-                                class="w-6 h-6 text-white"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M5 13l4 4L19 7"
-                                />
-                            </svg>
-
-                        </div>
-
-                        <div>
-
-                            <p class="font-extrabold text-green-800">
-                                Booking Confirmed
-                            </p>
-
-                            <p class="text-sm text-green-700 mt-1">
-                                This QR matches an active appointment booked through ISUFSTPASS.
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- Scan Information -->
-                <div class="mt-8 pt-6 border-t border-gray-100 text-center">
-
-                    <p class="text-xs text-gray-400">
-                        Scanned on
-                    </p>
-
-                    <p class="mt-1 text-sm font-bold text-gray-700">
-                        {{ $scan->scanned_at->format('F j, Y • g:i A') }}
-                    </p>
-
-                    <p class="mt-4 text-[11px] text-gray-400 leading-5">
-                        This verification page is generated by the
-                        ISUFSTPASS Digital Campus Transaction System.
-                    </p>
-
-                    <p class="mt-2 text-[11px] font-semibold text-gray-400">
-                        Iloilo State University of Fisheries Science and Technology
-                    </p>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- Footer -->
-        <div class="text-center mt-6">
-
-            <p class="text-xs font-bold text-blue-900">
-                ISUFSTPASS
-            </p>
-
-            <p class="text-[10px] text-gray-400 mt-1">
-                QR Code-Based Transaction Management System
-            </p>
 
         </div>
 
     </main>
 
 </body>
+
 </html>

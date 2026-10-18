@@ -35,7 +35,9 @@ class QrVerifyController extends Controller
             if (! $documentRequest && $appointmentToken) {
                 $appointment = Appointment::query()
                     ->with(['user.studentProfile'])
-                    ->where('qr_token', $appointmentToken)
+                    ->where(fn ($query) => $query
+                        ->where('qr_token', $appointmentToken)
+                        ->orWhere('reference_code', $appointmentToken))
                     ->first();
             }
 
@@ -53,7 +55,9 @@ class QrVerifyController extends Controller
             if (! $result && ! $documentRequest && ! $appointment && $passToken === $query) {
                 $appointment = Appointment::query()
                     ->with(['user.studentProfile'])
-                    ->where('qr_token', $passToken)
+                    ->where(fn ($lookup) => $lookup
+                        ->where('qr_token', $passToken)
+                        ->orWhere('reference_code', $passToken))
                     ->first();
             }
 
@@ -105,6 +109,12 @@ class QrVerifyController extends Controller
         }
 
         if (preg_match("#/verify/appointment/({$uuid})#i", $value, $m)) {
+            return [null, null, $m[1]];
+        }
+
+        // …and a reference-form payload, /verify/appointment/APT-2026-ABCD,
+        // the same way the printed card names the booking.
+        if (preg_match('#/verify/appointment/([^/]+)#i', $value, $m)) {
             return [null, null, $m[1]];
         }
 

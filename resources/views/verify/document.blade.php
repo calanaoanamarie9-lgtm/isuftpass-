@@ -12,8 +12,9 @@
 </head>
 <body class="min-h-screen bg-[#f5f7fa] font-sans">
 
-    {{-- Same masthead as verify.pass and verify.appointment: every page a QR
-         can open must look like it came out of one system, not three. --}}
+    {{-- Same masthead as verify.pass: every page a QR can open must look
+         like it came out of one system, not three. verify.appointment goes
+         further and renders the student's own pass card itself. --}}
     <header class="bg-blue-950 text-white shadow-lg">
         <div class="max-w-4xl mx-auto px-5 py-4">
             <div class="flex items-center gap-3">

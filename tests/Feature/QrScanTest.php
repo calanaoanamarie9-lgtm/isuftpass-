@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\DocumentRequest;
 use App\Models\GateLog;
 use App\Models\User;
+use App\Support\QrUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -203,9 +204,9 @@ class QrScanTest extends TestCase
         $this->get(route('verify.appointment', ['token' => $scanned->qr_token]))
             ->assertOk()
             ->assertSee('Registrar')
-            ->assertSee($scanned->date->format('M j, Y'))
+            ->assertSee($scanned->date->format('F j, Y'))
             ->assertDontSee('Library')
-            ->assertDontSee($other->date->format('M j, Y'))
+            ->assertDontSee($other->date->format('F j, Y'))
             ->assertDontSee($request->request_number);
     }
 
@@ -348,13 +349,13 @@ class QrScanTest extends TestCase
 
         $this->get('/login');
 
-        $base = \App\Support\QrUrl::base();
+        $base = QrUrl::base();
 
         $this->assertStringNotContainsString('127.0.0.1', $base);
         $this->assertStringNotContainsString('localhost', $base);
 
         if (config('app.qr_url') === '') {
-            $ip = \App\Support\QrUrl::lanIp();
+            $ip = QrUrl::lanIp();
             $this->assertNotNull($ip, 'A LAN IPv4 should be detectable on this machine.');
             $this->assertMatchesRegularExpression('/^http:\/\/\d+\.\d+\.\d+\.\d+(:\d+)?$/', $base);
         }
@@ -362,7 +363,7 @@ class QrScanTest extends TestCase
 
     public function test_qr_url_helper_builds_verification_links(): void
     {
-        $url = \App\Support\QrUrl::to('/verify/pass/abc-123');
+        $url = QrUrl::to('/verify/pass/abc-123');
 
         $this->assertStringEndsWith('/verify/pass/abc-123', $url);
         $this->assertMatchesRegularExpression('/^https?:\/\//', $url);

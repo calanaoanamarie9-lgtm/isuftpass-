@@ -3,12 +3,16 @@
 namespace App\Models;
 
 use App\Enums\AppointmentStatus;
+use App\Support\QrUrl;
 use App\Support\SlotAvailabilityService;
 use Carbon\Carbon;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Str;
 
 class Appointment extends Model
 {
@@ -94,11 +98,11 @@ class Appointment extends Model
     {
         static::creating(function (Appointment $appointment) {
             if (! $appointment->reference_code) {
-                $appointment->reference_code = 'APT-' . now()->format('Y') . '-' . strtoupper(\Illuminate\Support\Str::random(4));
+                $appointment->reference_code = 'APT-'.now()->format('Y').'-'.strtoupper(Str::random(4));
             }
 
             if (! $appointment->qr_token) {
-                $appointment->qr_token = (string) \Illuminate\Support\Str::uuid();
+                $appointment->qr_token = (string) Str::uuid();
             }
         });
     }
@@ -142,6 +146,27 @@ class Appointment extends Model
     {
         return AppointmentStatus::tryFrom((string) $this->status)?->label()
             ?? str_replace('_', ' ', ucfirst((string) $this->status));
+    }
+
+    /**
+     * The scan target this appointment's QR carries — the URL that opens
+     * this one booking's verification page.
+     *
+     * The student's pass, the page a scanner lands on and the registrar's
+     * verification station all build their QR from this method, so every
+     * surface prints a code pointing at the same single appointment.
+     */
+    public function passQrPayload(): string
+    {
+        return QrUrl::to('/verify/appointment/'.$this->qr_token);
+    }
+
+    /**
+     * The same code as an inline SVG data URI, for rendering on screen.
+     */
+    public function passQrDataUri(): string
+    {
+        return (new SvgWriter)->write(new QrCode($this->passQrPayload()))->getDataUri();
     }
 
     public function isCancellable(): bool

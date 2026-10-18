@@ -49,7 +49,9 @@ class AppointmentQrTest extends TestCase
             ->assertSee('Entry recorded')
             ->assertSee($appointment->reference_code)
             ->assertSee($appointment->office)
-            ->assertSee($appointment->date->format('M j, Y'));
+            // The pass card's own date format — the scanned page must read
+            // exactly what the student was handed.
+            ->assertSee($appointment->date->format('F j, Y'));
 
         $this->assertDatabaseHas('gate_logs', [
             'user_id' => $student->id,
