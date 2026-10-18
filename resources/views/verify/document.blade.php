@@ -123,7 +123,10 @@
     <main class="max-w-4xl mx-auto px-4 py-6 sm:py-10">
 
         {{-- ============================================================
-             DIGITAL CLAIM PASS — same card as the view details page
+             DIGITAL CLAIM PASS — the student's pass, without the scan
+             chrome: no university branding row inside the card, no
+             QR-verified band. Same fields, status and QR as the view
+             details page.
         ============================================================= --}}
         <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
 
@@ -135,28 +138,6 @@
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
 
                     <div>
-
-                        <div class="flex items-center gap-3 mb-5">
-
-                            <div class="w-11 h-11 rounded-full bg-white flex items-center justify-center overflow-hidden shadow">
-                                <img
-                                    src="{{ asset('img/isufstpass-logo.png') }}"
-                                    alt="ISUFSTPASS"
-                                    class="w-9 h-9 object-contain"
-                                >
-                            </div>
-
-                            <div>
-                                <p class="text-[10px] sm:text-[11px] font-semibold tracking-[0.18em] text-blue-200 uppercase">
-                                    ILOILO STATE UNIVERSITY
-                                </p>
-
-                                <h2 class="text-lg font-black text-white tracking-wide">
-                                    ISUFSTPASS
-                                </h2>
-                            </div>
-
-                        </div>
 
                         <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
                             Digital Claim Pass
@@ -179,27 +160,6 @@
 
                 </div>
 
-            </div>
-
-            {{-- Verification band: the fact a staff member reads first --}}
-            <div class="bg-blue-950 px-5 sm:px-8 py-4 text-white">
-                <div class="flex items-center justify-between gap-x-3 gap-y-2 flex-wrap">
-
-                    <div class="flex items-center gap-3 min-w-0">
-                        <span class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-green-400 text-green-950">
-                            QR verified
-                        </span>
-
-                        <span class="text-sm text-blue-200 break-all">
-                            {{ $documentRequest->request_number }}
-                        </span>
-                    </div>
-
-                    <p class="text-xs text-blue-300">
-                        Scanned {{ now()->format('M j, Y') }} at {{ now()->format('g:i A') }}
-                    </p>
-
-                </div>
             </div>
 
             {{-- ========================================================
