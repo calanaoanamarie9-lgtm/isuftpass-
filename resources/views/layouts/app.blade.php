@@ -45,8 +45,6 @@
 
                     <div class="flex items-center gap-1">
 
-                        <x-notification-bell />
-
                         <form method="POST" action="{{ route('logout') }}" class="ml-1">
                             @csrf
                             <button type="submit" class="p-2 rounded-md hover:bg-white/10 transition">
@@ -57,14 +55,6 @@
                         </form>
 
                     </div>
-                </div>
-
-                {{-- Desktop Top Bar --}}
-                <div class="hidden lg:flex sticky top-0 z-20
-                            bg-white border-b border-gray-200
-                            h-14 items-center justify-end px-6
-                            text-gray-600">
-                    <x-notification-bell />
                 </div>
 
                 <!-- Page Heading -->
