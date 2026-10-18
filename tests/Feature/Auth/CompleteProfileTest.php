@@ -5,7 +5,6 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CompleteProfileTest extends TestCase
@@ -56,50 +55,19 @@ class CompleteProfileTest extends TestCase
     }
 
     /**
-     * The browser always posts the avatar input, even when no photo is
-     * chosen: an unselected <input type="file"> arrives as an empty upload
-     * (UPLOAD_ERR_NO_FILE) that the request reports as null. The old
-     * `sometimes` rule still ran `image` against that null and bounced the
-     * save with "The avatar field must be an image." - which left every
-     * student who skipped the photo stuck on this page. The untouched photo
-     * field must stay optional and land on the dashboard.
+     * The complete-details form carries no photo field: profile pictures
+     * live in Profile Settings, so onboarding must neither offer an avatar
+     * input nor declare multipart.
      */
-    public function test_saving_without_a_photo_reaches_the_dashboard(): void
-    {
-        $user = $this->registerStudent();
-
-        $this->post('/complete-profile', [
-            'student_id' => '2024-12345',
-            'course' => 'BSIS',
-            'year_level' => '2nd Year',
-            'contact_number' => '09171234567',
-            'address' => 'Barotac Nuevo, Iloilo',
-            // exactly what the browser posts for an untouched file input
-            'avatar' => new UploadedFile('', '', null, UPLOAD_ERR_NO_FILE, true),
-        ])
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('dashboard', absolute: false));
-
-        $this->assertDatabaseHas('student_profiles', [
-            'user_id' => $user->id,
-            'contact_number' => '09171234567',
-        ]);
-        $this->assertNull($user->fresh()->avatar, 'a skipped photo must not write anything');
-    }
-
-    /**
-     * The form must post as multipart. Without the enctype the browser
-     * submits the whole form urlencoded: a chosen photo is never uploaded
-     * (it goes through as garbage text) and the empty avatar field bounces
-     * the save - so Save & Continue could never work.
-     */
-    public function test_the_complete_profile_form_posts_multipart(): void
+    public function test_the_form_no_longer_offers_a_profile_picture(): void
     {
         $this->registerStudent();
 
         $this->get('/complete-profile')
             ->assertOk()
-            ->assertSee('enctype="multipart/form-data"', false);
+            ->assertDontSee('name="avatar"', false)
+            ->assertDontSee('Profile Picture')
+            ->assertDontSee('enctype="multipart/form-data"', false);
     }
 
     public function test_student_can_complete_personal_details(): void
@@ -307,15 +275,12 @@ class CompleteProfileTest extends TestCase
     }
 
     /**
-     * A student's avatar upload is stored as a permanent data URI in the
-     * database (not a file on an ephemeral disk). The user-record upload has to
-     * render on the profile page (student_profiles first, the user-record photo
-     * as the fallback), never as a leftover temp path.
+     * A photo posted straight at this endpoint (the old form's field, a
+     * stale tab) is ignored: profile pictures are managed in Profile
+     * Settings now, never accepted by complete-details.
      */
-    public function test_student_avatar_upload_is_stored_and_renders_on_profile_page(): void
+    public function test_student_avatar_post_is_ignored_on_complete_details(): void
     {
-        Storage::fake('public');
-
         $user = $this->registerStudent('avatar-student@example.com');
 
         $this->post('/complete-profile', [
@@ -329,32 +294,16 @@ class CompleteProfileTest extends TestCase
 
         $user->refresh();
 
-        $this->assertNotNull($user->avatar_data, 'the user-record upload did not persist');
-        $this->assertStringStartsWith('data:image/', $user->avatar_data);
-
-        // A path on the profile may only ever be a stored avatar, never the
-        // temp path of the request's upload.
-        $profilePath = $user->studentProfile?->avatar;
-        $this->assertTrue(
-            $profilePath === null || str_starts_with($profilePath, 'avatars/'),
-            "student_profiles.avatar holds garbage: {$profilePath}"
-        );
-
-        $this->actingAs($user)
-            ->get('/student/profile')
-            ->assertOk()
-            ->assertSee('data:image/', false);
+        $this->assertNull($user->avatar_data, 'complete-details must not store a photo');
+        $this->assertNull($user->avatar);
     }
 
     /**
-     * Every registration type can set a photo. Prove it for alumni, guests and
-     * parents: the upload is stored as a permanent data URI in the database and
-     * the dashboard renders it through the sidebar.
+     * The same applies to alumni, guests and parents: complete-details
+     * accepts no photo for any registration type.
      */
-    public function test_avatar_upload_persists_for_every_other_registration_type(): void
+    public function test_avatar_posts_are_ignored_for_every_other_registration_type(): void
     {
-        Storage::fake('public');
-
         $cases = [
             'alumni' => ['year_graduated' => '2024'],
             'guest' => ['purpose' => 'inquiry'],
@@ -362,6 +311,13 @@ class CompleteProfileTest extends TestCase
         ];
 
         foreach ($cases as $type => $extra) {
+            // /register is guest-only: the previous iteration's session would
+            // keep the earlier user, so every later iteration would silently
+            // re-test that same account instead of the type under test.
+            if (auth()->check()) {
+                $this->post('/logout');
+            }
+
             $user = $this->registerOther($type, "avatar-{$type}@example.com");
 
             $this->post('/complete-profile', $extra + [
@@ -371,14 +327,8 @@ class CompleteProfileTest extends TestCase
 
             $user->refresh();
 
-            $this->assertNotNull($user->avatar_data, "no avatar persisted for {$type}");
-            $this->assertStringStartsWith('data:image/', $user->avatar_data);
-            $this->assertStringContainsString('data:image/', $user->avatar_url);
-
-            $this->actingAs($user)
-                ->get('/dashboard')
-                ->assertOk()
-                ->assertSee('data:image/', false);
+            $this->assertSame($type, $user->registration_type);
+            $this->assertNull($user->avatar_data, "complete-details stored a photo for {$type}");
         }
     }
 }

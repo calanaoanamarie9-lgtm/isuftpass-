@@ -284,7 +284,6 @@
                     <form
                         method="POST"
                         action="{{ route('complete-profile') }}"
-                        enctype="multipart/form-data"
                         class="space-y-5"
                     >
 
@@ -946,52 +945,6 @@
 
                         @endif
 
-
-                        <!-- Avatar Upload -->
-                        <div class="mb-4">
-                            <label
-                                for="avatar"
-                                class="block text-sm font-medium text-gray-800 mb-1">
-                                Profile Picture
-                            </label>
-
-                            <div class="relative">
-                                <input
-                                    id="avatar"
-                                    name="avatar"
-                                    type="file"
-                                    class="block w-full text-sm text-gray-500 file:border-b-2 file:border-blue-500 file:rounded-lg file:py-2 file:pl-4 file:file:text-sm file:font-medium file:text-gray-900 file:select-none rtl:file:select-rtl"
-                                    accept="image/*">
-                                <div
-                                    class="absolute -top-0 right-0 w-8 h-8 rounded-full bg-blue-500 p-1">
-                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16c1.1 0 2 .9 2 2v2c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm3 5H6v14l8-2 8 2V11z"/>
-                                    </svg>
-                                </div>
-                            </div>
-
-                            {{-- Optional: the server validates the avatar with
-                                 `sometimes`, so it must NOT carry `required` — a
-                                 required file input blocks the submit button in
-                                 the browser for anyone who skips the photo, which
-                                 left them stuck on this page. --}}
-                            @if ($errors->get('avatar'))
-
-                                <p class="mt-2 text-sm text-red-600">
-                                    {{ $errors->first('avatar') }}
-                                </p>
-
-                            @endif
-
-                            @if ($user->avatar)
-                                <div class="mt-3">
-                                    <img
-                                        src="{{ $user->avatar_url }}"
-                                        alt="Profile picture"
-                                        class="w-24 h-24 rounded-full object-cover mt-2">
-                                </div>
-                            @endif
-                        </div>
 
 <!-- Save Button -->
                         <button

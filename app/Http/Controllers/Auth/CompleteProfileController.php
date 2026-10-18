@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Support\Avatar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -46,15 +44,7 @@ class CompleteProfileController extends Controller
     {
         $user = $request->user();
 
-        // The browser posts the avatar input even when no photo is chosen:
-        // an unselected <input type="file"> sends an empty part that PHP
-        // records as UPLOAD_ERR_NO_FILE. Laravel's file rules fail that
-        // instantly with "failed to upload" - before `nullable` can treat
-        // it as absent - which bounced every save made without a photo
-        // and left students stuck on this page. Only hand the validator a
-        // real upload; otherwise the optional avatar stays absent.
         $data = $request->post();
-        $data['avatar'] = $request->hasFile('avatar') ? $request->file('avatar') : null;
 
         // Address, course and year level are required — but only for the
         // student form, the only one that shows them. The alumni, guest and
@@ -64,21 +54,13 @@ class CompleteProfileController extends Controller
         // profile exists.
         $isStudent = $user->studentProfile !== null;
 
-        // Validate avatar (optional) and contact_number (required for all)
+        // Validate contact_number (required for all)
         $validated = Validator::make($data, [
-            'avatar' => ['nullable', 'image', 'max:2048'],
             'contact_number' => ['required', 'string', 'max:20'],
             'address' => $isStudent ? ['required', 'string', 'max:255'] : ['nullable', 'string', 'max:255'],
             'course' => $isStudent ? ['required', 'string', 'max:100'] : ['nullable', 'string', 'max:100'],
             'year_level' => $isStudent ? ['required', 'string', 'max:20'] : ['nullable', 'string', 'max:20'],
         ])->validate();
-
-        // $validated['avatar'] is the UploadedFile itself, not a stored path.
-        // The student branch merges $validated into the profile update, which
-        // would cast the upload to its TEMP path and save that garbage into
-        // student_profiles.avatar - the profile page would then render the
-        // temp path as the image source. The stored path is handled below.
-        unset($validated['avatar']);
 
         if ($user->studentProfile) {
             $profile = $user->studentProfile ?? $user->studentProfile()->create();
@@ -158,20 +140,6 @@ class CompleteProfileController extends Controller
             }
 
             $user->update($updateData);
-        }
-
-        // Store the photo as a data URI in the database, which is permanent
-        // (no ephemeral disk or external bucket to lose it). Any legacy file
-        // path still on the record is cleaned up first.
-        if ($request->hasFile('avatar')) {
-            if ($user->avatar) {
-                Storage::disk(config('filesystems.avatar'))->delete($user->avatar);
-            }
-
-            $user->update([
-                'avatar_data' => Avatar::fromUploadedFile($request->file('avatar')),
-                'avatar' => null,
-            ]);
         }
 
         return redirect()->route('dashboard');
