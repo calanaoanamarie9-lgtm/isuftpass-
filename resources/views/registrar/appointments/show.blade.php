@@ -236,57 +236,6 @@
 
                         <x-approve-schedule :appointment="$appointment" />
 
-
-                        {{-- Reschedule --}}
-                        @unless (in_array($appointment->status, ['completed', 'cancelled', 'no_show']))
-
-                            <button
-                                type="button"
-
-                                @click="$dispatch('open-reschedule', {
-                                    id: {{ $appointment->id }},
-                                    student: @js($appointment->user->name),
-                                    studentId: @js($appointment->user->studentProfile?->student_id),
-                                    reference: @js($appointment->reference_code),
-                                    office: @js($appointment->office),
-                                    dateLabel: @js($appointment->date->format('F j, Y')),
-                                    timeSlot: @js($appointment->time_slot),
-                                    reason: @js($appointment->reschedule_reason)
-                                })"
-
-                                class="inline-flex items-center gap-2
-                                       px-4 py-2.5 rounded-xl
-                                       bg-indigo-50
-                                       border border-indigo-200
-                                       text-indigo-700
-                                       text-xs font-bold
-                                       hover:bg-indigo-100
-                                       transition">
-
-                                <svg class="w-4 h-4"
-                                     fill="none"
-                                     stroke="currentColor"
-                                     viewBox="0 0 24 24">
-
-                                    <path stroke-linecap="round"
-                                          stroke-linejoin="round"
-                                          stroke-width="2"
-                                          d="M8 7V3m8 4V3m-9 4h10M5 21h14a2 2 0 002-2V8a2 2 0 00-2-2v11a2 2 0 002 2z"/>
-
-                                    <path stroke-linecap="round"
-                                          stroke-linejoin="round"
-                                          stroke-width="2"
-                                          d="M9 15l2 2 4-4"/>
-
-                                </svg>
-
-                                Reschedule
-
-                            </button>
-
-                        @endunless
-
-
                         {{-- Cancel --}}
                         @unless (in_array($appointment->status, ['completed', 'cancelled']))
 
