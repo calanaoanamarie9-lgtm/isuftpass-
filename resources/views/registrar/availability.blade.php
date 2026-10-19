@@ -377,141 +377,6 @@
                                 </label>
 
 
-                                {{-- SPECIFIC TIME SLOTS --}}
-                                <label
-                                    class="flex cursor-pointer
-                                           items-center
-                                           gap-3
-                                           rounded-xl
-                                           border
-                                           px-4 py-3
-                                           transition"
-                                    :class="availabilityType === 'slots'
-                                        ? 'border-yellow-300 bg-yellow-50'
-                                        : 'border-gray-100 bg-gray-50 hover:border-blue-200'"
-                                >
-
-                                    <input
-                                        type="radio"
-                                        name="availability_type"
-                                        value="slots"
-                                        x-model="availabilityType"
-                                        class="h-5 w-5
-                                               border-gray-300
-                                               text-yellow-600
-                                               focus:ring-yellow-500"
-                                    >
-
-                                    <div class="flex-1">
-
-                                        <p class="text-sm
-                                                  font-bold
-                                                  text-gray-800">
-
-                                            Specific Slots
-
-                                        </p>
-
-                                        <p class="text-[11px]
-                                                  text-gray-400">
-
-                                            Tick the slots to open — the
-                                            rest of the day stays closed.
-
-                                        </p>
-
-                                    </div>
-
-                                    <span
-                                        x-show="availabilityType === 'slots'"
-                                        class="text-[9px]
-                                               font-extrabold
-                                               uppercase
-                                               text-yellow-600">
-
-                                        Selected
-
-                                    </span>
-
-                                </label>
-
-
-                            </div>
-
-
-                            {{-- =================================================
-                                TIME SLOTS
-                                The office's own slot list, one tick each:
-                                only the ticked ones open for the date. The
-                                list follows the office's hours, so it is
-                                always exactly what students are offered.
-                            ================================================== --}}
-                            <div
-                                x-show="availabilityType === 'slots'"
-                                x-transition
-                                class="mt-3
-                                       rounded-2xl
-                                       border border-yellow-100
-                                       bg-yellow-50/50
-                                       p-4"
-                            >
-
-                                <div class="flex items-center
-                                            justify-between
-                                            gap-2">
-
-                                    <span class="text-[10px]
-                                                  font-bold
-                                                  uppercase
-                                                  tracking-wide
-                                                  text-gray-400">
-                                        Open Slots
-                                    </span>
-
-                                    <span class="text-[11px]
-                                                  font-bold
-                                                  text-gray-500">
-                                        <span x-text="selectedSlots.length"></span>
-                                        of {{ count($timeSlots) }} selected
-                                    </span>
-
-                                </div>
-
-                                <div class="mt-2.5 grid grid-cols-2 gap-2">
-
-                                    @foreach ($timeSlots as $slot)
-                                        <label class="flex items-center
-                                                      gap-2
-                                                      p-2
-                                                      rounded-lg
-                                                      border border-gray-200
-                                                      bg-white
-                                                      hover:bg-gray-50
-                                                      cursor-pointer">
-                                            <input type="checkbox"
-                                                   value="{{ $slot }}"
-                                                   x-model="selectedSlots"
-                                                   class="rounded
-                                                          border-gray-300
-                                                          text-yellow-600
-                                                          focus:ring-yellow-500">
-                                            <span class="text-xs
-                                                          font-semibold
-                                                          text-gray-700">
-                                                {{ $slot }}
-                                            </span>
-                                        </label>
-                                    @endforeach
-
-                                </div>
-
-                                <p x-show="! selectedSlots.length"
-                                   class="mt-2.5 text-[11px]
-                                          font-bold text-gray-400">
-                                    Nothing ticked — students will not be
-                                    able to book this date.
-                                </p>
-
                             </div>
 
 
@@ -657,68 +522,6 @@
                                     </div>
 
                                 </template>
-
-                            </div>
-
-                        </div>
-
-
-                        {{-- LIVE PREVIEW --}}
-                        <div class="mt-6
-                                    rounded-2xl
-                                    border border-gray-100
-                                    bg-gray-50
-                                    p-4">
-
-                            <div class="flex items-center
-                                        justify-between">
-
-                                <div>
-
-                                    <p class="text-[10px]
-                                              uppercase
-                                              tracking-widest
-                                              font-bold
-                                              text-gray-400">
-
-                                        Live Preview
-
-                                    </p>
-
-                                    <p class="mt-1
-                                              text-sm
-                                              font-bold
-                                              text-blue-950">
-
-                                        <span
-                                            x-text="date || 'Select a date'"
-                                        ></span>
-
-                                    </p>
-
-                                </div>
-
-                                <div class="text-right">
-
-                                    <p class="text-2xl
-                                              font-extrabold
-                                              text-blue-700"
-                                       x-text="openPreview()">
-                                    </p>
-
-                                    <p class="text-[9px]
-                                              uppercase
-                                              tracking-wide
-                                              font-bold
-                                              text-gray-400">
-
-                                        <span
-                                            x-text="openPreview() === 1 ? 'Open Slot' : 'Open Slots'"
-                                        ></span>
-
-                                    </p>
-
-                                </div>
 
                             </div>
 
@@ -1164,6 +967,12 @@
 
                 availabilityType: 'open',
 
+                {{-- The registrar's form no longer offers a slot picker, but a
+                     date set that way before still loads as type "slots" with
+                     no radio to match it. Keeping the array means saving such
+                     a date unchanged posts its own slots back instead of an
+                     empty list, which the backend would read as "nothing
+                     open" and quietly close the day. --}}
                 selectedSlots: [...@json($timeSlots)],
 
                 schedule: @json($schedule),
@@ -1365,16 +1174,6 @@
                 },
 
                 /* =====================================================
-                   DAY SIZE
-                   How many of a day's appointments are the day's slots.
-                   This is not read off the office's clock hours — those
-                   decide the buckets students are booked into — it is
-                   how full one day is allowed to get before the rest
-                   are marked as coming after it.
-                ===================================================== */
-                slotsPerDay: @json($slotsPerDay),
-
-                /* =====================================================
                    ROSTER
                    The day's bookings in the order they arrived. The
                    list numbers these instead of the office's clock
@@ -1401,29 +1200,6 @@
                 settingsUrl: '{{ route('registrar.availability.settings', ['date' => ':date']) }}',
 
                 saveUrl: '{{ route('registrar.availability.save') }}',
-
-
-                /* =====================================================
-                   PREVIEW
-                ===================================================== */
-                openPreview() {
-
-                    if (this.availabilityType === 'closed') {
-                        return 0;
-                    }
-
-                    // How many of the day's slots are still unfilled: a day
-                    // holds slotsPerDay people, the ones already booked have
-                    // taken their place, and the rest of the day is open. A
-                    // partly open day — set from a workspace — holds fewer
-                    // slots than the full day, so only its open slots count.
-                    const open = this.availabilityType === 'slots'
-                        ? Math.min(this.selectedSlots.length, this.slotsPerDay)
-                        : this.slotsPerDay;
-
-                    return Math.max(0, open - this.rosterCount);
-
-                },
 
 
                 /* =====================================================

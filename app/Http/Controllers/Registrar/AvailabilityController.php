@@ -51,7 +51,6 @@ class AvailabilityController extends Controller
         return view('registrar.availability', [
             'office' => Office::where('name', $this->officeKey())->first(),
             'timeSlots' => TimeSlots::forOffice($this->officeKey()),
-            'slotsPerDay' => Appointment::SLOTS_PER_DAY,
             'month' => $month,
             'schedule' => $this->buildSchedule($month),
             'rosterByDate' => $this->rosterByDate(),
