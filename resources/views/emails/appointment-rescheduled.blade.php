@@ -22,9 +22,9 @@
         @include('emails.partials.row', ['label' => 'Student Name', 'value' => $appointment->user->name])
         @include('emails.partials.row', ['label' => 'Reference Number', 'value' => $appointment->reference_code])
         @include('emails.partials.row', ['label' => 'Office', 'value' => $appointment->office])
-        @include('emails.partials.row', ['label' => 'Previous Schedule', 'value' => $oldSchedule ?? ($appointment->original_date?->format('F j, Y') . ' · ' . ($appointment->original_time_slot ?? '-'))])
+        @include('emails.partials.row', ['label' => 'Previous Schedule', 'value' => $oldSchedule ?? $appointment->original_date?->format('F j, Y')])
         @include('emails.partials.row', ['label' => 'New Date', 'value' => $appointment->date->format('F j, Y (D)')])
-        @include('emails.partials.row', ['label' => 'New Time Slot', 'value' => $appointment->time_slot])
+        @include('emails.partials.row', ['label' => 'New Time', 'value' => 'To be set by the office'])
         @if ($appointment->reschedule_reason)
             @include('emails.partials.row', ['label' => 'Reason', 'value' => $appointment->reschedule_reason])
         @endif

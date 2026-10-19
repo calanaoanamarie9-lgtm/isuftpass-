@@ -10,9 +10,7 @@ class AppointmentRescheduledNotification extends Notification
 {
     use Queueable;
 
-    public function __construct(public Appointment $appointment)
-    {
-    }
+    public function __construct(public Appointment $appointment) {}
 
     public function via(object $notifiable): array
     {
@@ -23,7 +21,7 @@ class AppointmentRescheduledNotification extends Notification
     {
         return [
             'title' => 'Appointment Rescheduled',
-            'message' => 'Your ' . $this->appointment->office . ' appointment has been moved to ' . $this->appointment->date->format('F j, Y') . ' at ' . $this->appointment->time_slot . '. Reason: ' . $this->appointment->reschedule_reason . '.',
+            'message' => 'Your '.$this->appointment->office.' appointment has been moved to '.$this->appointment->date->format('F j, Y').'. The time will be set once it is re-approved. Reason: '.$this->appointment->reschedule_reason.'.',
             'url' => route('student.appointments.index'),
         ];
     }

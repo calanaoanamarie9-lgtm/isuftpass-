@@ -93,10 +93,10 @@ class QrCheckInController extends Controller
             ->whereDate('date', now()->toDateString());
 
         return $today()
-                ->whereIn('status', [...self::CHECKABLE, AppointmentStatus::CHECKED_IN->value])
-                ->orderBy('time_slot')
-                ->first()
-            ?? $today()->orderBy('time_slot')->first();
+            ->whereIn('status', [...self::CHECKABLE, AppointmentStatus::CHECKED_IN->value])
+            ->firstComeFirstServed()
+            ->first()
+            ?? $today()->firstComeFirstServed()->first();
     }
 
     private function checkInAppointment(Appointment $appointment, string $office): JsonResponse
@@ -124,7 +124,7 @@ class QrCheckInController extends Controller
             return $this->answered(
                 $appointment,
                 checkedIn: false,
-                message: 'Cannot check in — this visit is ' . $appointment->statusLabel() . '.',
+                message: 'Cannot check in — this visit is '.$appointment->statusLabel().'.',
             );
         }
 
@@ -166,7 +166,7 @@ class QrCheckInController extends Controller
             'studentId' => $appointment->user->studentProfile?->student_id,
             'purpose' => $appointment->purpose,
             'office' => $appointment->office,
-            'schedule' => $appointment->date->format('M d, Y') . ' · ' . $appointment->timeToCome(),
+            'schedule' => $appointment->date->format('M d, Y').' · '.$appointment->timeToCome(),
             'status' => $appointment->statusLabel(),
             'checkedInAt' => $appointment->checked_in_at?->format('g:i A'),
             'checkIns' => CheckInList::today(auth()->user()->officeScope()),

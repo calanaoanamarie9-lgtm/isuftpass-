@@ -7,7 +7,6 @@ use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementContro
 use App\Http\Controllers\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Admin\ConfigController;
 use App\Http\Controllers\Admin\DepartmentController;
-use App\Http\Controllers\Admin\SlotCapacityController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Cashier\LedgerController;
 use App\Http\Controllers\Cashier\PaymentController as CashierPaymentController;
@@ -378,8 +377,6 @@ Route::middleware(['auth', 'verified', 'role:student'])->prefix('student')->name
     // 2. Appointment Booking
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
     Route::get('/appointments/create', [AppointmentController::class, 'create'])->name('appointments.create');
-    Route::get('/appointments/slots', [AppointmentController::class, 'slots'])->name('appointments.slots');
-    Route::get('/appointments/availability', [AppointmentController::class, 'availability'])->name('appointments.availability');
     Route::post('/appointments', [AppointmentController::class, 'store'])->name('appointments.store');
     Route::get('/appointments/{appointment}/qr', [AppointmentController::class, 'qr'])->name('appointments.qr');
     Route::get('/appointments/{appointment}/qr/download', [AppointmentController::class, 'downloadQr'])->name('appointments.qr.download');
@@ -427,19 +424,11 @@ Route::middleware(['auth', 'verified', 'role:student'])->prefix('student')->name
 
 Route::middleware(['auth', 'verified', 'role:registrar,department'])->prefix('registrar')->name('registrar.')->group(function () {
 
-    // Appointment slot availability (calendar colors consumed by student/reschedule pages)
-    Route::get('/availability/month', [AvailabilityController::class, 'month'])->name('availability.month');
-
-    // Availability Management (configure open days / time slots)
-    Route::get('/availability/schedule', [AvailabilityController::class, 'schedule'])->name('availability.schedule');
-    Route::get('/availability/settings/{date}', [AvailabilityController::class, 'settings'])
-        ->where('date', '[0-9]{4}-[0-9]{2}-[0-9]{2}')->name('availability.settings');
-    Route::post('/availability/save', [AvailabilityController::class, 'save'])->name('availability.save');
+    // Availability Management (the office's hours)
     Route::post('/availability/hours', [AvailabilityController::class, 'saveHours'])->name('availability.hours');
     Route::get('/availability', [AvailabilityController::class, 'index'])->name('availability.index');
 
-    // Appointments Management (slot availability checker + rescheduling)
-    Route::get('/appointments/slots', [RegistrarAppointmentController::class, 'slots'])->name('appointments.slots');
+    // Appointments Management (rescheduling)
     Route::get('/appointments/print', [RegistrarAppointmentController::class, 'printAll'])->name('appointments.print');
     Route::get('/appointments', [RegistrarAppointmentController::class, 'index'])->name('appointments.index');
     Route::get('/appointments/{appointment}', [RegistrarAppointmentController::class, 'show'])->name('appointments.show');
@@ -496,12 +485,6 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::post('/offices', [DepartmentController::class, 'store'])->name('offices.store');
     Route::put('/offices/{office}', [DepartmentController::class, 'update'])->name('offices.update');
     Route::delete('/offices/{office}', [DepartmentController::class, 'destroy'])->name('offices.destroy');
-
-    // Slot Availability & Capacity Management (daily per-slot limits + blocks)
-    Route::get('/slot-availabilities', [SlotCapacityController::class, 'index'])->name('slots.index');
-    Route::post('/slot-availabilities', [SlotCapacityController::class, 'store'])->name('slots.store');
-    Route::put('/offices/{office}/capacity', [SlotCapacityController::class, 'updateCapacity'])->name('slots.capacity');
-    Route::delete('/slot-availabilities/{slotAvailability}', [SlotCapacityController::class, 'destroy'])->name('slots.destroy');
 
     // System Configuration (global settings, academic terms, banners)
     Route::get('/settings', [ConfigController::class, 'index'])->name('settings.index');
@@ -567,23 +550,10 @@ $workspaceRoutes = function (): void {
     Route::post('/qr/check-in', [QrCheckInController::class, 'checkIn'])
         ->name('qr.check-in');
 
-    Route::post('/availability/save', [AvailabilityController::class, 'save'])
-        ->name('availability.save');
-
-    // The office's own opening and closing time — the slot list of the whole
-    // system is built from these two values.
+    // The office's own opening and closing time — an approval may only name
+    // a time inside these hours.
     Route::post('/availability/hours', [AvailabilityController::class, 'saveHours'])
         ->name('availability.hours');
-
-    Route::get('/availability/schedule', [AvailabilityController::class, 'schedule'])
-        ->name('availability.schedule');
-
-    Route::get('/availability/settings/{date}', [AvailabilityController::class, 'settings'])
-        ->where('date', '[0-9]{4}-[0-9]{2}-[0-9]{2}')
-        ->name('availability.settings');
-
-    Route::get('/appointments/slots', [RegistrarAppointmentController::class, 'slots'])
-        ->name('appointments.slots');
 
     Route::put('/appointments/{appointment}/reschedule', [RegistrarAppointmentController::class, 'updateReschedule'])
         ->name('appointments.reschedule.update');

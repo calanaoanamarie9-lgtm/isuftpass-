@@ -30,15 +30,17 @@ class ProfilePageTest extends TestCase
         $response->assertSee('Profile Information');
     }
 
-    public function test_appointment_booking_page_renders_slot_dropdown(): void
+    public function test_appointment_booking_page_renders_without_a_slot_dropdown(): void
     {
         $user = User::factory()->create(['role' => 'student']);
 
+        // A booking is a date now — the office sets the time on approval,
+        // so the old "Available Time Slots" picker is gone.
         $this->actingAs($user)
             ->get('/student/appointments/create')
             ->assertOk()
-            ->assertSee('Available Time Slots')
-            ->assertSee('Select an office and date first');
+            ->assertDontSee('Available Time Slots')
+            ->assertDontSee('Select an office and date first');
     }
 
     public function test_my_appointments_page_renders(): void

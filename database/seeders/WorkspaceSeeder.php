@@ -7,7 +7,6 @@ use App\Enums\Office as OfficeEnum;
 use App\Models\Appointment;
 use App\Models\Office;
 use App\Models\User;
-use App\Support\TimeSlots;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -81,7 +80,6 @@ class WorkspaceSeeder extends Seeder
                 'hours' => $details['hours'] ?? null,
                 'description' => $details['description'] ?? null,
                 'is_active' => true,
-                'default_slot_capacity' => 8,
             ]);
 
             $created++;
@@ -116,9 +114,8 @@ class WorkspaceSeeder extends Seeder
                 continue;
             }
 
-            // Demo bookings must land in slots that office actually offers.
-            $slots = TimeSlots::forOffice($office);
-
+            // Demo bookings land on a day; the office sets the arrival
+            // window when it approves.
             for ($i = 0; $i < $shortfall; $i++) {
                 $student = $students[$studentIndex++ % $students->count()];
 
@@ -136,7 +133,6 @@ class WorkspaceSeeder extends Seeder
                     'office' => $office,
                     'purpose' => $purposes[$i % count($purposes)],
                     'date' => now()->addDays($offset)->toDateString(),
-                    'time_slot' => $slots[array_rand($slots)],
                     'status' => $status,
                 ]);
 

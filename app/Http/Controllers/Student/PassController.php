@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Support\QrUrl;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Support\Facades\Auth;
@@ -26,18 +27,18 @@ class PassController extends Controller
             ->get()
             ->map(fn ($request) => $request->setAttribute(
                 'qr_data_uri',
-                $this->makeQr(\App\Support\QrUrl::to('/verify/document/' . $request->claim_token))
+                $this->makeQr(QrUrl::to('/verify/document/'.$request->claim_token))
             ));
 
         // One scannable QR per upcoming appointment.
         $appointments = $user->appointments()
             ->upcoming()
             ->orderBy('date')
-            ->orderBy('time_slot')
+            ->firstComeFirstServed()
             ->get()
             ->map(fn ($appointment) => $appointment->setAttribute(
                 'qr_data_uri',
-                $this->makeQr(\App\Support\QrUrl::to('/verify/appointment/' . $appointment->qr_token))
+                $this->makeQr(QrUrl::to('/verify/appointment/'.$appointment->qr_token))
             ));
 
         return view('student.pass', [
@@ -51,6 +52,6 @@ class PassController extends Controller
 
     private function makeQr(string $payload): string
     {
-        return (new SvgWriter())->write(new QrCode($payload))->getDataUri();
+        return (new SvgWriter)->write(new QrCode($payload))->getDataUri();
     }
 }

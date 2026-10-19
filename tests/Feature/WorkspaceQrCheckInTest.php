@@ -42,7 +42,6 @@ class WorkspaceQrCheckInTest extends TestCase
             'office' => $office,
             'purpose' => 'Certification of grades',
             'date' => now()->toDateString(),
-            'time_slot' => Appointment::TIME_SLOTS[0],
             'status' => AppointmentStatus::CONFIRMED->value,
         ], $overrides));
     }

@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\ConsultationService;
 use App\Support\CheckInList;
-use App\Support\TimeSlots;
 use App\Support\WorkspaceDashboard;
 use Illuminate\View\View;
 
@@ -40,11 +39,8 @@ class CiciController extends Controller
         $user = auth()->user();
         $office = $user->officeScope();
 
-        $timeSlots = TimeSlots::forOffice($office);
-
         return view('departments.CICI.availability', [
             'office' => $office,
-            'timeSlots' => $timeSlots,
         ]);
     }
 

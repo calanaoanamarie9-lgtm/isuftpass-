@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\ConsultationService;
 use App\Support\CheckInList;
-use App\Support\TimeSlots;
 use App\Support\WorkspaceDashboard;
 use Illuminate\View\View;
 
@@ -32,7 +31,6 @@ class LibraryController extends Controller
     {
         return view('Offices.Library.availability', [
             'office' => 'Library',
-            'timeSlots' => TimeSlots::forOffice('Library'),
         ]);
     }
 
