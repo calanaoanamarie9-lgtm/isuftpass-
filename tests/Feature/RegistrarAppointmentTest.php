@@ -76,6 +76,36 @@ class RegistrarAppointmentTest extends TestCase
             ->assertSee($appointment->reference_code);
     }
 
+    /**
+     * The registrar moves a booking's window through Approve & schedule and
+     * its Edit link, not through a separate reschedule action - so neither
+     * the list nor the details page offers one, and neither loads the
+     * modal that opened it.
+     */
+    public function test_the_management_list_offers_no_reschedule_action(): void
+    {
+        [, $appointment] = $this->makeStudentWithAppointment();
+
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/appointments')
+            ->assertOk()
+            ->assertDontSee('open-reschedule')
+            ->assertDontSee('Reschedule Appointment')
+            ->assertDontSee('reschedule-modal');
+    }
+
+    public function test_the_details_page_offers_no_reschedule_action(): void
+    {
+        [, $appointment] = $this->makeStudentWithAppointment();
+
+        $this->actingAs($this->makeRegistrar())
+            ->get(route('registrar.appointments.show', $appointment))
+            ->assertOk()
+            ->assertDontSee('open-reschedule')
+            ->assertDontSee('Reschedule Appointment')
+            ->assertDontSee('reschedule-modal');
+    }
+
     public function test_the_details_page_no_longer_shows_the_current_schedule_panel(): void
     {
         [, $appointment] = $this->makeStudentWithAppointment();

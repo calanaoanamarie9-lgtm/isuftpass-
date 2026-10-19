@@ -810,7 +810,4 @@
     </div>
 
 
-    {{-- Existing Reschedule Modal --}}
-    @include('registrar.appointments.partials.reschedule-modal')
-
 </x-app-layout>
