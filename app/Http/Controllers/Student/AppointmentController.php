@@ -7,6 +7,7 @@ use App\Enums\Office;
 use App\Http\Controllers\Controller;
 use App\Mail\AppointmentBooked;
 use App\Models\Appointment;
+use App\Models\SlotAvailability;
 use App\Models\User;
 use App\Notifications\AppointmentBookedNotification;
 use App\Notifications\AppointmentCancelledNotification;
@@ -15,11 +16,14 @@ use App\Support\QrPassCard;
 use App\Support\QrUrl;
 use App\Support\RegistrarNotifier;
 use App\Support\SafeMailer;
+use App\Support\SlotAvailabilityService;
+use App\Support\TimeSlots;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,7 +40,7 @@ class AppointmentController extends Controller
             : 'upcoming';
 
         $appointments = Auth::user()->appointments()
-            ->when($tab === 'upcoming', fn ($q) => $q->upcoming()->orderBy('date')->orderBy('created_at'))
+            ->when($tab === 'upcoming', fn ($q) => $q->upcoming()->orderBy('date')->orderBy('time_slot'))
             ->when($tab === 'completed', fn ($q) => $q->where('status', AppointmentStatus::COMPLETED->value)->latest())
             ->when($tab === 'cancelled', fn ($q) => $q->where('status', AppointmentStatus::CANCELLED->value)->latest())
             ->paginate(10)
@@ -121,6 +125,7 @@ class AppointmentController extends Controller
 
         return view('student.appointments.create', [
             'offices' => $offices,
+            'slotLimits' => Appointment::SLOT_LIMITS,
             'purposes' => AppointmentPurposes::toSelectMap(array_keys($offices)),
 
             // Role-specific requester details (parent's child, guest's ID).
@@ -130,6 +135,33 @@ class AppointmentController extends Controller
             // catalogue: ?office=Accounting&purpose=Payment Concerns
             'preselect' => $request->only(['office', 'purpose']),
         ]);
+    }
+
+    /**
+     * JSON endpoint: remaining seats per time slot for an office + date,
+     * driven by the slot availability & capacity rules.
+     */
+    public function slots(Request $request)
+    {
+        $data = $request->validate([
+            'office' => ['required', 'in:'.implode(',', Office::toSelectKeys())],
+            'date' => ['required', 'date', 'after_or_equal:today'],
+        ]);
+
+        return response()->json(Appointment::availableSlots($data['office'], $data['date']));
+    }
+
+    /**
+     * JSON endpoint: per-day availability map for a month (calendar coloring).
+     */
+    public function availability(Request $request)
+    {
+        $data = $request->validate([
+            'office' => ['required', 'in:'.implode(',', Office::toSelectKeys())],
+            'month' => ['required', 'date_format:Y-m'],
+        ]);
+
+        return response()->json(app(SlotAvailabilityService::class)->monthOverview($data['office'], $data['month']));
     }
 
     public function store(Request $request): RedirectResponse
@@ -147,6 +179,11 @@ class AppointmentController extends Controller
             // still demands text: see resolvePurpose().
             'purpose_other' => ['required_if:purpose,'.AppointmentPurposes::OTHER, 'nullable', 'string', 'max:255'],
             'date' => ['required', 'date', 'after_or_equal:today'],
+            'time_slot' => [
+                'nullable',
+                Rule::requiredIf(! Office::setsTimeOnApproval($office)),
+                'in:'.implode(',', TimeSlots::forOffice($office)),
+            ],
             'notes' => ['nullable', 'string', 'max:1000'],
         ] + $this->requesterRules($user), [
             'purpose_other.required_if' => 'Please specify your purpose.',
@@ -165,34 +202,64 @@ class AppointmentController extends Controller
         $data = array_diff_key($data, $extras);
         $this->persistRequesterDetails($user, $extras);
 
+        // The Registrar asks for a date alone — it answers with the time when
+        // it approves, so there is no requested slot to weigh for capacity.
+        $timeSlot = $data['time_slot'] ?? null;
+
+        $check = $timeSlot === null
+            ? null
+            : app(SlotAvailabilityService::class)->checkForOffice($data['office'], $data['date'], $timeSlot);
+
+        if ($check && $check['status'] === SlotAvailability::STATUS_BLOCKED) {
+            abort(422, 'The selected time slot is closed for booking. Choose another schedule.');
+        }
+
         $this->ensureNoDuplicateBooking($data);
 
-        // A booking names a day; the office answers with the window it wants
-        // the student there when it approves.
+        // Beyond-capacity bookings are accepted but flagged For Reschedule.
+        $overflow = $check !== null && ! $check['available'];
+
         $appointment = Auth::user()->appointments()->create([
             ...$data,
-            'status' => AppointmentStatus::PENDING->value,
+            'time_slot' => $timeSlot,
+            'status' => $overflow
+                ? AppointmentStatus::FOR_RESCHEDULE->value
+                : AppointmentStatus::PENDING->value,
+            'reschedule_reason' => $overflow ? 'Schedule capacity has been reached.' : null,
         ]);
 
         SafeMailer::send($appointment->user, new AppointmentBooked($appointment));
         $appointment->user->notify(new AppointmentBookedNotification($appointment));
 
         // The registrar owns the appointment pipeline: a new booking is
-        // their cue to confirm.
+        // their cue to confirm — or to move it when the slot overflowed.
         RegistrarNotifier::appointment(
             $appointment,
-            'New appointment booked',
-            sprintf(
-                '%s booked with %s on %s. It is waiting for your confirmation.',
-                $appointment->user->name,
-                $appointment->office,
-                $appointment->date->format('M j, Y'),
-            )
+            $overflow ? 'Appointment needs rescheduling' : 'New appointment booked',
+            $overflow
+                ? sprintf(
+                    "%s's booking with %s on %s could not fit the chosen slot and needs rescheduling.",
+                    $appointment->user->name,
+                    $appointment->office,
+                    $appointment->date->format('M j, Y'),
+                )
+                : sprintf(
+                    '%s booked with %s on %s at %s. It is waiting for your confirmation.',
+                    $appointment->user->name,
+                    $appointment->office,
+                    $appointment->date->format('M j, Y'),
+                    $appointment->timeToCome(),
+                )
         );
 
         return redirect()
             ->route('student.appointments.index')
-            ->with('status', 'Appointment booked. A confirmation email has been sent.');
+            ->with(
+                'status',
+                $overflow
+                    ? 'The chosen slot is full. Your appointment was recorded as For Reschedule — the Registrar will move it to the next available slot.'
+                    : 'Appointment booked. A confirmation email has been sent.'
+            );
     }
 
     /**
@@ -217,7 +284,7 @@ class AppointmentController extends Controller
     }
 
     /**
-     * Reschedule (change date), keeping the same office and purpose.
+     * Reschedule (change date / time slot), keeping the same office and purpose.
      */
     public function reschedule(Request $request, Appointment $appointment): RedirectResponse
     {
@@ -229,19 +296,36 @@ class AppointmentController extends Controller
 
         $data = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today'],
+            'time_slot' => [
+                'nullable',
+                Rule::requiredIf(! Office::setsTimeOnApproval($appointment->office)),
+                'in:'.implode(',', TimeSlots::forOffice($appointment->office)),
+            ],
         ]);
+
+        $timeSlot = $data['time_slot'] ?? null;
+
+        if ($timeSlot !== null) {
+            $this->ensureSlotAvailable($appointment->office, $data['date'], $timeSlot, $appointment->id);
+        }
 
         $appointment->update([
             'date' => $data['date'],
+            'time_slot' => $timeSlot,
             'status' => AppointmentStatus::PENDING->value,
-            // The old window is void — a moved booking waits for a new answer.
             'confirmed_time' => null,
             'confirmed_at' => null,
-            'start_time' => null,
-            'end_time' => null,
         ]);
 
         return back()->with('status', 'Appointment rescheduled. Wait for re-confirmation.');
+    }
+
+    /**
+     * Reject when the office/time slot is blocked or already fully booked.
+     */
+    protected function ensureSlotAvailable(string $office, string $date, string $timeSlot, ?int $ignoreId = null): void
+    {
+        app(SlotAvailabilityService::class)->assertBookable($office, $date, $timeSlot, $ignoreId);
     }
 
     /**
@@ -297,6 +381,7 @@ class AppointmentController extends Controller
         return view('student.appointments.create', [
             'appointment' => $appointment,
             'offices' => $offices,
+            'slotLimits' => Appointment::SLOT_LIMITS,
             'purposes' => AppointmentPurposes::toSelectMap(array_keys($offices)),
             'requester' => $user,
         ]);
@@ -313,6 +398,8 @@ class AppointmentController extends Controller
             return back()->with('error', 'This appointment can no longer be edited once the office has approved it.');
         }
 
+        $office = (string) $request->input('office');
+
         $data = $request->validate([
             'office' => ['required', 'in:'.implode(',', Office::toSelectKeys())],
             'purpose' => ['required', 'string', 'max:255'],
@@ -321,6 +408,11 @@ class AppointmentController extends Controller
             // still demands text when "Other" is chosen.
             'purpose_other' => ['required_if:purpose,'.AppointmentPurposes::OTHER, 'nullable', 'string', 'max:255'],
             'date' => ['required', 'date', 'after_or_equal:today'],
+            'time_slot' => [
+                'nullable',
+                Rule::requiredIf(! Office::setsTimeOnApproval($office)),
+                'in:'.implode(',', TimeSlots::forOffice($office)),
+            ],
             'notes' => ['nullable', 'string', 'max:1000'],
         ], [
             'purpose_other.required_if' => 'Please specify your purpose.',
@@ -336,22 +428,28 @@ class AppointmentController extends Controller
         $data['purpose'] = $this->resolvePurpose($data);
         unset($data['purpose_other']);
 
-        $scheduleChanged = $appointment->date->toDateString() !== $data['date'];
+        $timeSlot = $data['time_slot'] ?? null;
+
+        $scheduleChanged = $appointment->date->toDateString() !== $data['date']
+            || $appointment->time_slot !== $timeSlot;
         $officeChanged = $appointment->office !== $data['office'];
+
+        if ($scheduleChanged && $timeSlot !== null) {
+            $this->ensureSlotAvailable($data['office'], $data['date'], $timeSlot, $appointment->id);
+        }
 
         if ($officeChanged || $scheduleChanged) {
             $this->ensureNoDuplicateBooking($data, $appointment->id);
         }
 
         $appointment->fill($data);
+        $appointment->time_slot = $timeSlot;
 
         // A changed schedule requires re-confirmation.
         if ($scheduleChanged) {
             $appointment->status = AppointmentStatus::PENDING->value;
             $appointment->confirmed_time = null;
             $appointment->confirmed_at = null;
-            $appointment->start_time = null;
-            $appointment->end_time = null;
         }
 
         $appointment->save();

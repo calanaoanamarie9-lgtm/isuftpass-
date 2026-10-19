@@ -855,6 +855,7 @@
                                             reference: @js($appointment->reference_code),
                                             office: @js($appointment->office),
                                             dateLabel: @js($appointment->date->format('F j, Y')),
+                                            timeSlot: @js($appointment->timeToCome()),
                                             reason: @js($appointment->reschedule_reason)
                                         })"
 

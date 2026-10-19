@@ -14,10 +14,13 @@ use App\Notifications\AppointmentCancelledNotification;
 use App\Notifications\AppointmentRescheduledNotification;
 use App\Support\AuditLogger;
 use App\Support\SafeMailer;
+use App\Support\TimeSlots;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AppointmentController extends Controller
@@ -101,8 +104,29 @@ class AppointmentController extends Controller
     }
 
     /**
-     * Registrar-triggered reschedule: pick a new date.
-     * The system records the original date and emails the student.
+     * Availability checker (JSON): open time intervals for an office + date.
+     * Excludes the appointment being rescheduled from the count.
+     */
+    public function slots(Request $request)
+    {
+        $data = $request->validate([
+            'office' => ['required', Rule::in(Office::toSelectKeys())],
+            'date' => ['required', 'date', 'after_or_equal:today'],
+            'ignore_id' => ['nullable', 'integer'],
+        ]);
+
+        // Every workspace now reaches this endpoint, so it no longer suffices
+        // that the caller is staff: only the registrar (and the System Admin)
+        // reads across offices. A department or office account may read
+        // capacity for its own office — enforced by the policy.
+        Gate::authorize('readOffice', [Appointment::class, $data['office']]);
+
+        return response()->json(Appointment::availableSlots($data['office'], $data['date'], $data['ignore_id'] ?? null));
+    }
+
+    /**
+     * Registrar-triggered reschedule: pick a new date and an open time slot.
+     * The system re-checks capacity, records the original date, and emails the student.
      */
     public function reschedule(Request $request, Appointment $appointment): View
     {
@@ -134,28 +158,37 @@ class AppointmentController extends Controller
 
         $data = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today'],
+            'time_slot' => ['required', Rule::in(TimeSlots::forOffice($appointment->office))],
             'reschedule_reason' => ['required', 'string', 'max:500'],
         ]);
 
+        $remaining = Appointment::remainingSlots($appointment->office, $data['date'], $data['time_slot'], $appointment->id);
+
+        if ($remaining < 1) {
+            throw ValidationException::withMessages([
+                'time_slot' => 'The selected time slot is fully booked. Pick another open slot.',
+            ]);
+        }
+
         $appointment->update([
             'original_date' => $appointment->original_date ?? $appointment->date,
+            'original_time_slot' => $appointment->original_time_slot ?? $appointment->time_slot,
             'date' => $data['date'],
+            'time_slot' => $data['time_slot'],
             'reschedule_reason' => $data['reschedule_reason'],
             'status' => AppointmentStatus::RESCHEDULED->value,
-            // The old window is void — a moved booking waits for a new answer.
-            'confirmed_time' => null,
             'confirmed_at' => null,
-            'start_time' => null,
-            'end_time' => null,
             'rescheduled_at' => now(),
         ]);
 
-        $oldSchedule = ($appointment->original_date ?? $appointment->date)->format('F j, Y');
+        $oldSchedule = ($appointment->original_date ?? $appointment->date)->format('F j, Y')
+            .' · '
+            .($appointment->original_time_slot ?? $appointment->time_slot);
 
         SafeMailer::send($appointment->user, new AppointmentRescheduled($appointment, $oldSchedule));
         $appointment->user->notify(new AppointmentRescheduledNotification($appointment));
 
-        AuditLogger::log('appointment.rescheduled', 'Rescheduled appointment '.$appointment->reference_code.' to '.$data['date'].'.');
+        AuditLogger::log('appointment.rescheduled', 'Rescheduled appointment '.$appointment->reference_code.' to '.$data['date'].' ('.$data['time_slot'].').');
 
         // The registrar works from the appointment record itself; each of the
         // eight workspaces has its own appointment list instead. Sending a
@@ -180,12 +213,12 @@ class AppointmentController extends Controller
     }
 
     /**
-     * Approve a pending / for-reschedule appointment.
+     * Approve a pending / for-reschedule appointment, guarding slot capacity.
      *
-     * A booking is a day with no hour attached; approving is the office
-     * answering with the window it actually wants the student there. The
-     * registrar picks that time here, and the student is told it by email
-     * and in the system — an approval they never hear about is not an approval.
+     * The student asked for a slot; approving is the office answering with the
+     * time it actually wants them there. The registrar picks that time here,
+     * and the student is told it by email and in the system — an approval they
+     * never hear about is not an approval.
      */
     public function confirm(ApproveScheduleRequest $request, Appointment $appointment): RedirectResponse
     {
@@ -217,6 +250,27 @@ class AppointmentController extends Controller
         $start = $data['start_time'] ?? $data['confirmed_time'];
         $end = $data['end_time'] ?? null;
         $date = $data['scheduled_date'] ?? $appointment->date->toDateString();
+        $alreadyApproved = $appointment->status === AppointmentStatus::CONFIRMED->value;
+
+        // Offices that set the time themselves (the Registrar) carry no
+        // requested slot, so there is no slot capacity to weigh here — the
+        // day's own queue handles that. An appointment answering itself never
+        // blocks its own edit, so it is left out of the count.
+        if ($appointment->time_slot !== null) {
+            $remaining = Appointment::remainingSlots(
+                $appointment->office,
+                $date,
+                $appointment->time_slot,
+                $alreadyApproved ? $appointment->id : null
+            );
+
+            if ($remaining < 1) {
+                return back()->with(
+                    'error',
+                    'The time slot is already at maximum capacity. Reschedule this appointment to an open slot first.'
+                );
+            }
+        }
 
         $appointment->update([
             'status' => AppointmentStatus::CONFIRMED->value,
@@ -231,9 +285,9 @@ class AppointmentController extends Controller
             'approved_by' => $request->user()?->id,
         ]);
 
-        // The student booked a date; this is the office telling them when to
-        // actually arrive. An edit sends it again — the time they were told
-        // about has moved.
+        // The student booked a date and a hoped-for slot; this is the office
+        // telling them when to actually arrive. An edit sends it again — the
+        // time they were told about has moved.
         SafeMailer::send($appointment->user, new AppointmentApproved($appointment));
         $appointment->user->notify(new AppointmentApprovedNotification($appointment));
 

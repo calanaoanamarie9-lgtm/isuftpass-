@@ -16,12 +16,35 @@
     // with seconds attached, so peel them back.
     $trim = fn ($time) => $time ? substr((string) $time, 0, 5) : null;
 
-    // Where the fields should start: the office's opening hour — unless this
-    // booking has already been answered, in which case show what was last
-    // sent. (A booking carries no requested slot any more: the student names
-    // a day, and this popover is the office naming the time.)
+    // Where the fields should start: the slot the student asked for when one
+    // exists, the office's opening hour otherwise — unless this booking has
+    // already been answered, in which case show what was last sent.
     $start = $hours['open'];
     $minutes = 60;
+
+    if ($appointment->time_slot) {
+        $parse = function (string $label): ?string {
+            if (! preg_match('/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i', trim($label), $m)) {
+                return null;
+            }
+
+            return sprintf('%02d:%02d', ((int) $m[1]) % 12 + (strtoupper($m[3]) === 'PM' ? 12 : 0), (int) $m[2]);
+        };
+
+        [$rawStart, $rawEnd] = array_pad(explode(' - ', (string) $appointment->time_slot, 2), 2, '');
+
+        $slotStart = $parse($rawStart);
+        $slotEnd = $parse($rawEnd);
+
+        if ($slotStart !== null) {
+            $start = $slotStart;
+        }
+
+        if ($slotEnd !== null && $slotStart !== null) {
+            $minutes = max(15, ((int) substr($slotEnd, 0, 2)) * 60 + (int) substr($slotEnd, 3, 2)
+                - ((int) substr($slotStart, 0, 2)) * 60 - (int) substr($slotStart, 3, 2));
+        }
+    }
 
     $plusMinutes = function (string $clock, int $minutes): string {
         $total = min(((int) substr($clock, 0, 2)) * 60 + (int) substr($clock, 3, 2) + $minutes, 23 * 60 + 59);

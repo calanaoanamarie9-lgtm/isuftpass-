@@ -6,10 +6,11 @@ use App\Enums\AppointmentStatus;
 use App\Mail\AppointmentApproved;
 use App\Mail\AppointmentRescheduled;
 use App\Models\Appointment;
+use App\Models\SlotAvailability;
 use App\Models\User;
 use App\Notifications\AppointmentApprovedNotification;
 use App\Notifications\AppointmentRescheduledNotification;
-use Carbon\Carbon;
+use App\Support\SlotAvailabilityService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
@@ -31,10 +32,22 @@ class RegistrarAppointmentTest extends TestCase
             'office' => 'Registrar',
             'purpose' => 'Certification',
             'date' => $date ?? now()->addDays(2)->toDateString(),
+            'time_slot' => '09:00 AM - 10:00 AM',
             'status' => $status,
         ]);
 
         return [$student, $appointment];
+    }
+
+    private function makeSlotRule(string $date, string $slot, int $capacity, string $status = 'available'): void
+    {
+        SlotAvailability::create([
+            'office_id' => app(SlotAvailabilityService::class)->officeIdFor('Registrar'),
+            'date' => $date,
+            'time_slot' => $slot,
+            'max_capacity' => $capacity,
+            'status' => $status,
+        ]);
     }
 
     public function test_reference_code_is_generated_on_create(): void
@@ -44,6 +57,7 @@ class RegistrarAppointmentTest extends TestCase
             'office' => 'Registrar',
             'purpose' => 'Certification',
             'date' => now()->addDays(2)->toDateString(),
+            'time_slot' => '09:00 AM - 10:00 AM',
             'status' => 'pending',
         ]);
 
@@ -94,6 +108,7 @@ class RegistrarAppointmentTest extends TestCase
             'office' => 'CICI',
             'purpose' => 'Academic Consultation',
             'date' => now()->addDays(2)->toDateString(),
+            'time_slot' => '10:00 AM - 11:00 AM',
             'status' => AppointmentStatus::PENDING->value,
         ]);
 
@@ -145,26 +160,27 @@ class RegistrarAppointmentTest extends TestCase
     {
         $registrar = $this->makeRegistrar();
 
-        $makeAppointment = function (User $user): Appointment {
+        $makeAppointment = function (User $user, string $slot): Appointment {
             return $user->appointments()->create([
                 'office' => 'Registrar',
                 'purpose' => 'Certification',
                 'date' => now()->addDays(2)->toDateString(),
+                'time_slot' => $slot,
                 'status' => AppointmentStatus::PENDING->value,
             ]);
         };
 
         // A plain student (registration_type is left null for them)...
         $student = User::factory()->create(['role' => 'student']);
-        $studentAppt = $makeAppointment($student);
+        $studentAppt = $makeAppointment($student, '09:00 AM - 10:00 AM');
 
         // ...an alumnus...
         $alumni = User::factory()->create(['role' => 'student', 'registration_type' => 'alumni']);
-        $alumniAppt = $makeAppointment($alumni);
+        $alumniAppt = $makeAppointment($alumni, '10:00 AM - 11:00 AM');
 
         // ...and a legacy "guardian" parent.
         $parent = User::factory()->create(['role' => 'student', 'registration_type' => 'guardian']);
-        $parentAppt = $makeAppointment($parent);
+        $parentAppt = $makeAppointment($parent, '11:00 AM - 12:00 PM');
 
         // Alumni filter shows only the alumnus.
         $this->actingAs($registrar)
@@ -206,11 +222,13 @@ class RegistrarAppointmentTest extends TestCase
 
         [$student, $appointment] = $this->makeStudentWithAppointment();
         $newDate = now()->addDays(5)->toDateString();
+        $newSlot = '02:00 PM - 03:00 PM';
 
         $this->actingAs($this->makeRegistrar())
             ->put('/registrar/appointments/'.$appointment->id.'/reschedule', [
                 'date' => $newDate,
-                'reschedule_reason' => 'The office cannot accommodate the requested day',
+                'time_slot' => $newSlot,
+                'reschedule_reason' => 'Daily limit reached for the day',
             ])
             ->assertRedirect(route('registrar.appointments.show', $appointment));
 
@@ -219,13 +237,8 @@ class RegistrarAppointmentTest extends TestCase
         $this->assertEquals(AppointmentStatus::RESCHEDULED->value, $appointment->status);
         $this->assertEquals(now()->addDays(2)->toDateString(), $appointment->original_date->toDateString());
         $this->assertEquals($newDate, $appointment->date->toDateString());
-        $this->assertEquals('The office cannot accommodate the requested day', $appointment->reschedule_reason);
-
-        // A moved booking waits for a fresh answer: the old window is void.
-        $this->assertNull($appointment->confirmed_time);
-        $this->assertNull($appointment->confirmed_at);
-        $this->assertNull($appointment->start_time);
-        $this->assertNull($appointment->end_time);
+        $this->assertEquals($newSlot, $appointment->time_slot);
+        $this->assertEquals('Daily limit reached for the day', $appointment->reschedule_reason);
 
         Mail::assertSent(AppointmentRescheduled::class, function ($mail) use ($student, $appointment) {
             return $mail->hasTo($student->email) && $mail->appointment->is($appointment);
@@ -233,6 +246,38 @@ class RegistrarAppointmentTest extends TestCase
 
         $this->assertCount(1, $student->notifications);
         $this->assertEquals(AppointmentRescheduledNotification::class, $student->notifications->first()->type);
+    }
+
+    public function test_reschedule_rejects_full_slot(): void
+    {
+        Mail::fake();
+
+        [, $appointment] = $this->makeStudentWithAppointment();
+
+        $fullDate = now()->addDays(5)->toDateString();
+        $slot = '09:00 AM - 10:00 AM';
+
+        for ($i = 0; $i < Appointment::SLOT_LIMITS['Registrar']; $i++) {
+            $other = User::factory()->create(['role' => 'student']);
+            $other->appointments()->create([
+                'office' => 'Registrar',
+                'purpose' => 'Enrollment',
+                'date' => $fullDate,
+                'time_slot' => $slot,
+                'status' => AppointmentStatus::CONFIRMED->value,
+            ]);
+        }
+
+        $this->actingAs($this->makeRegistrar())
+            ->put('/registrar/appointments/'.$appointment->id.'/reschedule', [
+                'date' => $fullDate,
+                'time_slot' => $slot,
+                'reschedule_reason' => 'Office closure',
+            ])
+            ->assertSessionHasErrors('time_slot');
+
+        Mail::assertNothingSent();
+        $this->assertEquals(AppointmentStatus::PENDING->value, $appointment->refresh()->status);
     }
 
     public function test_reschedule_requires_reason(): void
@@ -244,9 +289,118 @@ class RegistrarAppointmentTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->put('/registrar/appointments/'.$appointment->id.'/reschedule', [
                 'date' => now()->addDays(4)->toDateString(),
+                'time_slot' => '01:00 PM - 02:00 PM',
                 'reschedule_reason' => '',
             ])
             ->assertSessionHasErrors('reschedule_reason');
+    }
+
+    public function test_slots_endpoint_reports_remaining_seats(): void
+    {
+        [, $appointment] = $this->makeStudentWithAppointment();
+
+        $date = now()->addDays(3)->toDateString();
+
+        $response = $this->actingAs($this->makeRegistrar())
+            ->getJson('/registrar/appointments/slots?office=Registrar&date='.$date)
+            ->assertOk()
+            ->assertJsonCount(count(Appointment::TIME_SLOTS));
+
+        $response->assertJsonFragment([
+            'time' => '09:00 AM - 10:00 AM',
+            'remaining' => Appointment::SLOT_LIMITS['Registrar'],
+            'is_open' => true,
+        ]);
+    }
+
+    public function test_rescheduled_appointment_ignores_own_slot_when_checked(): void
+    {
+        [, $appointment] = $this->makeStudentWithAppointment(AppointmentStatus::RESCHEDULED->value);
+
+        $date = $appointment->date->toDateString();
+        $slot = $appointment->time_slot;
+
+        $remainingIgnoring = Appointment::remainingSlots('Registrar', $date, $slot, $appointment->id);
+        $remainingIncluding = Appointment::remainingSlots('Registrar', $date, $slot);
+
+        $this->assertGreaterThan($remainingIncluding, $remainingIgnoring);
+    }
+
+    public function test_booking_beyond_capacity_is_marked_for_reschedule(): void
+    {
+        Mail::fake();
+
+        $date = now()->addDays(3)->toDateString();
+        $slot = '09:00 AM - 10:00 AM';
+        $this->makeSlotRule($date, $slot, 2);
+
+        foreach ([1, 2] as $i) {
+            $other = User::factory()->create(['role' => 'student']);
+            $other->appointments()->create([
+                'office' => 'Registrar',
+                'purpose' => 'Enrollment',
+                'date' => $date,
+                'time_slot' => $slot,
+                'status' => AppointmentStatus::CONFIRMED->value,
+            ]);
+        }
+
+        $student = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($student)
+            ->post('/student/appointments', [
+                'office' => 'Registrar',
+                'purpose' => 'Certification',
+                'date' => $date,
+                'time_slot' => $slot,
+            ])
+            ->assertRedirect(route('student.appointments.index'));
+
+        $overflow = Appointment::where('user_id', $student->id)->first();
+
+        $this->assertNotNull($overflow);
+        $this->assertEquals(AppointmentStatus::FOR_RESCHEDULE->value, $overflow->status);
+        $this->assertEquals('Schedule capacity has been reached.', $overflow->reschedule_reason);
+
+        // Overflow bookings must not consume slot capacity.
+        $this->assertSame(0, Appointment::remainingSlots('Registrar', $date, $slot));
+    }
+
+    public function test_registrar_cannot_confirm_beyond_capacity(): void
+    {
+        Mail::fake();
+
+        $date = now()->addDays(3)->toDateString();
+        $slot = '09:00 AM - 10:00 AM';
+        $this->makeSlotRule($date, $slot, 2);
+
+        foreach ([1, 2] as $i) {
+            $other = User::factory()->create(['role' => 'student']);
+            $other->appointments()->create([
+                'office' => 'Registrar',
+                'purpose' => 'Enrollment',
+                'date' => $date,
+                'time_slot' => $slot,
+                'status' => AppointmentStatus::CONFIRMED->value,
+            ]);
+        }
+
+        [$student, $appointment] = $this->makeStudentWithAppointment(
+            AppointmentStatus::PENDING->value,
+            $date
+        );
+
+        // Force the same full slot for the pending appointment.
+        $appointment->update(['time_slot' => $slot]);
+
+        $this->actingAs($this->makeRegistrar())
+            ->post('/registrar/appointments/'.$appointment->id.'/confirm', [
+                'confirmed_time' => '09:00',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertEquals(AppointmentStatus::PENDING->value, $appointment->refresh()->status);
     }
 
     public function test_registrar_can_confirm_pending_appointment_and_sets_the_time_to_come(): void
@@ -268,8 +422,8 @@ class RegistrarAppointmentTest extends TestCase
         $this->assertEquals(AppointmentStatus::CONFIRMED->value, $appointment->status);
         $this->assertNotNull($appointment->confirmed_at);
 
-        // The office answers the booking with the time it wants the student
-        // there — a booking names a day, not an hour.
+        // The office answers the student's request with the time it wants
+        // them there — not the slot they asked for.
         $this->assertSame('2:30 PM', $appointment->confirmed_time);
         $this->assertSame('2:30 PM', $appointment->timeToCome());
 
@@ -355,6 +509,7 @@ class RegistrarAppointmentTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->put('/registrar/appointments/'.$appointment->id.'/reschedule', [
                 'date' => $newDate,
+                'time_slot' => '02:00 PM - 03:00 PM',
                 'reschedule_reason' => 'Office advisory',
             ])
             ->assertRedirect(route('registrar.appointments.show', $appointment));
@@ -362,12 +517,13 @@ class RegistrarAppointmentTest extends TestCase
         $appointment->refresh();
 
         $this->assertEquals($oldDate, $appointment->original_date->toDateString());
-        $this->assertEquals($newDate, $appointment->date->toDateString());
+        $this->assertEquals('09:00 AM - 10:00 AM', $appointment->original_time_slot);
+        $this->assertEquals('02:00 PM - 03:00 PM', $appointment->time_slot);
         $this->assertEquals('Office advisory', $appointment->reschedule_reason);
 
-        Mail::assertSent(AppointmentRescheduled::class, function ($mail) use ($student, $oldDate) {
+        Mail::assertSent(AppointmentRescheduled::class, function ($mail) use ($student) {
             return $mail->hasTo($student->email)
-                && str_contains($mail->oldSchedule, Carbon::parse($oldDate)->format('F j, Y'));
+                && str_contains($mail->oldSchedule, '09:00 AM - 10:00 AM');
         });
     }
 }

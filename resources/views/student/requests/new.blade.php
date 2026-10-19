@@ -251,7 +251,8 @@
                                   text-gray-500">
 
                             Schedule a visit with a school office or
-                            department based on the available dates.
+                            department based on available dates and
+                            time slots.
 
                         </p>
 

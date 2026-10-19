@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\Office;
+use App\Models\Appointment;
+use App\Models\SlotAvailability;
 use App\Models\User;
+use App\Support\SlotAvailabilityService;
+use App\Support\TimeSlots;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,28 +19,304 @@ class RegistrarAvailabilityTest extends TestCase
         return User::factory()->create(['role' => 'registrar']);
     }
 
-    private function makeRegistrarOffice(string $open = '08:00', string $close = '17:00'): Office
+    private function futureDate(int $days = 3): string
     {
-        // The migration already seeds a Registrar row (offices.name is unique),
-        // so update it rather than insert a duplicate.
-        return Office::updateOrCreate(
-            ['name' => 'Registrar'],
-            ['open_time' => $open, 'close_time' => $close, 'is_active' => true]
-        );
+        return now()->addDays($days)->toDateString();
     }
 
-    public function test_registrar_can_view_the_office_hours_page(): void
+    public function test_registrar_can_view_availability_page(): void
     {
         $this->actingAs($this->makeRegistrar())
             ->get('/registrar/availability')
             ->assertOk()
-            ->assertSee('Office Hours')
-            ->assertSee('Opens')
-            ->assertSee('Closes')
-            ->assertSee('Save Office Hours');
+            ->assertSee('Availability Schedule')
+            // The calendar card carries the schedule's own name rather than
+            // the old "Calendar Management" label.
+            ->assertDontSee('Calendar Management')
+            ->assertSee('Set Availability')
+            ->assertSee(Appointment::TIME_SLOTS[0]);
     }
 
-    public function test_student_cannot_access_the_office_hours_page(): void
+    /**
+     * The registrar picks which of the office's own slots a date opens —
+     * one tick each, straight off the list. The typed From / To window and
+     * the office's slot-times editor both live on the nine workspace pages;
+     * this page carries neither.
+     */
+    public function test_the_registrar_page_offers_a_slots_picker_not_the_editors(): void
+    {
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability')
+            ->assertOk()
+            ->assertSee('Open Entire Day')
+            ->assertSee('Close Entire Day')
+            ->assertSee('Specific Slots')
+            // The picker is the office's own list, one tick per slot.
+            ->assertSee('Open Slots')
+            ->assertSee('x-model="selectedSlots"', false)
+            // The typed From / To window is not here.
+            ->assertDontSee('Specific Time Range')
+            ->assertDontSee('Type the hours to open')
+            ->assertDontSee('x-model="rangeFrom"', false)
+            ->assertDontSee('x-model="rangeTo"', false)
+            ->assertDontSee('Select range')
+            // And neither is the office's slot-times editor.
+            ->assertDontSee('Slot Times')
+            ->assertDontSee('Back to hourly')
+            ->assertDontSee('Add Slot')
+            ->getContent();
+
+        // Every slot offered is the office's own, in the office's own order.
+        foreach (TimeSlots::forOffice('Registrar') as $slot) {
+            $this->assertStringContainsString('value="'.$slot.'"', $html);
+        }
+    }
+
+    /**
+     * Book a student into the Registrar on a given date, under a name of our
+     * choosing when the test cares who is on the list and in what order.
+     */
+    private function bookRegistrar(
+        string $date,
+        string $status = 'pending',
+        ?string $name = null,
+    ): void {
+        User::factory()->create(array_filter([
+            'role' => 'student',
+            'name' => $name,
+        ]))
+            ->appointments()
+            ->create([
+                'office' => 'Registrar',
+                'purpose' => 'Certification',
+                'date' => $date,
+                'time_slot' => '09:00 AM - 10:00 AM',
+                'status' => $status,
+            ]);
+    }
+
+    /**
+     * Pull the day's rosters back out of the page. They arrive as JSON inside
+     * the Alpine component rather than as rendered rows, so each row's payload
+     * has to be decoded before anything can be said about it.
+     *
+     * @return array<string, list<array{name: string, status: string, statusLabel: string, cancelled: bool, number: int|null}>>
+     */
+    private function rosterFrom(string $html): array
+    {
+        $this->assertMatchesRegularExpression(
+            '/rosterByDate:\s*\{/',
+            $html,
+            'The page must be handed the day rosters.'
+        );
+
+        $marker = 'rosterByDate: ';
+
+        $payload = substr($html, strpos($html, $marker) + strlen($marker));
+
+        // The payload holds objects of its own, so it has to be closed by
+        // counting braces rather than by stopping at the first one.
+        $depth = 0;
+        $end = null;
+        $inString = false;
+        $escaped = false;
+
+        for ($i = 0, $length = strlen($payload); $i < $length; $i++) {
+            $character = $payload[$i];
+
+            if ($escaped) {
+                $escaped = false;
+
+                continue;
+            }
+
+            if ($character === '\\') {
+                $escaped = true;
+
+                continue;
+            }
+
+            if ($character === '"') {
+                $inString = ! $inString;
+
+                continue;
+            }
+
+            if ($inString) {
+                continue;
+            }
+
+            if ($character === '{') {
+                $depth++;
+            }
+
+            if ($character === '}' && --$depth === 0) {
+                $end = $i;
+                break;
+            }
+        }
+
+        $this->assertNotNull($end, 'Could not find the roster payload.');
+
+        $roster = json_decode(substr($payload, 0, $end + 1), true);
+
+        $this->assertIsArray($roster, 'The roster payload must be valid JSON.');
+
+        return $roster;
+    }
+
+    public function test_the_list_numbers_the_days_appointments_rather_than_the_offices_times(): void
+    {
+        $date = $this->futureDate();
+
+        // Twelve people on one day. The list has to run 1..12 — past the ten
+        // that fill a day — because the registrar is reading how full the day
+        // is, not picking between clock times.
+        foreach (range(1, 12) as $ignored) {
+            $this->bookRegistrar($date);
+        }
+
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability')
+            ->assertOk()
+            ->getContent();
+
+        // The page is handed the day's people and draws one row per person,
+        // numbered by arrival position rather than printed with a clock time.
+        $roster = $this->rosterFrom($html);
+
+        $this->assertCount(
+            12,
+            $roster[$date] ?? [],
+            'Expected the date to carry its people to the page.'
+        );
+        $this->assertStringContainsString('x-for="(row, i) in roster"', $html);
+        $this->assertStringContainsString('x-text="row.number', $html);
+
+        // The numbers come off the list itself, in booking order.
+        $this->assertSame(
+            range(1, 12),
+            array_column($roster[$date] ?? [], 'number'),
+            'Rows must arrive already numbered by arrival position.'
+        );
+
+        // Booking is no longer capped at ten: every row keeps its arrival
+        // number, but nothing marks the eleventh person as "bukas na".
+        $this->assertStringNotContainsString('Bukas na', $html);
+
+        // The day's slots are picked per date off the office's own list —
+        // see test_the_registrar_page_offers_a_slots_picker_not_the_editors.
+    }
+
+    public function test_every_booking_is_shown_with_its_state_and_only_live_ones_take_a_number(): void
+    {
+        $date = $this->futureDate();
+
+        $this->bookRegistrar($date, 'pending', 'Ada Arrived First');
+        $this->bookRegistrar($date, 'cancelled', 'Cleo Walked Away');
+        $this->bookRegistrar($date, 'pending', 'Bea Arrived Second');
+        $this->bookRegistrar($date, 'confirmed', 'Dan Was Approved');
+
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability')
+            ->assertOk()
+            ->getContent();
+
+        $roster = $this->rosterFrom($html);
+        $rows = $roster[$date] ?? [];
+
+        $this->assertSame(
+            ['Ada Arrived First', 'Cleo Walked Away', 'Bea Arrived Second', 'Dan Was Approved'],
+            array_column($rows, 'name'),
+            'Everyone on the day is shown in arrival order — including the booking that was cancelled.'
+        );
+
+        $this->assertSame(
+            [1, null, 2, 3],
+            array_column($rows, 'number'),
+            'A cancelled booking takes no number; the rest keep the order they arrived in.'
+        );
+
+        $this->assertTrue(
+            $rows[1]['cancelled'] ?? null,
+            'The cancelled booking must be marked as cancelled.'
+        );
+
+        $this->assertSame(
+            ['Pending', 'Cancelled', 'Pending', 'Approved'],
+            array_column($rows, 'statusLabel'),
+            'The registrar must be able to see what is approved, what is still waiting, and what was cancelled.'
+        );
+
+        // And the row is drawn from that payload, badge and all.
+        $this->assertStringContainsString('x-text="row.statusLabel"', $html);
+        $this->assertStringContainsString('row.cancelled', $html);
+    }
+
+    public function test_the_roster_shows_the_time_the_office_told_each_student_to_come(): void
+    {
+        $date = $this->futureDate();
+
+        $this->bookRegistrar($date, 'pending', 'Ana Still Waiting');
+
+        // A booking the office has already answered.
+        $this->bookRegistrar($date, 'confirmed', 'Bea Was Approved');
+
+        Appointment::query()
+            ->whereHas('user', fn ($q) => $q->where('name', 'Bea Was Approved'))
+            ->update(['confirmed_time' => '2:30 PM']);
+
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability')
+            ->assertOk()
+            ->getContent();
+
+        $rows = $this->rosterFrom($html)[$date] ?? [];
+
+        $this->assertSame(
+            ['2:30 PM'],
+            array_values(array_filter(array_column($rows, 'time'))),
+            'The roster carries the time the office set for the student it approved.'
+        );
+
+        $this->assertStringContainsString('row.time', $html);
+    }
+
+    public function test_a_day_with_no_bookings_keeps_the_list_off_the_page(): void
+    {
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability')
+            ->assertOk()
+            ->getContent();
+
+        // Nothing to read once nobody has booked: the whole appointments
+        // panel is hidden, not shown with an empty placeholder.
+        $this->assertStringContainsString('x-show="roster.length > 0"', $html);
+        $this->assertStringNotContainsString('No appointments on this date yet.', $html);
+    }
+
+    public function test_the_days_size_is_its_own_number_not_the_offices_hours(): void
+    {
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability')
+            ->assertOk()
+            ->getContent();
+
+        // The registrar's day runs 08:00-16:00, so counting clock hours
+        // would report eight. The day's size is handed over as its own
+        // number instead, and both the list and the preview read off it —
+        // a typed time window can only shrink that number, never replace
+        // it with the hours on a clock.
+        $this->assertStringContainsString(
+            'slotsPerDay: '.Appointment::SLOTS_PER_DAY,
+            $html,
+            'The day must be sized by its slots, not by the hours the office keeps.'
+        );
+        $this->assertStringContainsString('this.slotsPerDay', $html);
+        $this->assertStringContainsString('open - this.rosterCount', $html);
+    }
+
+    public function test_student_cannot_access_availability_management(): void
     {
         $student = User::factory()->create(['role' => 'student']);
 
@@ -46,42 +325,218 @@ class RegistrarAvailabilityTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_saving_hours_updates_the_office_open_and_close_time(): void
+    public function test_save_open_day_makes_all_slots_available(): void
     {
-        $this->makeRegistrarOffice('08:00', '17:00');
+        $date = $this->futureDate();
 
         $this->actingAs($this->makeRegistrar())
-            ->postJson('/registrar/availability/hours', [
-                'open_time' => '09:00',
-                'close_time' => '18:00',
+            ->postJson('/registrar/availability/save', [
+                'date' => $date,
+                'type' => 'open',
             ])
             ->assertOk()
-            ->assertJsonStructure(['message']);
+            ->assertJsonPath('message', 'Registrar availability has been updated.');
 
-        $office = Office::where('name', 'Registrar')->first();
+        $rules = SlotAvailability::whereDate('date', $date)->get();
 
-        $this->assertSame('09:00', $office->open_time);
-        $this->assertSame('18:00', $office->close_time);
+        $this->assertCount(count(Appointment::TIME_SLOTS), $rules);
+        $this->assertTrue($rules->every(fn (SlotAvailability $rule) => $rule->status === 'available'));
+
+        $slots = Appointment::availableSlots('Registrar', $date);
+        $this->assertTrue(collect($slots)->every(fn (array $slot) => $slot['is_open']));
     }
 
-    public function test_closing_time_must_follow_the_opening_time(): void
+    public function test_save_closed_day_blocks_all_slots(): void
     {
-        $this->makeRegistrarOffice();
+        $date = $this->futureDate();
 
         $this->actingAs($this->makeRegistrar())
-            ->postJson('/registrar/availability/hours', [
-                'open_time' => '17:00',
-                'close_time' => '08:00',
+            ->postJson('/registrar/availability/save', [
+                'date' => $date,
+                'type' => 'closed',
             ])
-            ->assertJsonValidationErrors('close_time');
+            ->assertOk();
+
+        $slots = Appointment::availableSlots('Registrar', $date);
+        $this->assertTrue(collect($slots)->every(fn (array $slot) => ! $slot['is_open']));
     }
 
-    public function test_hours_require_both_bounds(): void
+    public function test_save_specific_slots_persists_selection(): void
     {
-        $this->makeRegistrarOffice();
+        $date = $this->futureDate();
+        $chosen = [Appointment::TIME_SLOTS[0], Appointment::TIME_SLOTS[2]];
 
         $this->actingAs($this->makeRegistrar())
-            ->postJson('/registrar/availability/hours', [])
-            ->assertJsonValidationErrors(['open_time', 'close_time']);
+            ->postJson('/registrar/availability/save', [
+                'date' => $date,
+                'type' => 'slots',
+                'slots' => $chosen,
+            ])
+            ->assertOk();
+
+        foreach ($chosen as $slot) {
+            $this->assertSame(
+                'available',
+                SlotAvailability::whereDate('date', $date)->where('time_slot', $slot)->value('status')
+            );
+        }
+
+        $blocked = collect(Appointment::TIME_SLOTS)->reject(fn (string $slot) => in_array($slot, $chosen, true));
+
+        foreach ($blocked as $slot) {
+            $this->assertSame(
+                'blocked',
+                SlotAvailability::whereDate('date', $date)->where('time_slot', $slot)->value('status')
+            );
+        }
+    }
+
+    public function test_save_rejects_past_dates(): void
+    {
+        $past = now()->subDay()->toDateString();
+
+        $this->actingAs($this->makeRegistrar())
+            ->postJson('/registrar/availability/save', [
+                'date' => $past,
+                'type' => 'open',
+            ])
+            ->assertJsonValidationErrors('date');
+    }
+
+    public function test_settings_returns_current_configuration(): void
+    {
+        $date = $this->futureDate();
+        $service = app(SlotAvailabilityService::class);
+        $officeId = $service->officeIdFor('Registrar');
+
+        foreach (Appointment::TIME_SLOTS as $index => $slot) {
+            SlotAvailability::create([
+                'office_id' => $officeId,
+                'date' => $date,
+                'time_slot' => $slot,
+                'max_capacity' => 5,
+                'status' => $index === 0 ? 'available' : 'blocked',
+            ]);
+        }
+
+        $this->actingAs($this->makeRegistrar())
+            ->getJson('/registrar/availability/settings/'.$date)
+            ->assertOk()
+            ->assertJsonPath('type', 'slots')
+            ->assertJsonPath('slots.0', Appointment::TIME_SLOTS[0]);
+    }
+
+    public function test_schedule_lists_configured_dates(): void
+    {
+        $date = $this->futureDate();
+        $service = app(SlotAvailabilityService::class);
+        $officeId = $service->officeIdFor('Registrar');
+
+        foreach (Appointment::TIME_SLOTS as $slot) {
+            SlotAvailability::create([
+                'office_id' => $officeId,
+                'date' => $date,
+                'time_slot' => $slot,
+                'max_capacity' => 5,
+                'status' => 'blocked',
+            ]);
+        }
+
+        $this->actingAs($this->makeRegistrar())
+            ->getJson('/registrar/availability/schedule?month='.substr($date, 0, 7))
+            ->assertOk()
+            ->assertJsonPath('schedule.0.id', $date)
+            ->assertJsonPath('schedule.0.type', 'closed');
+    }
+
+    public function test_the_calendar_reads_one_month_at_a_time(): void
+    {
+        $service = app(SlotAvailabilityService::class);
+        $officeId = $service->officeIdFor('Registrar');
+
+        foreach (['2026-03-15', '2026-04-15'] as $date) {
+            foreach (Appointment::TIME_SLOTS as $slot) {
+                SlotAvailability::create([
+                    'office_id' => $officeId,
+                    'date' => $date,
+                    'time_slot' => $slot,
+                    'max_capacity' => 5,
+                    'status' => 'blocked',
+                ]);
+            }
+        }
+
+        // A month is a page, not a running total: asking for March hands
+        // back March and nothing from April beside it.
+        $this->actingAs($this->makeRegistrar())
+            ->getJson('/registrar/availability/schedule?month=2026-03')
+            ->assertOk()
+            ->assertJsonCount(1, 'schedule')
+            ->assertJsonPath('schedule.0.id', '2026-03-15');
+
+        $this->actingAs($this->makeRegistrar())
+            ->getJson('/registrar/availability/schedule?month=2026-04')
+            ->assertOk()
+            ->assertJsonCount(1, 'schedule')
+            ->assertJsonPath('schedule.0.id', '2026-04-15');
+    }
+
+    public function test_calendar_management_renders_a_grid_with_each_dates_setting_in_its_own_cell(): void
+    {
+        $date = $this->futureDate();
+        $service = app(SlotAvailabilityService::class);
+        $officeId = $service->officeIdFor('Registrar');
+
+        foreach (Appointment::TIME_SLOTS as $slot) {
+            SlotAvailability::create([
+                'office_id' => $officeId,
+                'date' => $date,
+                'time_slot' => $slot,
+                'max_capacity' => 5,
+                'status' => 'blocked',
+            ]);
+        }
+
+        $month = substr($date, 0, 7);
+
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/availability?month='.$month)
+            ->assertOk()
+            ->getContent();
+
+        // The panel is a calendar now: it opens on a month and can be
+        // paged a month at a time.
+        $this->assertStringContainsString('monthCursor: "'.$month.'"', $html);
+        $this->assertStringContainsString('x-for="(cell, index) in calendarCells"', $html);
+        $this->assertStringContainsString('x-text="monthLabel"', $html);
+        $this->assertStringContainsString('@click="shiftMonth(-1)"', $html);
+        $this->assertStringContainsString('@click="shiftMonth(1)"', $html);
+
+        // Every day gets a cell, and the day that was configured carries
+        // its own setting inside it: one badge naming what was done.
+        $this->assertStringContainsString('x-text="cell.entry.typeLabel"', $html);
+        $this->assertStringContainsString('Not set', $html);
+        $this->assertStringContainsString('Partly Open', $html);
+
+        // A cell carries no clock times at all. The day's bookings are
+        // numbered first come, first served on the roster below, so there
+        // is no hour to print inside the date.
+        $this->assertDoesNotMatchRegularExpression('/cell\.entry\.status/', $html);
+        $this->assertDoesNotMatchRegularExpression('/cell\.entry\.slots/', $html);
+        $this->assertStringNotContainsString('Specific Time Slots', $html);
+        $this->assertStringNotContainsString('time slots open', $html);
+        $this->assertStringNotContainsString('time slots are blocked', $html);
+
+        // Days are clicked where they stand rather than picked out of a
+        // list running down the page.
+        $this->assertStringContainsString('@click="editCell(cell)"', $html);
+        $this->assertDoesNotMatchRegularExpression('/x-for="item in schedule"/', $html);
+        $this->assertDoesNotMatchRegularExpression('/x-text="item\.\w+"/', $html);
+
+        // None of the copy the list this replaces used to print.
+        $this->assertDoesNotMatchRegularExpression('/x-text="item\.status"/', $html);
+        $this->assertStringNotContainsString('No appointments can be booked on this date.', $html);
+        $this->assertStringNotContainsString('All official time slots are available.', $html);
+        $this->assertStringNotContainsString('slotNumber', $html);
     }
 }

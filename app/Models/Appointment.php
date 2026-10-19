@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AppointmentStatus;
 use App\Support\QrUrl;
+use App\Support\SlotAvailabilityService;
 use Carbon\Carbon;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\SvgWriter;
@@ -15,6 +16,48 @@ use Illuminate\Support\Str;
 
 class Appointment extends Model
 {
+    /**
+     * The default day, used only when an office has no hours saved yet.
+     * Live slot lists come from App\Support\TimeSlots::forOffice(), which
+     * builds hourly slots from the office's own opening and closing time.
+     */
+    public const TIME_SLOTS = [
+        '08:00 AM - 09:00 AM',
+        '09:00 AM - 10:00 AM',
+        '10:00 AM - 11:00 AM',
+        '11:00 AM - 12:00 PM',
+        '12:00 PM - 01:00 PM',
+        '01:00 PM - 02:00 PM',
+        '02:00 PM - 03:00 PM',
+        '03:00 PM - 04:00 PM',
+        '04:00 PM - 05:00 PM',
+    ];
+
+    /**
+     * How many of a day's appointments are the day's slots.
+     *
+     * A day holds this many people and stops there; anyone past it still
+     * books (booking is never turned away) but is marked as coming after
+     * the day's first fill rather than taking one of it. The registrar's
+     * approval, not the clock, is what lets a day run past this number.
+     */
+    public const SLOTS_PER_DAY = 10;
+
+    /**
+     * Maximum concurrent bookings per time slot, configurable per office.
+     */
+    public const SLOT_LIMITS = [
+        'SSC' => 8,
+        'Registrar' => 6,
+        'Cashier' => 8,
+        'Accounting' => 6,
+        'Library' => 6,
+        'CICI' => 6,
+        'CBMSD' => 6,
+        'COAG' => 6,
+        'COED' => 6,
+    ];
+
     protected $fillable = [
         'reference_code',
         'qr_token',
@@ -23,6 +66,8 @@ class Appointment extends Model
         'purpose',
         'date',
         'original_date',
+        'original_time_slot',
+        'time_slot',
         'confirmed_time',
         'start_time',
         'end_time',
@@ -81,8 +126,8 @@ class Appointment extends Model
     /**
      * The approved window spelled the way the office reads it — "8:00 AM – 9:00 AM".
      *
-     * Falls back to a single confirmed time, so an approval that named only
-     * one hour still prints something true.
+     * Falls back to a single confirmed time, then to the requested slot, so a
+     * booking approved before the range existed still prints something true.
      */
     public function scheduledRange(): string
     {
@@ -120,15 +165,17 @@ class Appointment extends Model
     /**
      * The time this student is actually being asked to come.
      *
-     * A booking starts as a request — a day, with no hour attached — and the
-     * office answers it with the window it wants the student there. Until
-     * that answer arrives there is nothing to follow, so the booking reads as
-     * still waiting. Everything that tells a student when to arrive reads this
-     * column.
+     * A booking starts as a request — the slot they hoped for. Once the
+     * office approves it, it answers with the time it wants them there, and
+     * that answer is what the student follows. Everything that tells a
+     * student when to arrive reads this rather than the raw request.
+     *
+     * Offices that set the time themselves (the Registrar) take no slot at
+     * booking, so a booking still waiting on approval reads as pending.
      */
     public function timeToCome(): string
     {
-        return $this->confirmed_time ?: 'To be set by the office';
+        return $this->confirmed_time ?: ($this->time_slot ?: 'To be set by the office');
     }
 
     /**
@@ -200,5 +247,26 @@ class Appointment extends Model
     public function scopeFirstComeFirstServed(Builder $query): Builder
     {
         return $query->orderBy('created_at')->orderBy('id');
+    }
+
+    /**
+     * Remaining available seats for a given office / date / time slot,
+     * driven by the slot availability & capacity rules.
+     * Optionally ignore one appointment (e.g. the one being rescheduled).
+     */
+    public static function remainingSlots(string $office, Carbon|string $date, string $timeSlot, ?int $ignoreId = null): int
+    {
+        return app(SlotAvailabilityService::class)
+            ->checkForOffice($office, $date, $timeSlot, $ignoreId)['remaining'];
+    }
+
+    /**
+     * Full availability view (slots with remaining seats and status)
+     * driven by the slot availability & capacity rules.
+     */
+    public static function availableSlots(string $office, Carbon|string $date, ?int $ignoreId = null): array
+    {
+        return app(SlotAvailabilityService::class)
+            ->availableSlots($office, $date, $ignoreId);
     }
 }

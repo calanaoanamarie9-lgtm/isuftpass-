@@ -120,7 +120,7 @@ class AppointmentPassParityTest extends TestCase
             ->assertSee($appointment->reference_code)
             ->assertSee('Appointment Date')
             ->assertSee($appointment->date->format('F j, Y'))
-            ->assertSee('Time to Come')
+            ->assertSee('Time Slot')
             ->assertSee($appointment->timeToCome())
             ->assertSee('Concern / Purpose')
             ->assertSee($appointment->purpose)

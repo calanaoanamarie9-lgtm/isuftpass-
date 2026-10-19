@@ -6,7 +6,7 @@
     /verify/appointment/{token}, and the registrar's verification station.
 
     It lives here so those three can never drift apart: same blue banner,
-    same status badge, same office, same reference / date / time to come /
+    same status badge, same office, same reference / date / time slot /
     purpose / date booked. Whatever a surface adds around the card — the
     scan verdict, the student's download buttons, staff tool links — goes
     in that surface's own view, never inside this one.
@@ -178,7 +178,7 @@
                     {{-- Time --}}
                     <div>
                         <p class="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
-                            Time to Come
+                            Time Slot
                         </p>
 
                         <p class="mt-1 text-sm font-black text-gray-900">
@@ -422,7 +422,7 @@
 
                         <li class="flex gap-2">
                             <span class="text-blue-700 font-bold">•</span>
-                            <span>Arrive during your scheduled date and time.</span>
+                            <span>Arrive during your scheduled date and time slot.</span>
                         </li>
 
                         <li class="flex gap-2">

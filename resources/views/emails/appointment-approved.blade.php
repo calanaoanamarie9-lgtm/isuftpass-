@@ -20,6 +20,9 @@
         @include('emails.partials.row', ['label' => 'Purpose', 'value' => $appointment->purpose])
         @include('emails.partials.row', ['label' => 'Appointment Date', 'value' => $appointment->date->format('F j, Y (D)')])
         @include('emails.partials.row', ['label' => 'Come At', 'value' => $appointment->confirmed_time])
+        @if ($appointment->time_slot && $appointment->time_slot !== $appointment->confirmed_time)
+            @include('emails.partials.row', ['label' => 'You Asked For', 'value' => $appointment->time_slot])
+        @endif
         @include('emails.partials.row', ['label' => 'Reference Number', 'value' => $appointment->reference_code])
     </table>
 

@@ -146,6 +146,13 @@
                         <span>Department Settings</span>
                     </a>
 
+                    <a href="{{ route('admin.slots.index') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+                        <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Slot Availability</span>
+                    </a>
+
                     <a href="{{ route('admin.settings.index') }}"
                        @click="open = false"
                        class="{{ $navClass }}">
@@ -322,7 +329,7 @@
                        @click="open = false"
                        class="{{ $navClass }}">
                         <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span>Office Hours</span>
+                        <span>Time Slot Settings</span>
                     </a>
 
                 </div>
@@ -399,7 +406,7 @@
                        @click="open = false"
                        class="{{ $navClass }}">
                         <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span>Office Hours</span>
+                        <span>Time Slot Settings</span>
                     </a>
 
                 </div>
@@ -476,7 +483,7 @@
                        @click="open = false"
                        class="{{ $navClass }}">
                         <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span>Office Hours</span>
+                        <span>Time Slot Settings</span>
                     </a>
 
                 </div>
@@ -553,7 +560,7 @@
                        @click="open = false"
                        class="{{ $navClass }}">
                         <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span>Office Hours</span>
+                        <span>Time Slot Settings</span>
                     </a>
 
                 </div>

@@ -8,6 +8,7 @@
         reference,
         office,
         dateLabel,
+        timeSlot,
         reason
     })
 ========================================================= --}}
@@ -137,7 +138,7 @@
                                           text-sm
                                           text-blue-100">
 
-                                    Select a new date for this appointment.
+                                    Select a new available date and time slot.
 
                                 </p>
 
@@ -358,6 +359,58 @@
                             </div>
 
 
+                            {{-- TIME --}}
+                            <div class="rounded-2xl
+                                        border border-gray-200
+                                        bg-gray-50
+                                        p-4">
+
+                                <div class="flex items-center gap-3">
+
+                                    <div class="w-10 h-10
+                                                rounded-xl
+                                                bg-white
+                                                border border-gray-200
+                                                text-blue-700
+                                                flex items-center justify-center">
+
+                                        <svg class="w-5 h-5"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             viewBox="0 0 24 24">
+
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  stroke-width="1.8"
+                                                  d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+
+                                        </svg>
+
+                                    </div>
+
+                                    <div>
+
+                                        <p class="text-[10px]
+                                                  uppercase
+                                                  font-bold
+                                                  tracking-wider
+                                                  text-gray-400">
+
+                                            Time Slot
+
+                                        </p>
+
+                                        <p class="mt-0.5
+                                                  text-sm
+                                                  font-bold
+                                                  text-gray-800"
+                                           x-text="appointment?.timeSlot">
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
                             </div>
 
                         </div>
@@ -488,6 +541,7 @@
                                     type="date"
                                     x-model="newDate"
                                     min="{{ now()->toDateString() }}"
+                                    @change="loadSlots()"
                                     class="w-full
                                            h-12
                                            rounded-xl
@@ -500,6 +554,99 @@
                                            focus:ring-blue-200
                                            transition"
                                 >
+
+                            </div>
+
+
+                            {{-- NEW TIME --}}
+                            <div>
+
+                                <label class="block
+                                              text-xs
+                                              font-bold
+                                              text-gray-600
+                                              mb-2">
+
+                                    Available Time Slot
+
+                                    <span class="text-red-500">*</span>
+
+                                </label>
+
+
+                                <select
+                                    x-model="timeSlot"
+                                    :disabled="!newDate || loadingSlots || slots.length === 0"
+                                    class="w-full
+                                           h-12
+                                           rounded-xl
+                                           border-gray-200
+                                           bg-gray-50
+                                           text-sm
+                                           px-4
+                                           focus:bg-white
+                                           focus:border-blue-500
+                                           focus:ring-blue-200
+                                           disabled:bg-gray-100
+                                           disabled:text-gray-400
+                                           disabled:cursor-not-allowed"
+                                >
+
+                                    <option value="" disabled>
+                                        <span x-text="timePlaceholder"></span>
+                                    </option>
+
+
+                                    <template x-for="slot in slots" :key="slot.time">
+
+                                        <option
+                                            :value="slot.time"
+                                            x-text="slot.time + ' — ' + slot.remaining + (slot.remaining === 1 ? ' seat left' : ' seats left')">
+                                        </option>
+
+                                    </template>
+
+                                </select>
+
+
+                                {{-- Loading --}}
+                                <div
+                                    x-show="loadingSlots"
+                                    class="mt-2
+                                           flex items-center gap-2
+                                           text-xs
+                                           text-blue-600"
+                                >
+
+                                    <svg class="animate-spin w-3.5 h-3.5"
+                                         fill="none"
+                                         viewBox="0 0 24 24">
+
+                                        <circle class="opacity-25"
+                                                cx="12"
+                                                cy="12"
+                                                r="10"
+                                                stroke="currentColor"
+                                                stroke-width="4">
+                                        </circle>
+
+                                        <path class="opacity-75"
+                                              fill="currentColor"
+                                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z">
+                                        </path>
+
+                                    </svg>
+
+                                    Checking available slots...
+
+                                </div>
+
+
+                                <p
+                                    x-show="slotError"
+                                    x-text="slotError"
+                                    class="mt-2 text-xs font-medium text-red-600"
+                                ></p>
 
                             </div>
 
@@ -680,7 +827,7 @@
                         {{-- SUBMIT --}}
                         <button
                             type="submit"
-                            :disabled="busy || !newDate || !reason.trim()"
+                            :disabled="busy || !newDate || !timeSlot || !reason.trim()"
                             class="w-full sm:w-auto
                                    inline-flex
                                    items-center
@@ -779,12 +926,37 @@ function rescheduleModal() {
         appointment: null,
 
         newDate: '',
+        timeSlot: '',
         reason: '',
 
+        slots: [],
+        loadingSlots: false,
+        slotError: '',
         formError: '',
+
+        slotsUrl: '{{ route('registrar.appointments.slots') }}',
 
         actionTemplate:
             '{{ url('registrar/appointments') }}/:id/reschedule',
+
+
+        get timePlaceholder() {
+
+            if (!this.newDate) {
+                return 'Select a date first';
+            }
+
+            if (this.loadingSlots) {
+                return 'Loading available slots...';
+            }
+
+            if (this.slots.length === 0) {
+                return 'No available slots';
+            }
+
+            return 'Select an available time';
+
+        },
 
 
         start(detail) {
@@ -793,7 +965,13 @@ function rescheduleModal() {
 
             this.newDate = '';
 
+            this.timeSlot = '';
+
             this.reason = '';
+
+            this.slots = [];
+
+            this.slotError = '';
 
             this.formError = '';
 
@@ -813,6 +991,81 @@ function rescheduleModal() {
         },
 
 
+        loadSlots() {
+
+            if (!this.newDate || !this.appointment) {
+                return;
+            }
+
+            this.loadingSlots = true;
+
+            this.slotError = '';
+
+            this.timeSlot = '';
+
+            this.slots = [];
+
+
+            const url =
+                this.slotsUrl
+                + '?office='
+                + encodeURIComponent(this.appointment.office)
+                + '&date='
+                + encodeURIComponent(this.newDate)
+                + '&ignore_id='
+                + encodeURIComponent(this.appointment.id);
+
+
+            fetch(url, {
+
+                headers: {
+                    'Accept': 'application/json'
+                }
+
+            })
+
+            .then(async (response) => {
+
+                if (!response.ok) {
+                    throw new Error('Unable to load available slots.');
+                }
+
+                return response.json();
+
+            })
+
+            .then((data) => {
+
+                this.slots = data.filter((slot) => {
+
+                    return slot.is_open && slot.remaining > 0;
+
+                });
+
+
+                if (this.slots.length === 0) {
+
+                    this.slotError =
+                        'No open time slots are available on this date. Please choose another date.';
+
+                }
+
+                this.loadingSlots = false;
+
+            })
+
+            .catch(() => {
+
+                this.loadingSlots = false;
+
+                this.slotError =
+                    'Could not load available time slots. Please try again.';
+
+            });
+
+        },
+
+
         submit() {
 
             if (!this.appointment || this.busy) {
@@ -824,6 +1077,16 @@ function rescheduleModal() {
 
                 this.formError =
                     'Please select a new appointment date.';
+
+                return;
+
+            }
+
+
+            if (!this.timeSlot) {
+
+                this.formError =
+                    'Please select an available time slot.';
 
                 return;
 
@@ -872,6 +1135,8 @@ function rescheduleModal() {
                     body: JSON.stringify({
 
                         date: this.newDate,
+
+                        time_slot: this.timeSlot,
 
                         reschedule_reason:
                             this.reason.trim()

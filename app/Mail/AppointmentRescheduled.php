@@ -16,8 +16,9 @@ class AppointmentRescheduled extends Mailable
     public function __construct(public Appointment $appointment, public ?string $oldSchedule = null)
     {
 
+
         $this->oldSchedule ??= $this->appointment->original_date
-            ? $this->appointment->original_date->format('F j, Y')
+            ? $this->appointment->original_date->format('F j, Y') . ' · ' . ($this->appointment->original_time_slot ?: $this->appointment->time_slot)
             : 'previous schedule';
     }
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\ConsultationService;
 use App\Support\CheckInList;
+use App\Support\TimeSlots;
 use App\Support\WorkspaceDashboard;
 use Illuminate\View\View;
 
@@ -31,6 +32,7 @@ class AccountingController extends Controller
     {
         return view('Offices.Accounting.availability', [
             'office' => 'Accounting',
+            'timeSlots' => TimeSlots::forOffice('Accounting'),
         ]);
     }
 

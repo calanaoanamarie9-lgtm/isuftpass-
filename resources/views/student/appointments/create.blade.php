@@ -384,11 +384,38 @@
                                    ) }}"
                                    min="{{ now()->toDateString() }}"
                                    required
-                                   class="w-full rounded-xl border-gray-300
-                                          bg-white text-sm text-gray-800
-                                          shadow-sm
-                                          focus:border-blue-600
-                                          focus:ring-blue-600">
+                                   class="hidden">
+
+
+<div class="rounded-xl border border-gray-200
+                            bg-gray-50 p-2.5 sm:p-3
+                            max-w-md mx-auto w-full">
+
+                            <div class="w-full mx-auto">
+
+                                <x-availability-calendar
+                                    office=""
+                                    endpoint="{{ route('student.appointments.availability') }}"
+                                    :initial-month="substr(
+                                        old(
+                                            'date',
+                                            $appointment?->date->toDateString()
+                                            ?? now()->toDateString()
+                                        ),
+                                        0,
+                                        7
+                                    )"
+                                    :selected="old(
+                                        'date',
+                                        $appointment?->date->toDateString()
+                                        ?? now()->toDateString()
+                                    )"
+                                    watch-office="office"
+                                    emit />
+
+                            </div>
+
+                            </div>
 
 
                             <div class="mt-3 flex items-start gap-2">
@@ -401,18 +428,94 @@
                                     <path stroke-linecap="round"
                                           stroke-linejoin="round"
                                           stroke-width="2"
-                                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                          d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z"/>
 
                                 </svg>
 
                                 <p class="text-xs text-gray-500">
-                                    Pick the day you would like to come. The office
-                                    will set the exact time when it approves.
+                                    Green dates have available slots. Red dates are fully booked
+                                    or unavailable. Select an office first.
                                 </p>
 
                             </div>
 
                         </div>
+
+
+                        {{-- SECTION: TIME
+                             A student booking the Registrar picks a date
+                             only; the office answers with the time when it
+                             approves, so this whole block hides for it.
+                        --}}
+                        <div id="time-section">
+
+                            <div class="my-8 border-t border-gray-100"></div>
+
+
+                        <div>
+
+                            <div class="flex items-center gap-3 mb-5">
+
+                                <div class="w-8 h-8 rounded-lg bg-blue-50
+                                            flex items-center justify-center">
+
+                                    <span class="text-sm font-black text-blue-700">
+                                        3
+                                    </span>
+
+                                </div>
+
+                                <div>
+
+                                    <h3 class="text-sm font-black text-gray-900">
+                                        Select Time
+                                    </h3>
+
+                                    <p class="text-xs text-gray-400">
+                                        Choose from the available appointment slots.
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+
+                            <label for="time_slot"
+                                   class="block text-sm font-bold text-gray-700 mb-2">
+
+                                Available Time Slots
+                                <span class="text-red-500">*</span>
+
+                            </label>
+
+
+                            <select id="time_slot"
+                                    name="time_slot"
+                                    required
+                                    class="w-full rounded-xl border-gray-300
+                                           bg-white text-sm text-gray-800
+                                           shadow-sm
+                                           focus:border-blue-600
+                                           focus:ring-blue-600">
+
+                                <option value="">
+                                    Select an office and date first
+                                </option>
+
+                            </select>
+
+
+                            <p id="slot-hint"
+                               class="mt-2 text-xs text-gray-400">
+
+                                Available slots will load automatically after
+                                selecting an office and date.
+
+                            </p>
+
+                        </div>
+
+                        </div>{{-- /#time-section --}}
 
 
                         {{-- DIVIDER --}}
@@ -431,7 +534,7 @@
 
                                         <span id="requester-step"
                                               class="text-sm font-black text-blue-700">
-                                            3
+                                            4
                                         </span>
 
                                     </div>
@@ -547,7 +650,7 @@
 
                                     <span id="notes-step"
                                           class="text-sm font-black text-blue-700">
-                                        3
+                                        4
                                     </span>
 
                                 </div>
@@ -694,8 +797,12 @@
 
         const officeEl = document.getElementById('office');
         const dateEl = document.getElementById('date');
+        const slotSelect = document.getElementById('time_slot');
+        const slotHint = document.getElementById('slot-hint');
+        const timeSection = document.getElementById('time-section');
         const notesStep = document.getElementById('notes-step');
         const requesterStep = document.getElementById('requester-step');
+        const registrarOffice = {{ Js::from(\App\Enums\Office::Registrar->value) }};
 
         const purposeSelect = document.getElementById('purpose');
         const purposeOtherGroup = document.getElementById('purpose-other-group');
@@ -704,24 +811,33 @@
         const purposesByOffice = {{ Js::from($purposes) }};
 
 
-        // The requester section (parent's child / guest's ID) sits between
-        // the date and the notes for those account types, so the notes step
-        // shifts down by one for them. With no time slot to pick, the date
-        // is the last scheduling step.
-        function applyStepNumbers() {
+        // The Registrar does not ask for a time: booking it shows a date only,
+        // and the office answers with a time when it approves. A disabled
+        // control is not submitted, so the request reaches the server with no
+        // slot at all — which is exactly what a Registrar booking is.
+        function applyOfficeMode() {
 
-            if (!notesStep) {
-                return;
+            const registrar = officeEl.value === registrarOffice;
+
+            timeSection.classList.toggle('hidden', registrar);
+            slotSelect.disabled = registrar;
+            slotSelect.required = ! registrar;
+
+            if (notesStep) {
+
+                // The requester section (parent's child / guest's ID) sits
+                // between the schedule and the notes for those account types,
+                // so the notes step shifts down by one for them.
+                let step = registrar ? 3 : 4;
+
+                if (requesterStep) {
+                    step += 1;
+                    requesterStep.textContent = registrar ? '3' : '4';
+                }
+
+                notesStep.textContent = String(step);
+
             }
-
-            let step = 3;
-
-            if (requesterStep) {
-                step = 4;
-                requesterStep.textContent = '3';
-            }
-
-            notesStep.textContent = String(step);
 
         }
 
@@ -797,6 +913,137 @@
         }
 
 
+        const keepOption = (label, value = '') => {
+
+            slotSelect.innerHTML = '';
+
+            const placeholder = document.createElement('option');
+
+            placeholder.value = value;
+            placeholder.textContent = label;
+
+            slotSelect.appendChild(placeholder);
+
+        };
+
+
+        async function loadSlots() {
+
+            const office = officeEl.value;
+            const date = dateEl.value;
+
+
+            if (office === registrarOffice) {
+
+                applyOfficeMode();
+
+                keepOption('The office will set your time');
+
+                slotHint.textContent =
+                    'The Registrar assigns the exact time when your appointment is approved.';
+
+                return;
+
+            }
+
+
+            if (!office || !date) {
+
+                keepOption('Select an office and date first');
+
+                slotHint.textContent =
+                    'Available slots will load automatically after selecting an office and date.';
+
+                return;
+
+            }
+
+
+            keepOption('Loading available slots...');
+
+            slotHint.textContent =
+                'Checking availability for ' + office + ' on ' + date + '…';
+
+
+            try {
+
+                const response = await fetch(
+                    '{{ route('student.appointments.slots') }}?office='
+                    + encodeURIComponent(office)
+                    + '&date='
+                    + encodeURIComponent(date)
+                );
+
+
+                const slots = await response.json();
+
+
+                keepOption(
+                    'Select an available time slot',
+                    ''
+                );
+
+
+                const selected =
+                    {{ Js::from(old(
+                        'time_slot',
+                        $appointment->time_slot ?? ''
+                    )) }};
+
+
+                slots.forEach(slot => {
+
+                    const full = slot.remaining < 1;
+
+                    const option =
+                        document.createElement('option');
+
+                    option.value = slot.time;
+
+                    option.disabled = full;
+
+
+                    option.textContent = full
+                        ? slot.time + ' — Full'
+                        : slot.time + ' — '
+                            + slot.remaining
+                            + ' seat'
+                            + (slot.remaining === 1 ? '' : 's')
+                            + ' left';
+
+
+                    if (slot.time === selected) {
+
+                        option.selected = true;
+
+                    }
+
+
+                    slotSelect.appendChild(option);
+
+                });
+
+
+                slotHint.textContent =
+                    slots.length + ' time slots available for the selected day.';
+
+            }
+
+
+            catch (e) {
+
+                keepOption(
+                    'Failed to load slots. Please try again.'
+                );
+
+                slotHint.textContent =
+                    'Unable to check availability. Please try again.';
+
+            }
+
+        }
+
+
         // Choosing "Other" must reveal the mandatory "Please specify purpose"
         // box right away, so this listens on the Purpose select itself - not
         // only when the office (and with it the whole option list) changes.
@@ -810,7 +1057,32 @@
             'change',
             () => {
 
+                applyOfficeMode();
+
                 renderPurposes(officeEl.value, '');
+
+                loadSlots();
+
+            }
+        );
+
+
+        dateEl.addEventListener(
+            'change',
+            loadSlots
+        );
+
+
+        window.addEventListener(
+            'date-selected',
+            event => {
+
+                dateEl.value =
+                    event.detail.date;
+
+                dateEl.dispatchEvent(
+                    new Event('change')
+                );
 
             }
         );
@@ -820,9 +1092,18 @@
             'DOMContentLoaded',
             () => {
 
-                applyStepNumbers();
+                applyOfficeMode();
 
                 renderPurposes(officeEl.value, purposeSelect.value);
+
+                if (
+                    officeEl.value &&
+                    dateEl.value
+                ) {
+
+                    loadSlots();
+
+                }
 
             }
         );

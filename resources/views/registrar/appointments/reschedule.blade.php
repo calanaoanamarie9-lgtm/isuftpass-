@@ -1,4 +1,4 @@
-﻿<x-app-layout>
+<x-app-layout>
 
     <div class="min-h-screen bg-slate-50 py-8">
 
@@ -368,14 +368,50 @@
                 method="POST"
                 action="{{ route('registrar.appointments.reschedule.update', $appointment) }}"
 
-                data-confirm="The appointment will be moved to the new date."
+                data-confirm="The appointment will be moved to the new date and time slot."
                 data-confirm-title="Reschedule this appointment?"
                 data-confirm-ok="Yes, reschedule"
                 data-confirm-icon="question"
 
                 x-data="{
-                    date: '{{ old('date') }}'
+                    date: '{{ old('date') }}',
+                    loading: false,
+                    slots: [],
+                    selectedSlot: '{{ old('time_slot') }}',
+
+                    init() {
+                        if (this.date) this.loadSlots();
+                    },
+
+                    loadSlots() {
+
+                        if (!this.date) return;
+
+                        this.loading = true;
+                        this.slots = [];
+                        this.selectedSlot = '';
+
+                        fetch('{{ route('registrar.appointments.slots') }}?office={{ $appointment->office }}&date=' + this.date + '&ignore_id={{ $appointment->id }}')
+
+                            .then(r => r.json())
+
+                            .then(data => {
+
+                                this.slots = data;
+                                this.loading = false;
+
+                            })
+
+                            .catch(() => {
+
+                                this.loading = false;
+                                this.slots = [];
+
+                            });
+                    }
                 }"
+
+                x-on:date-selected="date = $event.detail.date; loadSlots()"
             >
 
                 @csrf
@@ -426,7 +462,7 @@
                                 </h2>
 
                                 <p class="text-xs text-slate-400 mt-0.5">
-                                    Choose a new date for this appointment.
+                                    Choose an available date and time slot.
                                 </p>
 
                             </div>
@@ -466,10 +502,22 @@
                                     </div>
 
                                     <p class="text-xs text-slate-400 mt-1 ml-9">
-                                        Pick the day this appointment moves to.
+                                        Green dates have available appointment slots.
                                     </p>
 
                                 </div>
+
+
+                                <span class="inline-flex items-center gap-2
+                                             text-[11px] font-bold
+                                             text-emerald-600">
+
+                                    <span class="w-2 h-2 rounded-full
+                                                 bg-emerald-500"></span>
+
+                                    Available
+
+                                </span>
 
                             </div>
 
@@ -479,14 +527,295 @@
                                 name="date"
                                 type="date"
                                 min="{{ now()->toDateString() }}"
-                                value="{{ old('date', $appointment->date->toDateString()) }}"
                                 x-model="date"
+                                class="hidden"
+                            >
+
+
+                            <div class="rounded-2xl border border-slate-200
+                                        bg-slate-50 p-4">
+
+                                <x-availability-calendar
+                                    office="{{ $appointment->office }}"
+                                    endpoint="{{ route('registrar.availability.month') }}"
+                                    :initial-month="substr(old('date', now()->toDateString()), 0, 7)"
+                                    :selected="old('date', now()->toDateString())"
+                                    emit
+                                />
+
+                            </div>
+
+
+                            <div class="flex flex-wrap gap-5 mt-4">
+
+                                <span class="inline-flex items-center gap-2
+                                             text-xs text-slate-500">
+
+                                    <span class="w-2.5 h-2.5 rounded-full
+                                                 bg-emerald-500"></span>
+
+                                    Open
+
+                                </span>
+
+                                <span class="inline-flex items-center gap-2
+                                             text-xs text-slate-500">
+
+                                    <span class="w-2.5 h-2.5 rounded-full
+                                                 bg-red-400"></span>
+
+                                    Full / Blocked
+
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="border-t border-slate-100"></div>
+
+
+                        {{-- =================================================
+                            STEP 2 — TIME
+                        ================================================== --}}
+                        <div>
+
+                            <div class="mb-4">
+
+                                <div class="flex items-center gap-2">
+
+                                    <span class="w-7 h-7 rounded-lg
+                                                 bg-blue-900 text-white
+                                                 flex items-center justify-center
+                                                 text-xs font-extrabold">
+                                        2
+                                    </span>
+
+                                    <label class="text-sm font-extrabold text-slate-800">
+                                        Select Available Time
+                                    </label>
+
+                                </div>
+
+                                <p class="text-xs text-slate-400 mt-1 ml-9">
+                                    Available capacity is updated automatically.
+                                </p>
+
+                            </div>
+
+
+                            {{-- Loading --}}
+                            <div
+                                x-show="loading"
+                                x-cloak
+                                class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                                <div class="h-20 rounded-2xl
+                                            bg-slate-100 animate-pulse"></div>
+
+                                <div class="h-20 rounded-2xl
+                                            bg-slate-100 animate-pulse"></div>
+
+                            </div>
+
+
+                            {{-- No Date --}}
+                            <div
+                                x-show="!loading && !date"
+                                x-cloak
+                                class="border border-dashed border-slate-300
+                                       rounded-2xl p-8 text-center">
+
+                                <div class="w-12 h-12 mx-auto rounded-xl
+                                            bg-blue-50 flex items-center
+                                            justify-center mb-3">
+
+                                    <svg class="w-6 h-6 text-blue-500"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+
+                                        <path stroke-linecap="round"
+                                              stroke-linejoin="round"
+                                              stroke-width="2"
+                                              d="M8 7V3m8 4V3m-9 4h10
+                                                 M5 21h14a2 2 0 002-2V8
+                                                 a2 2 0 00-2-2H5v11
+                                                 a2 2 0 002 2z"/>
+                                    </svg>
+
+                                </div>
+
+                                <p class="text-sm font-semibold text-slate-600">
+                                    Select a date first
+                                </p>
+
+                                <p class="text-xs text-slate-400 mt-1">
+                                    Available time slots will appear here.
+                                </p>
+
+                            </div>
+
+
+                            {{-- Empty Slots --}}
+                            <div
+                                x-show="!loading && date && slots.length === 0"
+                                x-cloak
+                                class="border border-dashed border-orange-200
+                                       bg-orange-50/50
+                                       rounded-2xl p-8 text-center">
+
+                                <div class="w-12 h-12 mx-auto rounded-xl
+                                            bg-orange-100 flex items-center
+                                            justify-center mb-3">
+
+                                    <svg class="w-6 h-6 text-orange-500"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+
+                                        <path stroke-linecap="round"
+                                              stroke-linejoin="round"
+                                              stroke-width="2"
+                                              d="M12 9v2m0 4h.01
+                                                 M10.29 3.86l-7.82 14
+                                                 a1 1 0 00.87 1.5h17.32
+                                                 a1 1 0 00.87-1.5
+                                                 l-7.82-14a1 1 0 00-1.74 0z"/>
+                                    </svg>
+
+                                </div>
+
+                                <p class="text-sm font-semibold text-slate-600">
+                                    No available time slots
+                                </p>
+
+                                <p class="text-xs text-slate-400 mt-1">
+                                    Please select another date.
+                                </p>
+
+                            </div>
+
+
+                            {{-- TIME SLOT CARDS --}}
+                            <div
+                                x-show="!loading && slots.length > 0"
+                                x-cloak
+                                class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                                <template x-for="slot in slots"
+                                          :key="slot.time">
+
+                                    <button
+                                        type="button"
+                                        :disabled="!slot.is_open"
+
+                                        @click="if(slot.is_open) selectedSlot = slot.time"
+
+                                        :class="{
+
+                                            'border-blue-600 bg-blue-50 ring-2 ring-blue-100':
+                                                selectedSlot === slot.time && slot.is_open,
+
+                                            'border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40':
+                                                selectedSlot !== slot.time && slot.is_open,
+
+                                            'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed':
+                                                !slot.is_open
+
+                                        }"
+
+                                        class="relative text-left rounded-2xl
+                                               border p-4 transition duration-200">
+
+                                        <div class="flex items-center justify-between">
+
+                                            <div>
+
+                                                <p
+                                                    class="text-sm font-bold text-slate-800"
+                                                    x-text="slot.time">
+                                                </p>
+
+                                                <p
+                                                    class="text-xs mt-1"
+                                                    :class="slot.is_open
+                                                        ? 'text-emerald-600'
+                                                        : 'text-red-500'"
+                                                    x-text="slot.is_open
+                                                        ? slot.remaining + ' seat' +
+                                                          (slot.remaining === 1 ? '' : 's') +
+                                                          ' available'
+                                                        : 'Fully booked'">
+                                                </p>
+
+                                            </div>
+
+
+                                            <div
+                                                class="w-9 h-9 rounded-xl
+                                                       flex items-center justify-center"
+                                                :class="slot.is_open
+                                                    ? 'bg-emerald-50 text-emerald-600'
+                                                    : 'bg-red-50 text-red-500'">
+
+                                                <svg
+                                                    x-show="slot.is_open"
+                                                    class="w-5 h-5"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+
+                                                    <path stroke-linecap="round"
+                                                          stroke-linejoin="round"
+                                                          stroke-width="2"
+                                                          d="M5 13l4 4L19 7"/>
+
+                                                </svg>
+
+
+                                                <svg
+                                                    x-show="!slot.is_open"
+                                                    class="w-5 h-5"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+
+                                                    <path stroke-linecap="round"
+                                                          stroke-linejoin="round"
+                                                          stroke-width="2"
+                                                          d="M6 18L18 6M6 6l12 12"/>
+
+                                                </svg>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        {{-- Selected --}}
+                                        <div
+                                            x-show="selectedSlot === slot.time && slot.is_open"
+                                            class="absolute top-2 right-2">
+
+                                            <span class="w-2 h-2 rounded-full
+                                                         bg-blue-700 block"></span>
+
+                                        </div>
+
+                                    </button>
+
+                                </template>
+
+                            </div>
+
+
+                            <input
+                                type="hidden"
+                                name="time_slot"
+                                x-model="selectedSlot"
                                 required
-                                class="w-full sm:max-w-xs rounded-xl border-slate-300
-                                       bg-white text-sm text-slate-800
-                                       shadow-sm
-                                       focus:border-blue-600
-                                       focus:ring-blue-600"
                             >
 
                         </div>
@@ -496,7 +825,7 @@
 
 
                         {{-- =================================================
-                            STEP 2 — REASON
+                            STEP 3 — REASON
                         ================================================== --}}
                         <div>
 
@@ -506,7 +835,7 @@
                                              bg-blue-900 text-white
                                              flex items-center justify-center
                                              text-xs font-extrabold">
-                                    2
+                                    3
                                 </span>
 
                                 <label
@@ -529,7 +858,7 @@
                                 name="reschedule_reason"
                                 rows="4"
                                 required
-                                placeholder="Example: The student requested a date the office cannot accommodate."
+                                placeholder="Example: The requested time slot has reached its maximum capacity."
                                 class="w-full rounded-2xl border-slate-200
                                        bg-slate-50 px-4 py-3 text-sm
                                        focus:bg-white

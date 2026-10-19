@@ -35,7 +35,7 @@
     {{--
         What a scanner opens. The page is the student's own Appointment
         Verification Pass — the shared x-appointment-pass-card — so the
-        reference, date, time to come, purpose and date booked read here are
+        reference, date, time slot, purpose and date booked read here are
         the same pixels the student was handed at booking, with nothing
         added above it. The only extra line is the gate record below:
         who scanned in, where and when.

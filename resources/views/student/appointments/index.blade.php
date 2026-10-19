@@ -242,13 +242,30 @@
 
                                         {{ $appointment->confirmed_time
                                             ? 'Come At'
-                                            : 'Time to Come' }}
+                                            : ($appointment->time_slot
+                                                ? 'Time Slot Asked'
+                                                : 'Time to Come') }}
 
                                     </p>
 
                                     <p class="text-sm font-bold text-gray-800 mt-1">
                                         {{ $appointment->timeToCome() }}
                                     </p>
+
+                                    @if ($appointment->confirmed_time
+                                        && $appointment->time_slot
+                                        && $appointment->time_slot !== $appointment->confirmed_time)
+
+                                        <p class="text-[11px]
+                                                  text-gray-400
+                                                  mt-1">
+
+                                            You asked for
+                                            {{ $appointment->time_slot }}
+
+                                        </p>
+
+                                    @endif
 
                                 </div>
 
@@ -295,6 +312,10 @@
 
                                         Originally
                                         {{ $appointment->original_date->format('F j, Y') }}
+
+                                        @if ($appointment->original_time_slot)
+                                            · {{ $appointment->original_time_slot }}
+                                        @endif
 
                                         @if ($appointment->reschedule_reason)
                                             · {{ strtolower($appointment->reschedule_reason) }}

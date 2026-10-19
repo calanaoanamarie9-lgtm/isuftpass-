@@ -7,10 +7,12 @@
             'purpose' => $a->purpose,
             'date' => $a->date->format('M j, Y'),
             'raw_date' => $a->date->format('Y-m-d'),
+            'time_slot' => $a->time_slot,
             'time_to_come' => $a->timeToCome(),
             'confirmed_time' => $a->confirmed_time,
             'status' => $a->status,
             'reschedule_reason' => $a->reschedule_reason,
+            'original_time_slot' => $a->original_time_slot,
             'student_name' => $a->user->name,
             'student_email' => $a->user->email,
         ])->values();
@@ -742,18 +744,35 @@
 
 
                         {{-- RESCHEDULE INFORMATION --}}
-                        <template x-if="selected.reschedule_reason">
+                        <template x-if="selected.original_time_slot">
 
                             <div class="mt-5 rounded-xl border border-purple-100 bg-purple-50 p-4">
 
                                 <p class="text-xs font-bold uppercase tracking-wider text-purple-600">
-                                    Reschedule Reason
+                                    Previous Time Slot
                                 </p>
 
                                 <p
-                                    class="mt-1 text-sm text-purple-900"
-                                    x-text="selected.reschedule_reason"
+                                    class="mt-1 font-semibold text-purple-900"
+                                    x-text="selected.original_time_slot"
                                 ></p>
+
+                                <template x-if="selected.reschedule_reason">
+
+                                    <div class="mt-3">
+
+                                        <p class="text-xs font-bold uppercase tracking-wider text-purple-600">
+                                            Reschedule Reason
+                                        </p>
+
+                                        <p
+                                            class="mt-1 text-sm text-purple-900"
+                                            x-text="selected.reschedule_reason"
+                                        ></p>
+
+                                    </div>
+
+                                </template>
 
                             </div>
 
@@ -915,9 +934,29 @@
                             type="date"
                             x-model="rescheduleDate"
                             :min="today"
+                            @change="loadRescheduleSlots()"
                             required
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         >
+                    </div>
+
+                    {{-- New Time Slot Dropdown --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">New Time Slot</label>
+                        <select
+                            x-model="rescheduleTime"
+                            :disabled="!rescheduleDate || loadingSlots"
+                            required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                        >
+                            <option value="" disabled>
+                                <span x-text="rescheduleDate ? (loadingSlots ? 'Loading slots...' : 'Select available time') : 'Pick a date first'"></span>
+                            </option>
+                            <template x-for="slot in availableSlots" :key="slot.time">
+                                <option :value="slot.time" x-text="slot.time + ' — ' + slot.remaining + ' seat(s) left'"></option>
+                            </template>
+                        </select>
+                        <p x-show="slotError" x-text="slotError" class="mt-1.5 text-xs text-red-600"></p>
                     </div>
 
                     {{-- Reason Textarea --}}
@@ -962,7 +1001,7 @@
                     </button>
                     <button
                         @click="submitReschedule()"
-                        :disabled="submitting || !rescheduleDate || !rescheduleReason.trim()"
+                        :disabled="submitting || !rescheduleDate || !rescheduleTime || !rescheduleReason.trim()"
                         class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <svg x-show="submitting" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -992,14 +1031,19 @@
 
                 selected: null,
 
-                // The time the office wants the student to arrive. The office
-                // types the hour it wants when it approves.
+                // The time the office wants the student to arrive. Seeded from
+                // the slot they asked for so the registrar usually only has to
+                // confirm it.
                 approveTime: '',
 
                 rescheduleOpen: false,
 
                 rescheduleDate: '',
+                rescheduleTime: '',
                 rescheduleReason: '',
+                availableSlots: [],
+                loadingSlots: false,
+                slotError: '',
                 rescheduleError: '',
                 submitting: false,
 
@@ -1012,9 +1056,21 @@
 
                     this.selected = appointment;
 
-                    // The workspace's own approve form asks for a single
-                    // clock time; the office types the hour it wants.
-                    this.approveTime = '';
+                    // Offer the slot the student asked for, in the H:i a time
+                    // input understands, so approving is usually one click.
+                    const asked = (appointment.time_slot || '').trim();
+                    const match = asked.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+
+                    if (match) {
+                        let hour = parseInt(match[1], 10) % 12;
+
+                        if (/pm/i.test(match[3])) hour += 12;
+
+                        this.approveTime =
+                            String(hour).padStart(2, '0') + ':' + match[2];
+                    } else {
+                        this.approveTime = '';
+                    }
 
                 },
 
@@ -1025,11 +1081,47 @@
 
                     this.rescheduleDate = '';
 
+                    this.rescheduleTime = '';
                     this.rescheduleReason = '';
+                    this.availableSlots = [];
+                    this.slotError = '';
                     this.rescheduleError = '';
                     this.submitting = false;
 
                     this.rescheduleOpen = true;
+
+                },
+
+
+                async loadRescheduleSlots() {
+
+                    if (!this.rescheduleDate || !this.selected) {
+                        this.availableSlots = [];
+                        return;
+                    }
+
+                    this.loadingSlots = true;
+                    this.slotError = '';
+                    this.rescheduleTime = '';
+
+                    try {
+                        const res = await fetch(
+                            '{{ route($wsPrefix . ".appointments.slots") }}?office=' +
+                            encodeURIComponent(this.selected.office || '{{ auth()->user()->officeScope() }}') +
+                            '&date=' + this.rescheduleDate +
+                            '&ignore_id=' + this.selected.id,
+                            { headers: { 'Accept': 'application/json' } }
+                        );
+                        const data = await res.json();
+                        this.availableSlots = data.filter(s => s.is_open && s.remaining > 0);
+                        if (this.availableSlots.length === 0) {
+                            this.slotError = 'No open slots on this date. Try another date.';
+                        }
+                    } catch (e) {
+                        this.slotError = 'Could not load slots. Please try again.';
+                    } finally {
+                        this.loadingSlots = false;
+                    }
 
                 },
 
@@ -1051,6 +1143,7 @@
                             },
                             body: JSON.stringify({
                                 date: this.rescheduleDate,
+                                time_slot: this.rescheduleTime,
                                 reschedule_reason: this.rescheduleReason.trim(),
                             }),
                         });
