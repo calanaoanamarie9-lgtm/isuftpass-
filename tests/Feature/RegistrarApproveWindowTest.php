@@ -127,6 +127,9 @@ class RegistrarApproveWindowTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
+            // One button says what the popover actually does: approve the
+            // booking and set the hour the student should come.
+            ->assertSee('Approve & schedule')
             ->assertSee('Set date & time')
             ->assertSee('name="scheduled_date"', false)
             ->assertSee('name="start_time"', false)

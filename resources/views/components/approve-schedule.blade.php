@@ -2,9 +2,9 @@
     The registrar's answer to a booking.
 
     Two states, one anchor: a pending or for-reschedule appointment shows the
-    Approve trigger, an approved one shows the green chip with its window on
-    it. Either way the same popover opens — pick the day, the start and the
-    end, then send. Esc or a click anywhere else closes it untouched.
+    Approve & schedule trigger, an approved one shows the green chip with its
+    window on it. Either way the same popover opens — pick the day, the start
+    and the end, then send. Esc or a click anywhere else closes it untouched.
 --}}
 
 @props(['appointment'])
@@ -165,7 +165,7 @@
 
                 </svg>
 
-                Approve
+                Approve &amp; schedule
 
             </button>
 
