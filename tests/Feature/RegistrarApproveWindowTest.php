@@ -150,7 +150,7 @@ class RegistrarApproveWindowTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
-            ->assertSee('Approved:')
+            ->assertSee('Rescheduled:')
             ->assertSee('9:00 AM')
             ->assertSee('Edit');
     }

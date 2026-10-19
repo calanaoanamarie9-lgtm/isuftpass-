@@ -115,7 +115,7 @@
                 </svg>
 
                 <span>
-                    Approved: {{ $appointment->date->format('M j, Y') }},
+                    Rescheduled: {{ $appointment->date->format('M j, Y') }},
                     {{ $appointment->scheduledRange() }}
                 </span>
 
