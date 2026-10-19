@@ -1,0 +1,59 @@
+name: Cancel missed appointments
+
+# Fires the app's public /cron/auto-cancel endpoint, which cancels every
+# booking whose scheduled hour passed with nobody checked in (see
+# app/Support/AppointmentSweep.php).
+#
+# Render has no free cron tier, so - exactly like reminders.yml - this free
+# scheduled GitHub Actions workflow stands in for a paid Render cron job.
+#
+# SETUP (both required, otherwise the job fails loudly by design):
+#   1. Secret  CRON_SECRET  -> must equal the CRON_SECRET env var in Render.
+#   2. Variable APP_URL     -> your live URL, e.g. https://isuftpass-9atj.onrender.com
+#                              (optional; falls back to the Render subdomain below).
+
+on:
+  schedule:
+    # GitHub Actions cron is always UTC, and appointments run 8:00 AM -
+    # 5:00 PM Manila (UTC+8), so this has to fire *through* the working day
+    # rather than once a night. Every 30 minutes is the finest cadence that
+    # still fits the 2,000 free Actions minutes a month, and it bounds how
+    # long a missed booking can sit as "Confirmed" to half an hour.
+    - cron: '*/30 * * * *'
+  # Lets you trigger a run manually from the Actions tab to test the wiring.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cancel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger /cron/auto-cancel
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::Secret CRON_SECRET is not set. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          # Render derives the subdomain from the service name in render.yaml.
+          # Keep this in sync with APP_URL in render.yaml if the service is renamed.
+          BASE="${APP_URL:-https://isuftpass-9atj.onrender.com}"
+          BASE="${BASE%/}"
+
+          echo "GET ${BASE}/cron/auto-cancel"
+          # Generous timeout: free Render services cold-start after idle periods.
+          curl --fail --silent --show-error \
+               --retry 2 --retry-delay 15 \
+               --max-time 180 \
+               -H "X-Cron-Secret: ${CRON_SECRET}" \
+               "${BASE}/cron/auto-cancel"
+          echo ""
+          echo "OK"

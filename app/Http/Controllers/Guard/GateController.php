@@ -11,6 +11,7 @@ use App\Models\DocumentRequest;
 use App\Models\GateLog;
 use App\Models\StudentProfile;
 use App\Models\Visitor;
+use App\Support\AppointmentSweep;
 use App\Support\CampusTime;
 use App\Support\GateLogList;
 use Endroid\QrCode\QrCode;
@@ -302,6 +303,12 @@ class GateController extends Controller
      */
     private function appointmentPass(Appointment $appointment): array
     {
+        // Close the booking out before it is read: a visit whose hour ran
+        // out with nobody checked in is cancelled right here, so the desk
+        // never shows a pass as good after the appointment stopped being
+        // real - even before the scheduled sweep gets to it.
+        AppointmentSweep::cancelIfMissed($appointment);
+
         $status = AppointmentStatus::tryFrom((string) $appointment->status);
 
         $isToday = $appointment->date?->isToday() ?? false;

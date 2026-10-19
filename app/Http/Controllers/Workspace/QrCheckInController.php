@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\StudentProfile;
 use App\Models\User;
+use App\Support\AppointmentSweep;
 use App\Support\CheckInList;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -93,9 +94,9 @@ class QrCheckInController extends Controller
             ->whereDate('date', now()->toDateString());
 
         return $today()
-                ->whereIn('status', [...self::CHECKABLE, AppointmentStatus::CHECKED_IN->value])
-                ->orderBy('time_slot')
-                ->first()
+            ->whereIn('status', [...self::CHECKABLE, AppointmentStatus::CHECKED_IN->value])
+            ->orderBy('time_slot')
+            ->first()
             ?? $today()->orderBy('time_slot')->first();
     }
 
@@ -120,11 +121,17 @@ class QrCheckInController extends Controller
             );
         }
 
+        // The same close-out the gate does: an hour that ran out with no
+        // arrival is cancelled before the desk decides what this scan
+        // means, so a missed visit is reported as cancelled instead of
+        // being walked in as if the student were on time.
+        AppointmentSweep::cancelIfMissed($appointment);
+
         if (! in_array($appointment->status, self::CHECKABLE, true)) {
             return $this->answered(
                 $appointment,
                 checkedIn: false,
-                message: 'Cannot check in — this visit is ' . $appointment->statusLabel() . '.',
+                message: 'Cannot check in — this visit is '.$appointment->statusLabel().'.',
             );
         }
 
@@ -166,7 +173,7 @@ class QrCheckInController extends Controller
             'studentId' => $appointment->user->studentProfile?->student_id,
             'purpose' => $appointment->purpose,
             'office' => $appointment->office,
-            'schedule' => $appointment->date->format('M d, Y') . ' · ' . $appointment->timeToCome(),
+            'schedule' => $appointment->date->format('M d, Y').' · '.$appointment->timeToCome(),
             'status' => $appointment->statusLabel(),
             'checkedInAt' => $appointment->checked_in_at?->format('g:i A'),
             'checkIns' => CheckInList::today(auth()->user()->officeScope()),
