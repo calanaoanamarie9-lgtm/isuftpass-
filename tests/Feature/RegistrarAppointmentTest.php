@@ -77,21 +77,21 @@ class RegistrarAppointmentTest extends TestCase
     }
 
     /**
-     * The registrar reschedules from the list, where the Reschedule button
-     * sits beside View Details. The details page has no reschedule action
-     * of its own - it moves the window through Approve & schedule and its
-     * Edit link - so it loads no modal either.
+     * The registrar moves a booking's window through Approve & schedule and
+     * its Edit link, so neither the management list nor the details page
+     * offers a reschedule action, and neither loads the modal that opened
+     * one.
      */
-    public function test_the_management_list_keeps_the_reschedule_action(): void
+    public function test_the_management_list_offers_no_reschedule_action(): void
     {
         [, $appointment] = $this->makeStudentWithAppointment();
 
         $this->actingAs($this->makeRegistrar())
             ->get('/registrar/appointments')
             ->assertOk()
-            ->assertSee('open-reschedule')
-            ->assertSee('Reschedule')
-            ->assertSee('rescheduleModal()');
+            ->assertDontSee('open-reschedule')
+            ->assertDontSee('Reschedule Appointment')
+            ->assertDontSee('rescheduleModal()');
     }
 
     public function test_the_details_page_offers_no_reschedule_action(): void

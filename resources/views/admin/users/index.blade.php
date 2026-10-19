@@ -1492,8 +1492,7 @@
                                                      modal opens instead of prompting twice. --}}
                                                 <button type="button"
                                                         {{-- @js() emits 'single-quoted' JS, so the attribute
-                                                             must be double-quoted or it terminates early.
-                                                             Same construction as the open-reschedule buttons. --}}
+                                                             must be double-quoted or it terminates early. --}}
                                                         @click="$dispatch('open-reset-password', { action: @js(route('admin.users.password', $user)), email: @js($user->email) })"
                                                         class="px-4 py-2
                                                                rounded-lg
