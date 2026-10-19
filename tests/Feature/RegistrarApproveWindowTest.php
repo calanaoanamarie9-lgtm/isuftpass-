@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
+use App\Models\SlotAvailability;
 use App\Models\User;
 use App\Notifications\AppointmentApprovedNotification;
+use App\Support\SlotAvailabilityService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -131,6 +133,9 @@ class RegistrarApproveWindowTest extends TestCase
             // booking and set the hour the student should come.
             ->assertSee('Approve & schedule')
             ->assertSee('Set date & time')
+            // The popover confirms its own submission, so the global
+            // "are you sure?" handler has to leave this button alone.
+            ->assertSee('data-no-confirm', false)
             ->assertSee('name="scheduled_date"', false)
             ->assertSee('name="start_time"', false)
             ->assertSee('name="end_time"', false);
@@ -173,5 +178,76 @@ class RegistrarApproveWindowTest extends TestCase
         $this->assertSame('3:00 PM', $appointment->confirmed_time);
         $this->assertSame('15:00', $appointment->start_time);
         $this->assertNull($appointment->end_time);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | The approve popover submits by fetch, so the endpoint has to answer JSON
+    | when the browser asks for it - the success alert reads that answer.
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_a_confirmed_request_gets_a_json_answer_the_popover_can_read(): void
+    {
+        Notification::fake();
+
+        $appointment = $this->makePending();
+        $date = now()->addDays(3)->toDateString();
+
+        $this->actingAs($this->makeRegistrar())
+            ->withHeaders(['Accept' => 'application/json'])
+            ->post(route('registrar.appointments.confirm', $appointment), [
+                'scheduled_date' => $date,
+                'start_time' => '08:30',
+                'end_time' => '10:00',
+            ])
+            ->assertOk()
+            ->assertJsonStructure(['redirect', 'message']);
+
+        $appointment->refresh();
+
+        $this->assertSame(AppointmentStatus::CONFIRMED->value, $appointment->status);
+        $this->assertSame('08:30', $appointment->start_time);
+        $this->assertSame('10:00', $appointment->end_time);
+
+        Notification::assertSentTo($appointment->user, AppointmentApprovedNotification::class);
+    }
+
+    public function test_a_full_slot_comes_back_as_json_so_the_popover_can_say_why(): void
+    {
+        $date = now()->addDays(3)->toDateString();
+        $slot = '09:00 AM - 10:00 AM';
+
+        SlotAvailability::create([
+            'office_id' => app(SlotAvailabilityService::class)->officeIdFor('Registrar'),
+            'date' => $date,
+            'time_slot' => $slot,
+            'max_capacity' => 1,
+            'status' => 'available',
+        ]);
+
+        $other = User::factory()->create(['role' => 'student']);
+        $other->appointments()->create([
+            'office' => 'Registrar',
+            'purpose' => 'Enrollment',
+            'date' => $date,
+            'time_slot' => $slot,
+            'status' => AppointmentStatus::CONFIRMED->value,
+        ]);
+
+        $appointment = $this->makePending($date);
+        $appointment->update(['time_slot' => $slot]);
+
+        $this->actingAs($this->makeRegistrar())
+            ->withHeaders(['Accept' => 'application/json'])
+            ->post(route('registrar.appointments.confirm', $appointment), [
+                'scheduled_date' => $date,
+                'start_time' => '09:00',
+                'end_time' => '10:00',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonStructure(['message']);
+
+        $this->assertSame(AppointmentStatus::PENDING->value, $appointment->refresh()->status);
     }
 }

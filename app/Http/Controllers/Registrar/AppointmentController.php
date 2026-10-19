@@ -15,6 +15,7 @@ use App\Notifications\AppointmentRescheduledNotification;
 use App\Support\AuditLogger;
 use App\Support\SafeMailer;
 use App\Support\TimeSlots;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -220,7 +221,7 @@ class AppointmentController extends Controller
      * and the student is told it by email and in the system — an approval they
      * never hear about is not an approval.
      */
-    public function confirm(ApproveScheduleRequest $request, Appointment $appointment): RedirectResponse
+    public function confirm(ApproveScheduleRequest $request, Appointment $appointment): RedirectResponse|JsonResponse
     {
         // Workspace accounts reach this route too — the policy pins them to
         // their own office; only the registrar and the System Admin confirm
@@ -265,10 +266,13 @@ class AppointmentController extends Controller
             );
 
             if ($remaining < 1) {
-                return back()->with(
-                    'error',
-                    'The time slot is already at maximum capacity. Reschedule this appointment to an open slot first.'
-                );
+                $full = 'The time slot is already at maximum capacity. Reschedule this appointment to an open slot first.';
+
+                if ($request->wantsJson()) {
+                    return response()->json(['message' => $full], 422);
+                }
+
+                return back()->with('error', $full);
             }
         }
 
@@ -301,10 +305,18 @@ class AppointmentController extends Controller
                 .', student to come '.$answer.'.'
         );
 
-        return back()->with(
-            'status',
-            'Appointment approved. '.$appointment->user->name.' has been told to come '.$answer.'.'
-        );
+        $status = 'Appointment approved. '.$appointment->user->name.' has been told to come '.$answer.'.';
+
+        // The approve popover submits by fetch and reads the answer as JSON,
+        // so it can show its own success alert instead of a redirect flash.
+        if ($request->wantsJson()) {
+            return response()->json([
+                'redirect' => route('registrar.appointments.show', $appointment),
+                'message' => $status,
+            ]);
+        }
+
+        return back()->with('status', $status);
     }
 
     /**
