@@ -139,7 +139,7 @@ class AppointmentController extends Controller
         ]);
     }
 
-    public function updateReschedule(Request $request, Appointment $appointment): RedirectResponse
+    public function updateReschedule(Request $request, Appointment $appointment): RedirectResponse|JsonResponse
     {
         // Rescheduling someone else's office is the registrar's (or the
         // System Admin's) call. Workspace accounts reach this route too, so

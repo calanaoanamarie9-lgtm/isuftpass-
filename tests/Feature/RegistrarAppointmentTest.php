@@ -77,21 +77,25 @@ class RegistrarAppointmentTest extends TestCase
     }
 
     /**
-     * The registrar moves a booking's window through Approve & schedule and
-     * its Edit link, so neither the management list nor the details page
-     * offers a reschedule action, and neither loads the modal that opened
-     * one.
+     * The registrar is the only one who moves a booking: the management
+     * list offers the reschedule card beside View Details, and the details
+     * page does not - there the window moves through Approve & schedule and
+     * its Edit link.
      */
-    public function test_the_management_list_offers_no_reschedule_action(): void
+    public function test_the_management_list_offers_the_reschedule_card(): void
     {
-        [, $appointment] = $this->makeStudentWithAppointment();
+        [$student, $appointment] = $this->makeStudentWithAppointment();
 
         $this->actingAs($this->makeRegistrar())
             ->get('/registrar/appointments')
             ->assertOk()
-            ->assertDontSee('open-reschedule')
-            ->assertDontSee('Reschedule Appointment')
-            ->assertDontSee('rescheduleModal()');
+            ->assertSee('Reschedule Appointment')
+            ->assertSee('x-data="rescheduleCard(', false)
+            // The card carries whose booking it is, and where it reads and
+            // writes.
+            ->assertSee($student->name)
+            ->assertSee($appointment->reference_code)
+            ->assertSee(route('registrar.appointments.reschedule.update', $appointment), false);
     }
 
     public function test_the_details_page_offers_no_reschedule_action(): void
@@ -104,6 +108,65 @@ class RegistrarAppointmentTest extends TestCase
             ->assertDontSee('open-reschedule')
             ->assertDontSee('Reschedule Appointment')
             ->assertDontSee('rescheduleModal()');
+    }
+
+    /**
+     * The reschedule card submits by fetch, so the endpoint has to answer
+     * JSON when the browser asks for it - and say where to send the
+     * registrar afterwards.
+     */
+    public function test_the_reschedule_endpoint_answers_json_to_the_card(): void
+    {
+        Mail::fake();
+        Notification::fake();
+
+        [$student, $appointment] = $this->makeStudentWithAppointment();
+        $date = now()->addDays(4)->toDateString();
+
+        $this->actingAs($this->makeRegistrar())
+            ->withHeaders(['Accept' => 'application/json'])
+            ->put(route('registrar.appointments.reschedule.update', $appointment), [
+                'date' => $date,
+                'time_slot' => '10:00 AM - 11:00 AM',
+                'reschedule_reason' => 'Staff Unavailable',
+            ])
+            ->assertOk()
+            ->assertJsonStructure(['redirect', 'message']);
+
+        $appointment->refresh();
+
+        $this->assertSame(AppointmentStatus::RESCHEDULED->value, $appointment->status);
+        $this->assertSame($date, $appointment->date->toDateString());
+        $this->assertSame('10:00 AM - 11:00 AM', $appointment->time_slot);
+        $this->assertSame('Staff Unavailable', $appointment->reschedule_reason);
+
+        Notification::assertSentTo($student, AppointmentRescheduledNotification::class);
+    }
+
+    /**
+     * The email carries the student's updated pass and the QR that goes with
+     * it, so the student can reach their new code from their inbox.
+     */
+    public function test_the_reschedule_email_carries_the_updated_pass_and_its_qr(): void
+    {
+        Mail::fake();
+
+        [, $appointment] = $this->makeStudentWithAppointment();
+
+        $this->actingAs($this->makeRegistrar())
+            ->put(route('registrar.appointments.reschedule.update', $appointment), [
+                'date' => now()->addDays(4)->toDateString(),
+                'time_slot' => '10:00 AM - 11:00 AM',
+                'reschedule_reason' => 'Office Conflict',
+            ])
+            ->assertRedirect();
+
+        Mail::assertSent(AppointmentRescheduled::class, function (AppointmentRescheduled $mail) {
+            $html = $mail->render();
+
+            return str_contains($html, 'Your updated appointment pass')
+                && str_contains($html, '/verify/appointment/'.$mail->appointment->qr_token);
+        });
     }
 
     public function test_the_details_page_no_longer_shows_the_current_schedule_panel(): void
