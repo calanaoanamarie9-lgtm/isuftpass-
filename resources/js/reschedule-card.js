@@ -63,6 +63,11 @@ Alpine.data('rescheduleCard', (config = {}) => ({
         return this.root ? this.root.dataset.currentSlot || '' : '';
     },
 
+    // The hour the booking already had, as the office's own slot label.
+    get currentTimeSlot() {
+        return this.root ? this.root.dataset.currentTimeSlot || '' : '';
+    },
+
     // The reason the office gives. A preset is a sentence; "Other" is the
     // registrar's own words.
     get reason() {
@@ -160,6 +165,13 @@ Alpine.data('rescheduleCard', (config = {}) => ({
             const list = Array.isArray(data) ? data : (data.slots || []);
 
             this.slots = list.filter((slot) => slot.is_open && slot.remaining > 0);
+
+            // The card does not ask for a time slot: the booking keeps the
+            // hour it already had when that hour is still open on the new
+            // day, and takes the first open one when it is not.
+            const kept = this.slots.find((slot) => slot.time === this.currentTimeSlot);
+
+            this.time = (kept || this.slots[0] || {}).time || '';
         } catch (error) {
             this.error = error.message || 'Could not load the open slots.';
         } finally {
@@ -182,7 +194,7 @@ Alpine.data('rescheduleCard', (config = {}) => ({
                     <p class="text-sm font-bold text-gray-800">${this.currentDate} · ${this.currentSlot}</p>
 
                     <p class="text-[10px] uppercase tracking-widest text-gray-400 mt-4">New schedule</p>
-                    <p class="text-sm font-bold text-blue-900">${this.dateLabel(this.date)} · ${this.time ? this.clock(this.time) : 'Time set by the office'}</p>
+                    <p class="text-sm font-bold text-blue-900">${this.dateLabel(this.date)} · ${this.time ? this.clock(this.time) : 'no open slot on that day'}</p>
 
                     <p class="text-[10px] uppercase tracking-widest text-gray-400 mt-4">Reason</p>
                     <p class="text-sm font-semibold text-gray-700">${this.reason}</p>

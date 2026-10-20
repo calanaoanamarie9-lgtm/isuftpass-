@@ -52,7 +52,8 @@
      data-office="{{ $appointment?->office }}"
      data-submit-url="{{ $submitUrl }}"
      data-current-date="{{ $appointment?->date->format('F j, Y') }}"
-     data-current-slot="{{ $appointment?->confirmed_time ?? $appointment?->time_slot }}">
+     data-current-slot="{{ $appointment?->confirmed_time ?? $appointment?->time_slot }}"
+     data-current-time-slot="{{ $appointment?->time_slot }}">
 
     {{-- THE TRIGGER --}}
     <button type="button"
@@ -253,61 +254,12 @@
                               outline-none transition
                               focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
 
-            </div>
-
-
-            {{-- The new hour --}}
-            <div class="mt-4" x-show="pickSlot">
-
-                <span class="block text-[10px] uppercase tracking-widest font-black text-gray-500 mb-1.5">
-
-                    Time slot
-
-                </span>
-
-                <p x-show="!date"
-                   class="text-xs font-semibold text-gray-400">
-
-                    Pick a date first.
-
-                </p>
-
-                <p x-show="date && loadingSlots"
-                   class="text-xs font-semibold text-gray-400">
-
-                    Loading the open slots...
-
-                </p>
-
                 <p x-show="date && !loadingSlots && slots.length === 0"
-                   class="text-xs font-semibold text-gray-500">
+                   class="mt-1.5 text-xs font-semibold text-gray-500">
 
                     No open slots on that date. Try another day.
 
                 </p>
-
-                <div class="grid grid-cols-2 gap-2">
-
-                    <template x-for="slot in slots" :key="slot.time">
-
-                        <button type="button"
-                                @click="time = slot.time"
-                                :aria-pressed="time === slot.time ? 'true' : 'false'"
-                                :class="time === slot.time
-                                    ? 'border-blue-900 bg-blue-900 text-white'
-                                    : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50'"
-                                class="rounded-xl border px-3 py-2 text-left transition">
-
-                            <span class="block text-xs font-bold" x-text="slot.time"></span>
-
-                            <span class="block text-[10px] font-semibold opacity-70"
-                                  x-text="slot.remaining + ' left'"></span>
-
-                        </button>
-
-                    </template>
-
-                </div>
 
             </div>
 
