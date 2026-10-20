@@ -141,7 +141,7 @@ class RegistrarApproveWindowTest extends TestCase
             ->assertSee('name="end_time"', false);
     }
 
-    public function test_an_approved_appointment_shows_the_green_chip_with_its_window(): void
+    public function test_an_approved_appointment_shows_the_rescheduled_chip(): void
     {
         $appointment = $this->makePending();
         $appointment->update([
@@ -155,9 +155,10 @@ class RegistrarApproveWindowTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
-            ->assertSee('Rescheduled:')
-            ->assertSee('9:00 AM')
-            ->assertSee('Edit');
+            // The chip names the state; the window it used to carry is gone.
+            ->assertSee('Rescheduled')
+            ->assertDontSee('Rescheduled:')
+            ->assertDontSee('Edit');
     }
 
     public function test_the_legacy_single_time_shape_still_approves(): void

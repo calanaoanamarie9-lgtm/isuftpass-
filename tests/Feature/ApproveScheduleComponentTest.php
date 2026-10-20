@@ -44,6 +44,53 @@ class ApproveScheduleComponentTest extends TestCase
         ]);
     }
 
+    private function approvedAppointment(): Appointment
+    {
+        $appointment = $this->pendingAppointment();
+
+        $appointment->update([
+            'status' => 'confirmed',
+            'start_time' => '09:00',
+            'end_time' => '10:00',
+            'confirmed_time' => '9:00 AM',
+            'confirmed_at' => now(),
+        ]);
+
+        return $appointment;
+    }
+
+    /**
+     * Render the component on its own and hand back its DOM, so the chip and
+     * the button can be read by their own text rather than by a substring of
+     * the whole page.
+     */
+    private function renderComponent(Appointment $appointment): \DOMDocument
+    {
+        $this->withViewErrors([]);
+
+        $html = Blade::render(
+            '<x-approve-schedule :appointment="$appointment" />',
+            ['appointment' => $appointment]
+        );
+
+        $dom = new \DOMDocument;
+
+        @$dom->loadHTML($html);
+
+        return $dom;
+    }
+
+    private function buttonTexts(\DOMDocument $dom): array
+    {
+        $texts = [];
+
+        foreach ($dom->getElementsByTagName('button') as $button) {
+            $texts[] = trim(preg_replace('/\s+/', ' ', $button->textContent));
+        }
+
+        return $texts;
+    }
+
     public function test_the_popover_calls_the_registered_provider(): void
     {
         $appointment = $this->pendingAppointment();
@@ -81,6 +128,26 @@ class ApproveScheduleComponentTest extends TestCase
         $this->assertStringContainsString("Alpine.data('approveSchedule'", $source);
 
         $this->assertJavaScriptParses($source);
+    }
+
+    /**
+     * An answered booking shows the state and nothing else: the chip reads
+     * "Rescheduled" and stops there, with no button beside it.
+     */
+    public function test_an_answered_booking_shows_the_chip_alone(): void
+    {
+        $dom = $this->renderComponent($this->approvedAppointment());
+
+        $buttons = $this->buttonTexts($dom);
+
+        $this->assertNotContains('Reschedule', $buttons);
+        $this->assertNotContains('Edit', $buttons);
+
+        // The chip itself names the state and stops there.
+        $chip = (new \DOMXPath($dom))->query("//*[contains(@class, 'bg-emerald-50')]")->item(0);
+
+        $this->assertNotNull($chip, 'The Rescheduled chip is missing.');
+        $this->assertSame('Rescheduled', trim(preg_replace('/\s+/', ' ', $chip->textContent)));
     }
 
     /**

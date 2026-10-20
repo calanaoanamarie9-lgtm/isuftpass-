@@ -2,9 +2,9 @@
     The registrar's answer to a booking.
 
     Two states, one anchor: a pending or for-reschedule appointment shows the
-    Approve & schedule trigger, an approved one shows the green chip with its
-    window on it. Either way the same popover opens — pick the day, the start
-    and the end, then send. Esc or a click anywhere else closes it untouched.
+    Approve & schedule trigger, an approved one shows the green Rescheduled
+    chip. Either way the same popover opens — pick the day, the start and the
+    end, then send. Esc or a click anywhere else closes it untouched.
 --}}
 
 @props(['appointment'])
@@ -95,12 +95,12 @@
          @keydown.escape.window="open = false"
          @click.outside="open = false">
 
-        {{-- APPROVED — the answer is already given, so the chip carries it
-             and Edit only reopens the same window to move it. --}}
+        {{-- APPROVED — the answer is already given, so the chip names the
+             state and stops there. --}}
         @if ($approved)
 
             <span class="inline-flex items-center gap-2
-                         pl-3 pr-2 py-2 rounded-xl
+                         px-4 py-2 rounded-xl
                          bg-emerald-50
                          border border-emerald-200
                          text-emerald-700
@@ -118,25 +118,7 @@
 
                 </svg>
 
-                <span>
-                    Rescheduled: {{ $appointment->date->format('M j, Y') }},
-                    {{ $appointment->scheduledRange() }}
-                </span>
-
-                <button type="button"
-                        @click="open = ! open"
-                        :aria-expanded="open ? 'true' : 'false'"
-                        class="ml-1 px-1 rounded
-                               underline underline-offset-2
-                               text-emerald-800
-                               hover:text-emerald-950
-                               focus:outline-none
-                               focus-visible:ring-2
-                               focus-visible:ring-emerald-300">
-
-                    Edit
-
-                </button>
+                Rescheduled
 
             </span>
 
