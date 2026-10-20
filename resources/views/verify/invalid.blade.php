@@ -17,13 +17,7 @@
     <header class="bg-blue-950 text-white shadow-lg">
         <div class="max-w-4xl mx-auto px-5 py-4">
             <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-white rounded-xl p-1 flex items-center justify-center">
-                    <img
-                        src="{{ asset('img/isufstpass_circle_transparent.png') }}"
-                        alt="ISUFSTPASS"
-                        class="w-full h-full object-contain"
-                    >
-                </div>
+                <x-brand-logo size="xl" />
                 <div>
                     <h1 class="font-extrabold text-lg tracking-wide">ISUFSTPASS</h1>
                     <p class="text-xs text-blue-200">Digital Campus Transaction System</p>

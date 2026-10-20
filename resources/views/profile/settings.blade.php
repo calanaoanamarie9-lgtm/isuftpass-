@@ -33,18 +33,7 @@
                     <div class="flex items-center gap-4">
 
                         {{-- ISUFSTPASS LOGO --}}
-                        <div class="w-16 h-16 rounded-2xl bg-white
-                                    border border-slate-200 shadow-sm
-                                    flex items-center justify-center
-                                    overflow-hidden">
-
-                            <img
-                                src="{{ asset('img/isufstpass_circle_transparent.png') }}"
-                                alt="ISUFSTPASS Logo"
-                                class="w-14 h-14 object-contain"
-                            >
-
-                        </div>
+                        <x-brand-logo size="3xl" alt="ISUFSTPASS Logo" />
 
 
                         <div>

@@ -60,11 +60,7 @@
                                         flex items-center justify-center
                                         shadow-xl shadow-black/20">
 
-                                <img
-                                    src="{{ asset('img/isufstpass_circle_transparent.png') }}"
-                                    alt="ISUFSTPASS Logo"
-                                    class="w-12 h-12 object-contain"
-                                >
+                                <x-brand-logo size="xl" alt="ISUFSTPASS Logo" />
 
                             </div>
 
@@ -358,11 +354,7 @@
                                     flex items-center justify-center
                                     shadow-sm">
 
-                            <img
-                                src="{{ asset('img/isufstpass_circle_transparent.png') }}"
-                                alt="ISUFSTPASS"
-                                class="w-14 h-14 object-contain"
-                            >
+                            <x-brand-logo size="2xl" />
 
                         </div>
 

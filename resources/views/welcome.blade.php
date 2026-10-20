@@ -35,11 +35,7 @@
                 {{-- Logo --}}
                 <a href="{{ url('/') }}" class="flex items-center gap-3">
 
-                    <img
-                        src="{{ asset('img/isufstpass_circle_transparent.png') }}"
-                        alt="ISUFSTPASS Logo"
-                        class="w-12 h-12 object-contain"
-                    >
+                    <x-brand-logo size="xl" alt="ISUFSTPASS Logo" />
 
                     <div class="leading-tight">
                         <h1 class="text-lg font-extrabold text-blue-900">
@@ -863,11 +859,7 @@
 
                     <div class="flex items-center gap-3">
 
-                        <img
-                            src="{{ asset('img/isufstpass_circle_transparent.png') }}"
-                            alt="ISUFSTPASS"
-                            class="w-11 h-11 object-contain"
-                        >
+                        <x-brand-logo size="lg" />
 
                         <div>
 

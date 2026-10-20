@@ -44,15 +44,7 @@
                     <!-- Logo -->
                     <div class="flex items-center gap-4">
 
-                        <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-
-                            <img
-                                src="{{ asset('img/isufstpass_circle_transparent.png') }}"
-                                alt="ISUFSTPASS Logo"
-                                class="w-12 h-12 object-contain"
-                            >
-
-                        </div>
+                        <x-brand-logo size="3xl" alt="ISUFSTPASS Logo" />
 
                         <div>
                             <p class="font-extrabold text-xl tracking-wide">
@@ -263,15 +255,7 @@
                     <!-- Mobile Logo -->
                     <div class="flex lg:hidden items-center justify-center mb-7">
 
-                        <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center">
-
-                            <img
-                                src="{{ asset('img/isufstpass_circle_transparent.png') }}"
-                                alt="ISUFSTPASS"
-                                class="w-12 h-12 object-contain"
-                            >
-
-                        </div>
+                        <x-brand-logo size="3xl" />
 
                     </div>
 

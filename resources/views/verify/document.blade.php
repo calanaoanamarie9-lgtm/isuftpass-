@@ -119,11 +119,7 @@
                     {{-- Logo / Brand --}}
                     <div class="flex items-center gap-3">
 
-                        <div class="w-12 h-12 sm:w-14 sm:h-14 shrink-0">
-                            <img src="{{ asset('img/isufstpass_circle_transparent.png') }}"
-                                 alt="ISUFSTPASS"
-                                 class="w-full h-full object-contain">
-                        </div>
+                        <x-brand-logo size="xl" />
 
                         <div>
                             <p class="text-[10px] sm:text-xs font-bold tracking-[0.18em] text-blue-200 uppercase">
@@ -173,11 +169,7 @@
             <div class="px-6 sm:px-10 pt-6">
 
                 <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 sm:w-14 sm:h-14 shrink-0">
-                        <img src="{{ asset('img/isufstpass_circle_transparent.png') }}"
-                             alt="ISUFSTPASS"
-                             class="w-full h-full object-contain">
-                    </div>
+                    <x-brand-logo size="xl" />
 
                     <div>
                         <h1 class="text-xl sm:text-2xl font-black text-gray-900 tracking-wide">

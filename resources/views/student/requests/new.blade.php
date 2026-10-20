@@ -17,19 +17,7 @@
                 <div class="flex items-center gap-4">
 
                     {{-- LOGO --}}
-                    <div class="w-16 h-16
-                                rounded-2xl
-                                bg-gray-900
-                                flex items-center justify-center
-                                shadow-md
-                                overflow-hidden
-                                shrink-0">
-
-                        <img src="{{ asset('img/isufstpass_circle_transparent.png') }}"
-                             alt="ISUFSTPASS"
-                             class="w-full h-full object-contain">
-
-                    </div>
+                    <x-brand-logo size="3xl" />
 
                     {{-- TITLE --}}
                     <div>

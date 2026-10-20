@@ -8,7 +8,7 @@
     <div class="absolute -top-16 -right-16 w-40 h-40 bg-blue-700/40 rounded-full blur-2xl pointer-events-none"></div>
 
     <div class="relative flex items-center gap-2">
-        <img src="{{ asset('img/isufstpass_circle_transparent.png') }}" alt="ISUFSTPASS" class="w-7 h-7 object-contain">
+        <x-brand-logo size="tiny" />
         <p class="font-extrabold text-white text-sm leading-tight">ISUFSTPASS</p>
     </div>
 

@@ -38,7 +38,7 @@
                             </svg>
                         </button>
                         <div class="flex items-center gap-2">
-                            <img src="{{ asset('img/isufstpass_circle_transparent.png') }}" alt="ISUFSTPASS" class="w-8 h-8 object-contain">
+                            <x-brand-logo size="xs" />
                             <span class="font-extrabold text-sm">ISUFSTPASS</span>
                         </div>
                     </div>

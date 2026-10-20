@@ -87,13 +87,7 @@
                     pointer-events-none"></div>
 
         <div class="relative flex items-center gap-3">
-            <div class="w-9 h-9 flex items-center justify-center shrink-0">
-                <img
-                    src="{{ asset('img/isufstpass_circle_transparent.png') }}"
-                    alt="ISUFSTPASS"
-                    class="w-9 h-9 object-contain"
-                >
-            </div>
+            <x-brand-logo size="sm" />
 
             <div class="leading-tight min-w-0">
                 <p class="text-sm font-bold text-white tracking-wide truncate">

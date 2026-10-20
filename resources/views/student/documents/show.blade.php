@@ -247,23 +247,7 @@
                                        gap-3 mb-5"
                             >
 
-                                <div
-                                    class="w-11 h-11
-                                           rounded-full
-                                           bg-white
-                                           flex items-center
-                                           justify-center
-                                           overflow-hidden
-                                           shadow"
-                                >
-
-                                    <img
-                                        src="{{ asset('img/isufstpass_circle_transparent.png') }}"
-                                        alt="ISUFSTPASS"
-                                        class="w-9 h-9 object-contain"
-                                    >
-
-                                </div>
+                                <x-brand-logo size="lg" />
 
 
                                 <div>
