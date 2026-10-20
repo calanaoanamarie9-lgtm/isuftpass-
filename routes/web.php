@@ -426,7 +426,7 @@ Route::middleware(['auth', 'verified', 'role:student'])->prefix('student')->name
     Route::get('/help', [HelpController::class, 'index'])->name('help.index');
 });
 
-Route::middleware(['auth', 'verified', 'role:registrar,department'])->prefix('registrar')->name('registrar.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:registrar,department,admin'])->prefix('registrar')->name('registrar.')->group(function () {
 
     // Appointment slot availability (calendar colors consumed by student/reschedule pages)
     Route::get('/availability/month', [AvailabilityController::class, 'month'])->name('availability.month');
@@ -481,6 +481,28 @@ Route::middleware(['auth', 'verified', 'role:registrar,department'])->prefix('re
 });
 
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+
+    /*
+    |--------------------------------------------------------------------------
+    | The pages the System Admin shares with the Registrar
+    |--------------------------------------------------------------------------
+    |
+    | The admin's own sidebar opens the appointments, document requests and
+    | QR scanner under /admin, so the panel reads as one place. They are the
+    | Registrar's own pages - the policies have always let the admin manage
+    | any office's bookings - and the actions they post to work unchanged,
+    | because the registrar routes accept the admin too.
+    |
+    */
+
+    Route::get('/appointments', [RegistrarAppointmentController::class, 'index'])
+        ->name('appointments.index');
+
+    Route::get('/document-requests', [RegistrarDocumentRequestController::class, 'index'])
+        ->name('document-requests.index');
+
+    Route::get('/qr', [QrVerifyController::class, 'index'])
+        ->name('qr.index');
 
     // User Management (accounts, roles, activation)
     Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');

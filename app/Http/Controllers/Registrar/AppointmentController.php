@@ -52,8 +52,14 @@ class AppointmentController extends Controller
             'cancelled' => AppointmentStatus::CANCELLED->value,
         ][$statusFilter] ?? null;
 
+        // The System Admin answers for every office, so their appointment
+        // list is not narrowed to one - the list names the office on each
+        // row. A registrar or an office account still sees only its own.
         $appointmentsQuery = Appointment::with('user')
-            ->where('office', auth()->user()->officeScope())
+            ->when(
+                auth()->user()->role !== 'admin',
+                fn ($query) => $query->where('office', auth()->user()->officeScope())
+            )
             ->when($status, fn ($query) => $query->where('status', $status));
 
         // Applicant classification filter. "Student" is every account that
