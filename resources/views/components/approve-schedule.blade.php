@@ -92,19 +92,27 @@
              officeOpen: @js($hours['open']),
              officeClose: @js($hours['close']),
          })"
-         @keydown.escape.window="open = false"
-         @click.outside="open = false">
+         @keydown.escape.window="open = false; details = false"
+         @click.outside="open = false; details = false">
 
         {{-- APPROVED — the answer is already given, so the chip names the
-             state and stops there. --}}
+             state and the card behind it carries the schedule. --}}
         @if ($approved)
 
-            <span class="inline-flex items-center gap-2
-                         px-4 py-2 rounded-xl
-                         bg-emerald-50
-                         border border-emerald-200
-                         text-emerald-700
-                         text-xs font-bold">
+            <button type="button"
+                    @click="details = ! details"
+                    :aria-expanded="details ? 'true' : 'false'"
+                    class="inline-flex items-center gap-2
+                           px-4 py-2 rounded-xl
+                           bg-emerald-50
+                           border border-emerald-200
+                           text-emerald-700
+                           text-xs font-bold
+                           hover:bg-emerald-100
+                           focus:outline-none
+                           focus-visible:ring-2
+                           focus-visible:ring-emerald-300
+                           transition">
 
                 <svg class="w-4 h-4 shrink-0"
                      fill="none"
@@ -120,7 +128,161 @@
 
                 Rescheduled
 
-            </span>
+                <svg class="w-3.5 h-3.5 shrink-0 opacity-60"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+
+                    <path stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 9l-7 7-7-7"/>
+
+                </svg>
+
+            </button>
+
+
+            {{-- THE CARD — the schedule behind the chip, and the story of the
+                 move when there is one. --}}
+            <div x-show="details"
+                 x-cloak
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 -translate-y-1"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+
+                 class="absolute left-0 top-full mt-2 z-40
+                        w-80 max-w-[calc(100vw_-_2rem)]
+                        rounded-2xl
+                        border border-gray-100
+                        bg-white
+                        p-5
+                        shadow-xl shadow-slate-900/10">
+
+                <h4 class="text-sm font-black text-gray-800">
+
+                    Rescheduled
+
+                </h4>
+
+                <p class="mt-0.5 text-[11px] font-semibold text-gray-400">
+
+                    The schedule that was set.
+
+                </p>
+
+                <dl class="mt-4 space-y-3.5">
+
+                    <div>
+
+                        <dt class="text-[10px]
+                                   uppercase
+                                   tracking-widest
+                                   font-black
+                                   text-gray-500">
+
+                            Schedule
+
+                        </dt>
+
+                        <dd class="mt-1 text-sm font-bold text-gray-800">
+
+                            {{ $appointment->date->format('F j, Y') }}
+
+                            <span class="block text-xs font-semibold text-gray-500">
+
+                                {{ $appointment->scheduledRange() }}
+
+                            </span>
+
+                        </dd>
+
+                    </div>
+
+
+                    @if ($appointment->original_date)
+
+                        <div>
+
+                            <dt class="text-[10px]
+                                       uppercase
+                                       tracking-widest
+                                       font-black
+                                       text-gray-500">
+
+                                Moved from
+
+                            </dt>
+
+                            <dd class="mt-1 text-sm font-bold text-gray-800">
+
+                                {{ $appointment->original_date->format('F j, Y') }}
+
+                                <span class="block text-xs font-semibold text-gray-500">
+
+                                    {{ $appointment->original_time_slot ?? '—' }}
+
+                                </span>
+
+                            </dd>
+
+                        </div>
+
+                    @endif
+
+
+                    @if ($appointment->rescheduled_at)
+
+                        <div>
+
+                            <dt class="text-[10px]
+                                       uppercase
+                                       tracking-widest
+                                       font-black
+                                       text-gray-500">
+
+                                Rescheduled on
+
+                            </dt>
+
+                            <dd class="mt-1 text-sm font-bold text-gray-800">
+
+                                {{ $appointment->rescheduled_at->format('M j, Y g:i A') }}
+
+                            </dd>
+
+                        </div>
+
+                    @endif
+
+
+                    @if ($appointment->reschedule_reason)
+
+                        <div>
+
+                            <dt class="text-[10px]
+                                       uppercase
+                                       tracking-widest
+                                       font-black
+                                       text-gray-500">
+
+                                Reason
+
+                            </dt>
+
+                            <dd class="mt-1 text-sm font-semibold text-gray-700">
+
+                                {{ $appointment->reschedule_reason }}
+
+                            </dd>
+
+                        </div>
+
+                    @endif
+
+                </dl>
+
+            </div>
 
         {{-- NOT YET — one click opens the whole answer. --}}
         @else

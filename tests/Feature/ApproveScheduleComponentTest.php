@@ -151,6 +151,26 @@ class ApproveScheduleComponentTest extends TestCase
     }
 
     /**
+     * The chip is a toggle: it opens a card carrying the schedule, so the
+     * registrar can read the day and the hour without scrolling to it.
+     */
+    public function test_the_chip_opens_a_card_carrying_the_schedule(): void
+    {
+        $dom = $this->renderComponent($this->approvedAppointment());
+
+        $card = (new \DOMXPath($dom))->query("//*[@x-show='details']")->item(0);
+
+        $this->assertNotNull($card, 'The Rescheduled card is missing.');
+
+        $text = trim(preg_replace('/\s+/', ' ', $card->textContent));
+
+        $this->assertStringContainsString('Rescheduled', $text);
+        $this->assertStringContainsString('Schedule', $text);
+        $this->assertStringContainsString('9:00 AM', $text);
+        $this->assertStringContainsString('10:00 AM', $text);
+    }
+
+    /**
      * Parse the source with Node, the same engine that runs it in the
      * browser. Skipped when Node is not installed - the build still catches
      * a broken file there.
