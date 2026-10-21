@@ -177,6 +177,72 @@ class RescheduleCardTest extends TestCase
     }
 
     /**
+     * The card asks for a clock, not a range: one time, held inside the
+     * hours the office keeps.
+     */
+    public function test_the_card_asks_for_a_time_inside_the_offices_hours(): void
+    {
+        [, $appointment] = $this->makeBooking();
+
+        $html = $this->renderCard($appointment);
+
+        $this->assertStringContainsString('type="time"', $html);
+        $this->assertStringContainsString('Office hours', $html);
+        $this->assertStringContainsString('8:00 AM', $html);
+        $this->assertStringContainsString('5:00 PM', $html);
+        // A clock, not a slot range.
+        $this->assertStringNotContainsString('New time slot', $html);
+    }
+
+    /**
+     * A reschedule with an hour answers with that hour: the window it
+     * covers, the time the pass reads, and the office's own slot that
+     * begins there.
+     */
+    public function test_a_reschedule_with_a_time_moves_the_hour(): void
+    {
+        Mail::fake();
+
+        [, $appointment] = $this->makeBooking(AppointmentStatus::CONFIRMED->value);
+
+        $this->actingAs($this->makeRegistrar())
+            ->put(route('registrar.appointments.reschedule.update', $appointment), [
+                'date' => now()->addDays(5)->toDateString(),
+                'time' => '10:00',
+                'reschedule_reason' => 'Office closure',
+            ])
+            ->assertRedirect();
+
+        $appointment->refresh();
+
+        $this->assertEquals('10:00', $appointment->start_time);
+        $this->assertEquals('11:00', $appointment->end_time);
+        $this->assertEquals('10:00 AM', $appointment->confirmed_time);
+        $this->assertEquals('10:00 AM - 11:00 AM', $appointment->time_slot);
+    }
+
+    /**
+     * The office keeps its own hours, and a time outside them is refused
+     * rather than stored.
+     */
+    public function test_a_time_outside_the_offices_hours_is_refused(): void
+    {
+        Mail::fake();
+
+        [, $appointment] = $this->makeBooking(AppointmentStatus::CONFIRMED->value);
+
+        $this->actingAs($this->makeRegistrar())
+            ->put(route('registrar.appointments.reschedule.update', $appointment), [
+                'date' => now()->addDays(5)->toDateString(),
+                'time' => '03:00',
+                'reschedule_reason' => 'Office closure',
+            ])
+            ->assertSessionHasErrors('time');
+
+        Mail::assertNothingSent();
+    }
+
+    /**
      * A booking that moves day keeps the hour it held: the card asks for a
      * day, and the office's own hour travels with the booking.
      */

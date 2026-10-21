@@ -165,23 +165,41 @@ class AppointmentController extends Controller
 
         $data = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today'],
+            'time' => ['nullable', 'date_format:H:i'],
             'time_slot' => ['nullable', Rule::in(TimeSlots::forOffice($appointment->office))],
             'reschedule_reason' => ['required', 'string', 'max:500'],
         ]);
 
-        // The card asks for a day and a reason. The hour the booking already
-        // holds travels with it: a booking whose office answers with the
-        // hour has none to hold, and waits for one to be set.
-        $timeSlot = $data['time_slot'] ?? $appointment->time_slot;
+        $hours = TimeSlots::hoursFor($appointment->office);
 
-        if ($timeSlot !== null) {
-            $remaining = Appointment::remainingSlots($appointment->office, $data['date'], $timeSlot, $appointment->id);
+        // The hour the student is told to turn up, and the window it covers.
+        // The office answers with a clock, not a range: the range is the
+        // hour the office keeps that begins there.
+        $start = $data['time'] ?? null;
+        $end = null;
+        $slot = $data['time_slot'] ?? $appointment->time_slot;
+
+        if ($start !== null) {
+            if ($start < $hours['open'] || $start > $hours['close']) {
+                throw ValidationException::withMessages([
+                    'time' => 'The time has to sit inside office hours ('
+                        .self::clock($hours['open']).' - '.self::clock($hours['close']).').',
+                ]);
+            }
+
+            [$slot, $end] = $this->windowFor($appointment->office, $start);
+        }
+
+        // A booking the card did not name a slot for keeps the hour it
+        // holds, and the seat that hour has on the new day is checked.
+        if ($slot !== null) {
+            $remaining = Appointment::remainingSlots($appointment->office, $data['date'], $slot, $appointment->id);
 
             if ($remaining < 1) {
                 throw ValidationException::withMessages([
                     // A slot the request named is the slot's own fault; one
                     // the booking carried is the day that is wrong.
-                    $data['time_slot'] !== null ? 'time_slot' : 'date' => 'The '.$timeSlot.' slot is already full on that date. Pick another day.',
+                    $data['time_slot'] !== null ? 'time_slot' : 'date' => 'The '.$slot.' slot is already full on that date. Pick another day.',
                 ]);
             }
         }
@@ -190,7 +208,10 @@ class AppointmentController extends Controller
             'original_date' => $appointment->original_date ?? $appointment->date,
             'original_time_slot' => $appointment->original_time_slot ?? $appointment->time_slot,
             'date' => $data['date'],
-            'time_slot' => $timeSlot,
+            'time_slot' => $slot,
+            'start_time' => $start ?? $appointment->start_time,
+            'end_time' => $end ?? $appointment->end_time,
+            'confirmed_time' => $start !== null ? self::clock($start) : $appointment->confirmed_time,
             'reschedule_reason' => $data['reschedule_reason'],
             'status' => AppointmentStatus::RESCHEDULED->value,
             'confirmed_at' => null,
@@ -204,7 +225,7 @@ class AppointmentController extends Controller
         SafeMailer::send($appointment->user, new AppointmentRescheduled($appointment, $oldSchedule));
         $appointment->user->notify(new AppointmentRescheduledNotification($appointment));
 
-        AuditLogger::log('appointment.rescheduled', 'Rescheduled appointment '.$appointment->reference_code.' to '.$data['date'].' ('.($timeSlot ?? 'hour to be set').').');
+        AuditLogger::log('appointment.rescheduled', 'Rescheduled appointment '.$appointment->reference_code.' to '.$data['date'].' ('.($slot ?? 'hour to be set').').');
 
         // The registrar works from the appointment record itself; each of the
         // eight workspaces has its own appointment list instead. Sending a
@@ -342,6 +363,46 @@ class AppointmentController extends Controller
         [$hour, $minute] = array_map('intval', explode(':', $time));
 
         return sprintf('%d:%02d %s', $hour % 12 ?: 12, $minute, $hour < 12 ? 'AM' : 'PM');
+    }
+
+    /**
+     * The office's own hour that begins at a given clock, and the hour it
+     * ends: the slot the booking will sit in, and the window it covers.
+     *
+     * An office whose hours do not begin at that clock gets an hour of its
+     * own instead, and no slot - the booking still has a time, it simply
+     * does not take up one of the office's numbered hours.
+     *
+     * @return array{0: string|null, 1: string|null}
+     */
+    private function windowFor(string $office, string $start): array
+    {
+        foreach (TimeSlots::forOffice($office) as $label) {
+            [$from, $to] = array_pad(explode(' - ', $label, 2), 2, '');
+
+            if (self::twentyFour($from) === $start) {
+                return [$label, self::twentyFour($to)];
+            }
+        }
+
+        $end = Carbon::parse($start)->addHour()->format('H:i');
+
+        return [null, $end];
+    }
+
+    /**
+     * A clock the office reads ("9:00 AM") as the H:i the system stores
+     * ("09:00"). Null when the label is not a clock at all.
+     */
+    private static function twentyFour(string $label): ?string
+    {
+        if (! preg_match('/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i', trim($label), $matches)) {
+            return null;
+        }
+
+        $hour = ((int) $matches[1]) % 12 + (strtoupper($matches[3]) === 'PM' ? 12 : 0);
+
+        return sprintf('%02d:%02d', $hour, (int) $matches[2]);
     }
 
     /**

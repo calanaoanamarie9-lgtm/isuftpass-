@@ -44,6 +44,43 @@
         'Staff Unavailable',
         'User Request',
     ];
+
+    // The hours the office keeps, and the one this booking holds now: the
+    // window it was given, else the slot it asked for, else the hour the
+    // office opens.
+    $hours = \App\Support\TimeSlots::hoursFor($appointment?->office);
+
+    $clock = function (?string $time): ?string {
+        if (! $time) {
+            return null;
+        }
+
+        [$hour, $minute] = array_pad(explode(':', substr($time, 0, 5), 2), 2, '00');
+
+        return sprintf('%02d:%02d', (int) $hour, (int) $minute);
+    };
+
+    $currentTime = $clock($appointment?->start_time);
+
+    if ($currentTime === null && $appointment?->time_slot) {
+        [$from] = array_pad(explode(' - ', (string) $appointment->time_slot, 2), 2, '');
+
+        if (preg_match('/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i', trim($from), $matches)) {
+            $hour = ((int) $matches[1]) % 12 + (strtoupper($matches[3]) === 'PM' ? 12 : 0);
+
+            $currentTime = sprintf('%02d:%02d', $hour, (int) $matches[2]);
+        }
+    }
+
+    $currentTime = $currentTime ?? $hours['open'];
+
+    $clockLabel = function (?string $time): string {
+        [$hour, $minute] = array_pad(explode(':', (string) $time, 2), 2, '00');
+
+        $hour = (int) $hour;
+
+        return sprintf('%d:%02d %s', $hour % 12 ?: 12, (int) $minute, $hour < 12 ? 'AM' : 'PM');
+    };
 @endphp
 
 <div class="relative"
@@ -65,7 +102,10 @@
      data-office="{{ $appointment?->office }}"
      data-submit-url="{{ $submitUrl }}"
      data-current-date="{{ $appointment?->date->format('F j, Y') }}"
-     data-current-slot="{{ $appointment?->time_slot ?? $appointment?->confirmed_time }}">
+     data-current-slot="{{ $appointment?->time_slot ?? $appointment?->confirmed_time }}"
+     data-current-time="{{ $currentTime }}"
+     data-office-open="{{ $hours['open'] }}"
+     data-office-close="{{ $hours['close'] }}">
 
     {{-- THE TRIGGER --}}
     @if ($trigger)
@@ -307,6 +347,47 @@
                 <p x-show="date" class="mt-2 text-sm font-bold text-gray-800">
 
                     New day: <span x-text="date ? dateLabel(date) : ''"></span>
+
+                </p>
+
+            </div>
+
+
+            {{-- The hour the student should turn up. One clock, not a range:
+                 the office answers with the time, and the window it covers
+                 follows from it. --}}
+            <div class="mt-5">
+
+                <label for="reschedule-time-{{ $appointment?->id }}"
+                       class="block text-[10px] uppercase tracking-widest font-black text-gray-500 mb-1.5">
+
+                    Time
+
+                </label>
+
+                <input id="reschedule-time-{{ $appointment?->id }}"
+                       type="time"
+                       x-model="time"
+                       :min="officeOpen"
+                       :max="officeClose"
+                       required
+
+                       class="w-full rounded-xl
+                              border border-gray-200
+                              bg-white
+                              px-3 py-2.5
+                              text-sm font-bold text-gray-800
+                              outline-none transition
+                              focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+
+                <p class="mt-1.5 text-[11px]
+                          font-semibold
+                          text-gray-400">
+
+                    Office hours
+                    {{ $clockLabel($hours['open']) }}
+                    –
+                    {{ $clockLabel($hours['close']) }}
 
                 </p>
 
