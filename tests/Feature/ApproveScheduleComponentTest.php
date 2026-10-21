@@ -60,22 +60,29 @@ class ApproveScheduleComponentTest extends TestCase
     }
 
     /**
-     * Render the component on its own and hand back its DOM, so the chip and
-     * the button can be read by their own text rather than by a substring of
-     * the whole page.
+     * Render the component on its own and hand back its markup, so the chip
+     * and the button can be read by their own text rather than by a
+     * substring of the whole page.
      */
-    private function renderComponent(Appointment $appointment): \DOMDocument
+    private function renderMarkup(Appointment $appointment): string
     {
         $this->withViewErrors([]);
 
-        $html = Blade::render(
+        return Blade::render(
             '<x-approve-schedule :appointment="$appointment" />',
             ['appointment' => $appointment]
         );
+    }
 
+    /**
+     * The same markup, parsed, so the chip and the button can be found by
+     * their own text.
+     */
+    private function renderComponent(Appointment $appointment): \DOMDocument
+    {
         $dom = new \DOMDocument;
 
-        @$dom->loadHTML($html);
+        @$dom->loadHTML($this->renderMarkup($appointment));
 
         return $dom;
     }
@@ -151,23 +158,33 @@ class ApproveScheduleComponentTest extends TestCase
     }
 
     /**
-     * The chip is a toggle: it opens a card carrying the schedule, so the
-     * registrar can read the day and the hour without scrolling to it.
+     * The chip is the trigger for the reschedule modal: it announces the
+     * booking it means, and the modal beside it is the thing that opens.
      */
-    public function test_the_chip_opens_a_card_carrying_the_schedule(): void
+    public function test_the_chip_opens_the_reschedule_modal(): void
     {
-        $dom = $this->renderComponent($this->approvedAppointment());
+        $appointment = $this->approvedAppointment();
 
+        $dom = $this->renderComponent($appointment);
+
+        $chip = (new \DOMXPath($dom))->query("//*[contains(@class, 'bg-emerald-50')]")->item(0);
+
+        $this->assertNotNull($chip, 'The Rescheduled chip is missing.');
+
+        // The chip announces the booking it means; the modal beside it is
+        // the thing that opens.
+        $markup = $this->renderMarkup($appointment);
+
+        $this->assertStringContainsString(
+            "\$dispatch('open-reschedule', { id: ".$appointment->id.' })',
+            $markup,
+        );
+
+        // The chip opens nothing of its own: there is no card of its own
+        // behind it any more.
         $card = (new \DOMXPath($dom))->query("//*[@x-show='details']")->item(0);
 
-        $this->assertNotNull($card, 'The Rescheduled card is missing.');
-
-        $text = trim(preg_replace('/\s+/', ' ', $card->textContent));
-
-        $this->assertStringContainsString('Rescheduled', $text);
-        $this->assertStringContainsString('Schedule', $text);
-        $this->assertStringContainsString('9:00 AM', $text);
-        $this->assertStringContainsString('10:00 AM', $text);
+        $this->assertNull($card, 'The chip still carries a card of its own.');
     }
 
     /**

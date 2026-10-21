@@ -12,19 +12,18 @@ use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
- * The card that moves a booking to another day and hour.
+ * The modal that moves a booking to another day.
  *
  * It has to answer three questions before the registrar touches anything:
- * which booking this is, what it holds today, and what the office still
- * has open. So the modal carries the reference number, the office, the
- * current day and hour, and a calendar that colours the month the same way
- * the booking form does - green where there is room, red where there is
- * none - with the hours that day still has open listed underneath.
+ * which booking this is, what it holds today, and which day it could move
+ * to. So the modal carries the reference number, the student, the office,
+ * the current day and hour, and a calendar that colours the month the same
+ * way the booking form does - green where the office still has room, red
+ * where it does not.
  *
- * No page carries the card at the moment: the management list is for
- * scanning, and the appointment record is for reading. The modal and the
- * flow behind it are still here, ready to be put back wherever a booking
- * is moved.
+ * There is one way in: the green status chip on the appointment record is
+ * the trigger. The card brings no button of its own, so a booking is moved
+ * from the one place that says what it holds.
  */
 class RescheduleCardTest extends TestCase
 {
@@ -51,14 +50,14 @@ class RescheduleCardTest extends TestCase
     }
 
     /**
-     * The card is drawn on its own: no page carries it, so the component is
-     * tested as the piece it is.
+     * The card is drawn on its own here, so the component is tested as the
+     * piece it is.
      */
     private function renderCard(Appointment $appointment): string
     {
         return Blade::render(
             '<x-reschedule-card :appointment="$appointment"'
-            .' slots-url="/slots" month-url="/month" submit-url="/submit" />',
+            .' month-url="/month" submit-url="/submit" />',
             ['appointment' => $appointment],
         );
     }
@@ -72,7 +71,8 @@ class RescheduleCardTest extends TestCase
         // The header carries the title and the reference together.
         $this->assertStringContainsString('Reschedule Appointment', $html);
         $this->assertStringContainsString($appointment->reference_code, $html);
-        // The summary says what the booking holds today.
+        // The details say what the booking holds today.
+        $this->assertStringContainsString('Student name', $html);
         $this->assertStringContainsString('Office', $html);
         $this->assertStringContainsString('Current date', $html);
         $this->assertStringContainsString('Current time slot', $html);
@@ -101,33 +101,61 @@ class RescheduleCardTest extends TestCase
     }
 
     /**
-     * The record says what the move set, so a student who asks where their
-     * appointment went is answered on the page.
+     * The green chip is the reschedule button: it opens the modal, and the
+     * modal is the only reschedule control on the record - there is no
+     * second button beside it.
      */
-    public function test_the_record_says_which_schedule_was_set(): void
+    public function test_the_status_badge_opens_the_modal_and_there_is_no_other_button(): void
     {
-        [, $appointment] = $this->makeBooking();
+        [, $appointment] = $this->makeBooking(AppointmentStatus::CONFIRMED->value);
 
-        // Nothing has moved yet, so the record has nothing to say.
-        $this->actingAs($this->makeRegistrar())
+        $html = $this->actingAs($this->makeRegistrar())
             ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
-            ->assertDontSee('The schedule that was set.');
+            ->getContent();
 
-        $this->actingAs($this->makeRegistrar())
-            ->put(route('registrar.appointments.reschedule.update', $appointment), [
-                'date' => now()->addDays(5)->toDateString(),
-                'reschedule_reason' => 'Office closure',
-            ]);
+        // The chip announces the booking it means.
+        $this->assertStringContainsString(
+            "\$dispatch('open-reschedule', { id: ".$appointment->id.' })',
+            $html,
+        );
+        // The modal answers that announcement, and only that booking's.
+        $this->assertStringContainsString('@open-reschedule.window', $html);
+        $this->assertSame(1, substr_count($html, 'x-data="rescheduleCard('));
+        // The modal carries what the student and the office need to see.
+        $this->assertSame(1, substr_count($html, 'Reschedule Appointment'));
+        $this->assertStringContainsString($appointment->reference_code, $html);
+        $this->assertStringContainsString('Choose a reason', $html);
+        $this->assertStringContainsString('New date', $html);
+    }
 
-        $this->actingAs($this->makeRegistrar())
+    /**
+     * The card brings no button of its own: the chip is the trigger, so
+     * there is one way in and not two.
+     */
+    public function test_the_card_brings_no_button_of_its_own(): void
+    {
+        [, $appointment] = $this->makeBooking(AppointmentStatus::CONFIRMED->value);
+
+        $html = $this->actingAs($this->makeRegistrar())
             ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
-            ->assertSee('Rescheduled')
-            ->assertSee('The schedule that was set.')
-            ->assertSee('Schedule')
-            ->assertSee($appointment->refresh()->date->format('F j, Y'))
-            ->assertSee('09:00 AM - 10:00 AM');
+            ->getContent();
+
+        // The trigger button of the card is not on the page; the chip is.
+        $this->assertStringNotContainsString(":aria-expanded=\"open ? 'true' : 'false'\"", $html);
+        $this->assertStringContainsString('aria-haspopup="dialog"', $html);
+    }
+
+    /**
+     * The management list is for scanning, so it carries no modal.
+     */
+    public function test_the_management_list_carries_no_modal(): void
+    {
+        $this->actingAs($this->makeRegistrar())
+            ->get(route('registrar.appointments.index'))
+            ->assertOk()
+            ->assertDontSee('x-data="rescheduleCard(', false);
     }
 
     /**
@@ -155,81 +183,6 @@ class RescheduleCardTest extends TestCase
         $this->assertEquals($date, $appointment->date->toDateString());
         $this->assertEquals('09:00 AM - 10:00 AM', $appointment->time_slot);
         $this->assertEquals(now()->addDays(2)->toDateString(), $appointment->original_date->toDateString());
-    }
-
-    /**
-     * No page carries the card: the management list is for scanning, and the
-     * registrar's record is for reading and answering. The modal and the
-     * flow behind it are still here, ready to be put back wherever a
-     * booking is moved.
-     */
-    public function test_no_page_carries_the_reschedule_card(): void
-    {
-        [, $appointment] = $this->makeBooking(AppointmentStatus::CONFIRMED->value);
-
-        $this->actingAs($this->makeRegistrar())
-            ->get(route('registrar.appointments.index'))
-            ->assertOk()
-            ->assertDontSee('x-data="rescheduleCard(', false);
-
-        $this->actingAs($this->makeRegistrar())
-            ->get(route('registrar.appointments.show', $appointment))
-            ->assertOk()
-            ->assertDontSee('x-data="rescheduleCard(', false)
-            ->assertDontSee('Reschedule Appointment');
-    }
-
-    /**
-     * The green chip is the status, not an action: it opens the card that
-     * says which schedule was set, and it opens nothing else.
-     */
-    public function test_the_status_badge_opens_its_own_card_and_nothing_else(): void
-    {
-        [, $appointment] = $this->makeBooking(AppointmentStatus::CONFIRMED->value);
-
-        $html = $this->actingAs($this->makeRegistrar())
-            ->get(route('registrar.appointments.show', $appointment))
-            ->assertOk()
-            ->getContent();
-
-        $this->assertStringContainsString('details = ! details', $html);
-        $this->assertSame(1, substr_count($html, 'The schedule that was set.'));
-        // And that card carries the schedule that was set.
-        $this->assertStringContainsString($appointment->date->format('F j, Y'), $html);
-        $this->assertStringContainsString($appointment->scheduledRange(), $html);
-        // The modal is nowhere near it.
-        $this->assertStringNotContainsString('Choose a reason', $html);
-    }
-
-    /**
-     * The office answers first: a booking still waiting to be approved shows
-     * the Approve & schedule trigger.
-     */
-    public function test_the_office_answers_before_anything_is_moved(): void
-    {
-        [, $appointment] = $this->makeBooking();
-
-        $this->actingAs($this->makeRegistrar())
-            ->get(route('registrar.appointments.show', $appointment))
-            ->assertOk()
-            ->assertSee('Approve & schedule')
-            ->assertDontSee('x-data="rescheduleCard(', false);
-    }
-
-    /**
-     * The record says which schedule was set once - in the chip that opens
-     * it - and never twice.
-     */
-    public function test_the_record_says_the_schedule_once(): void
-    {
-        [, $appointment] = $this->makeBooking(AppointmentStatus::CONFIRMED->value);
-
-        $html = $this->actingAs($this->makeRegistrar())
-            ->get(route('registrar.appointments.show', $appointment))
-            ->assertOk()
-            ->getContent();
-
-        $this->assertSame(1, substr_count($html, 'The schedule that was set.'));
     }
 
     /**

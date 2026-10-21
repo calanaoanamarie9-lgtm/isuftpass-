@@ -77,19 +77,20 @@ class RegistrarAppointmentTest extends TestCase
     }
 
     /**
-     * The registrar's record answers a booking and shows the schedule that
-     * was set; it does not offer a reschedule action. The flow itself - the
-     * modal, the endpoint, the email - is still in place.
+     * The registrar's record answers a booking, and the green chip beside
+     * Cancel is what opens the reschedule modal. The flow itself - the
+     * modal, the endpoint, the email - is driven from that one chip.
      */
-    public function test_the_appointment_record_offers_no_reschedule_card(): void
+    public function test_the_appointment_record_opens_the_modal_from_the_chip(): void
     {
         [$student, $appointment] = $this->makeStudentWithAppointment(AppointmentStatus::CONFIRMED->value);
 
         $this->actingAs($this->makeRegistrar())
             ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
-            ->assertDontSee('x-data="rescheduleCard(', false)
-            ->assertDontSee('Reschedule Appointment');
+            ->assertSee('x-data="rescheduleCard(', false)
+            ->assertSee('Reschedule Appointment')
+            ->assertSee(route('registrar.appointments.reschedule.update', $appointment), false);
     }
 
     public function test_the_management_list_offers_no_reschedule_card(): void

@@ -17,7 +17,6 @@ import Swal from 'sweetalert2';
  */
 Alpine.data('approveSchedule', (config = {}) => ({
     open: config.open === true,
-    details: false,
     sending: false,
     officeOpen: config.officeOpen || '08:00',
     officeClose: config.officeClose || '17:00',

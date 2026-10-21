@@ -20,6 +20,8 @@
         submit-url        where the new schedule is saved
         method            how it is saved
         require-reason    whether a reason has to be given
+        trigger           whether the card brings its own button, or waits
+                          for one to open it
 --}}
 
 @props([
@@ -29,6 +31,7 @@
     'method' => 'PUT',
     'requireReason' => true,
     'showReason' => true,
+    'trigger' => true,
     'label' => 'Reschedule',
     'variant' => 'secondary',
     'triggerClass' => 'px-4 py-2.5 text-xs',
@@ -54,6 +57,10 @@
      {{-- The calendar announces the day it picked; the card takes it. --}}
      @date-selected="pickDate($event.detail.date)"
 
+     {{-- The green status badge opens this modal: it announces the booking
+          it means, and only that booking's card answers. --}}
+     @open-reschedule.window="if ($event.detail?.id == appointmentId) { open = true; reset() }"
+
      data-appointment-id="{{ $appointment?->id }}"
      data-office="{{ $appointment?->office }}"
      data-submit-url="{{ $submitUrl }}"
@@ -61,41 +68,45 @@
      data-current-slot="{{ $appointment?->time_slot ?? $appointment?->confirmed_time }}">
 
     {{-- THE TRIGGER --}}
-    <button type="button"
-            @click="open = true; reset()"
-            :aria-expanded="open ? 'true' : 'false'"
-            class="inline-flex items-center justify-center gap-2
-                   rounded-xl
-                   font-bold
-                   shadow-sm transition
-                   focus:outline-none focus-visible:ring-2
-                   {{ $triggerClass }}
-                   {{ $variant === 'primary'
-                       ? 'bg-blue-900 text-white hover:bg-blue-800 focus-visible:ring-blue-300'
-                       : ($variant === 'blue'
-                           ? 'border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 focus-visible:ring-blue-300'
-                           : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-300') }}">
+    @if ($trigger)
 
-        <svg class="w-4 h-4 shrink-0"
-             fill="none"
-             stroke="currentColor"
-             viewBox="0 0 24 24">
+        <button type="button"
+                @click="open = true; reset()"
+                :aria-expanded="open ? 'true' : 'false'"
+                class="inline-flex items-center justify-center gap-2
+                       rounded-xl
+                       font-bold
+                       shadow-sm transition
+                       focus:outline-none focus-visible:ring-2
+                       {{ $triggerClass }}
+                       {{ $variant === 'primary'
+                           ? 'bg-blue-900 text-white hover:bg-blue-800 focus-visible:ring-blue-300'
+                           : ($variant === 'blue'
+                               ? 'border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 focus-visible:ring-blue-300'
+                               : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-300') }}">
 
-            <path stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 7V3m8 4V3m-9 4h10M5 21h14a2 2 0 002-2V8a2 2 0 00-2-2h10a2 2 0 012 2v11a2 2 0 01-2 2H5z"/>
+            <svg class="w-4 h-4 shrink-0"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
 
-            <path stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 15l2 2 4-4"/>
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 7V3m8 4V3m-9 4h10M5 21h14a2 2 0 002-2V8a2 2 0 00-2-2h10a2 2 0 012 2v11a2 2 0 01-2 2H5z"/>
 
-        </svg>
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 15l2 2 4-4"/>
 
-        {{ $label }}
+            </svg>
 
-    </button>
+            {{ $label }}
+
+        </button>
+
+    @endif
 
 
     {{-- THE MODAL --}}
@@ -216,9 +227,7 @@
                         </p>
 
                         <p class="text-sm font-bold text-gray-800">
-                            {{ $appointment?->time_slot
-                                ?? $appointment?->confirmed_time
-                                ?? 'Set by the office' }}
+                            {{ $appointment?->scheduledRange() }}
                         </p>
 
                     </div>

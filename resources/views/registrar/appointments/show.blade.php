@@ -234,10 +234,18 @@
 
                     <div class="flex flex-wrap items-center gap-2">
 
-                        {{-- The status: the chip opens the card that says
-                             which schedule was set. It is not an action -
-                             it moves nothing. --}}
+                        {{-- The green chip is the reschedule button: it opens
+                             the modal that moves the booking, and the modal
+                             beside it carries the details of what it moves. --}}
                         <x-approve-schedule :appointment="$appointment" />
+
+                        <x-reschedule-card
+                            :appointment="$appointment"
+                            :trigger="false"
+                            month-url="{{ route('registrar.availability.month') }}"
+                            method="PUT"
+                            submit-url="{{ route('registrar.appointments.reschedule.update', $appointment) }}"
+                            :require-reason="true" />
 
                         {{-- Cancel --}}
                         @unless (in_array($appointment->status, ['completed', 'cancelled']))
