@@ -236,24 +236,6 @@
 
                         <x-approve-schedule :appointment="$appointment" />
 
-                        {{-- Reschedule — the modal that moves the booking to
-                             another day. It waits for the office's answer:
-                             a booking still waiting to be approved has
-                             nothing to move yet, and the chip beside it
-                             already carries the schedule that was set. --}}
-                        @if (in_array($appointment->status, ['confirmed', 'rescheduled'], true))
-
-                            <x-reschedule-card
-                                :appointment="$appointment"
-                                month-url="{{ route('registrar.availability.month') }}"
-                                method="PUT"
-                                submit-url="{{ route('registrar.appointments.reschedule.update', $appointment) }}"
-                                :require-reason="true"
-                                variant="blue"
-                                label="Reschedule" />
-
-                        @endif
-
                         {{-- Cancel --}}
                         @unless (in_array($appointment->status, ['completed', 'cancelled']))
 

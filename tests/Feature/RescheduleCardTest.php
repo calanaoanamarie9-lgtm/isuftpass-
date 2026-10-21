@@ -158,11 +158,12 @@ class RescheduleCardTest extends TestCase
     }
 
     /**
-     * The record carries the card - a booking is moved from the record of
-     * that booking - and the management list does not, because the list is
-     * for scanning.
+     * No page carries the card: the management list is for scanning, and the
+     * registrar's record is for reading and answering. The modal and the
+     * flow behind it are still here, ready to be put back wherever a
+     * booking is moved.
      */
-    public function test_the_record_carries_the_card_and_the_list_does_not(): void
+    public function test_no_page_carries_the_reschedule_card(): void
     {
         [, $appointment] = $this->makeBooking(AppointmentStatus::CONFIRMED->value);
 
@@ -174,35 +175,30 @@ class RescheduleCardTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
-            ->assertSee('x-data="rescheduleCard(', false)
-            ->assertSee('Reschedule Appointment')
-            ->assertSee(route('registrar.appointments.reschedule.update', $appointment), false);
+            ->assertDontSee('x-data="rescheduleCard(', false)
+            ->assertDontSee('Reschedule Appointment');
     }
 
     /**
      * The office answers first: a booking still waiting to be approved shows
-     * the Approve & schedule trigger and no reschedule button, because it
-     * has no schedule to move yet.
+     * the Approve & schedule trigger.
      */
-    public function test_the_reschedule_button_waits_for_the_offices_answer(): void
+    public function test_the_office_answers_before_anything_is_moved(): void
     {
         [, $appointment] = $this->makeBooking();
 
-        $html = $this->actingAs($this->makeRegistrar())
+        $this->actingAs($this->makeRegistrar())
             ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
-            ->getContent();
-
-        $this->assertStringContainsString('Approve &amp; schedule', $html);
-        $this->assertStringNotContainsString('x-data="rescheduleCard(', $html);
+            ->assertSee('Approve & schedule')
+            ->assertDontSee('x-data="rescheduleCard(', false);
     }
 
     /**
-     * One reschedule button, and one place that says which schedule was
-     * set. The chip beside it carries that answer, so the record must not
-     * say it twice.
+     * The record says which schedule was set once - in the chip that opens
+     * it - and never twice.
      */
-    public function test_the_record_says_the_schedule_once_and_offers_one_reschedule_button(): void
+    public function test_the_record_says_the_schedule_once(): void
     {
         [, $appointment] = $this->makeBooking(AppointmentStatus::CONFIRMED->value);
 
@@ -211,7 +207,6 @@ class RescheduleCardTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertSame(1, substr_count($html, 'x-data="rescheduleCard('));
         $this->assertSame(1, substr_count($html, 'The schedule that was set.'));
     }
 
