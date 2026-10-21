@@ -290,6 +290,12 @@
 
 
                             {{-- =================================================
+                                 PROGRESS
+                            ================================================== --}}
+                            <x-appointment-progress :appointment="$appointment" />
+
+
+                            {{-- =================================================
                                  RESCHEDULE NOTICE
                             ================================================== --}}
                             @if ($appointment->original_date)
@@ -322,20 +328,6 @@
                                         @endif
 
                                     </p>
-
-
-                                    @if ($appointment->status === 'for_reschedule')
-
-                                        <p class="text-xs text-orange-600
-                                                  mt-2 font-semibold">
-
-                                            This slot is full. Please wait for the
-                                            Registrar to move your appointment to
-                                            the next available schedule.
-
-                                        </p>
-
-                                    @endif
 
                                 </div>
 
