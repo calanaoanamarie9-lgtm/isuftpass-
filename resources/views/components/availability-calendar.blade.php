@@ -30,11 +30,29 @@
             const officeInput = {{ \Illuminate\Support\Js::from($watchOffice) }};
             if (officeInput) {
                 const el = document.getElementById(officeInput);
-                if (el) el.addEventListener('change', () => { this.office = el.value; this.fetchMonth(); });
+                if (el) {
+                    // The form can reach the page with an office already
+                    // chosen - the consultation catalogue deep-links one, and
+                    // old() restores one after a validation error. Neither
+                    // fires a change event, so the calendar would go on
+                    // asking the endpoint for an empty office and never
+                    // colour a single day: take the value the field holds.
+                    this.office = el.value || this.office;
+                    el.addEventListener('change', () => { this.office = el.value; this.fetchMonth(); });
+                }
             }
             this.fetchMonth();
         },
         fetchMonth() {
+            // With no office there is no availability to show, and the
+            // endpoint answers with an error page rather than JSON. Skip the
+            // request instead of leaving a grid of unclickable cells.
+            if (! this.office) {
+                this.days = {};
+                this.loading = false;
+                return;
+            }
+
             this.loading = true;
             fetch(this.endpoint + '?office=' + encodeURIComponent(this.office) + '&month=' + this.month)
                 .then(r => { if (!r.ok) throw new Error('unavailable'); return r.json(); })
@@ -87,7 +105,7 @@
                 const date = this.month + '-' + String(d).padStart(2, '0');
                 const ring = date === today ? ' ring-2 ring-blue-700 ring-offset-1' : '';
                 const sel = date === this.selected ? ' outline outline-2 outline-offset-1 outline-blue-700' : '';
-                html += '<button type=&quot;button&quot; data-date=&quot;' + date + '&quot; class=&quot;aspect-square w-full flex items-center justify-center rounded-lg text-sm transition ' + this.cellClass(date) + ring + sel + '&quot;>' + d + '</button>';
+                html += '<button type=&quot;button&quot; data-no-confirm data-date=&quot;' + date + '&quot; class=&quot;aspect-square w-full flex items-center justify-center rounded-lg text-sm transition ' + this.cellClass(date) + ring + sel + '&quot;>' + d + '</button>';
             }
             return html;
         }
@@ -95,18 +113,26 @@
 
     {{-- Header: month navigation --}}
     <div class="flex items-center justify-between mb-4">
-        <button type="button" x-on:click="shiftMonth(-1)" x-bind:disabled="!canGoPrev()"
+        <button type="button" data-no-confirm x-on:click="shiftMonth(-1)" x-bind:disabled="!canGoPrev()"
                 class="px-3 py-1.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
             &larr;
         </button>
         <p class="font-bold text-gray-900 text-sm" x-text="months[Number(month.split('-')[1]) - 1] + ' ' + month.split('-')[0]"></p>
-        <button type="button" x-on:click="shiftMonth(1)"
+        <button type="button" data-no-confirm x-on:click="shiftMonth(1)"
                 class="px-3 py-1.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition">
             &rarr;
         </button>
     </div>
 
     <p x-show="loading" class="text-xs text-blue-600 font-semibold mb-3">Checking availability…</p>
+
+    {{-- An office decides which dates are open, so a grid with none chosen
+         would be a wall of cells that answer to nothing. --}}
+    <p x-show="! loading &amp;&amp; ! office"
+       x-cloak
+       class="text-xs text-gray-500 font-semibold mb-3">
+        Select an office above to see which dates are open.
+    </p>
 
     {{-- Weekday header --}}
     <div class="grid grid-cols-7 gap-1 mb-1">

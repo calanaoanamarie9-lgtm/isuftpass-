@@ -299,7 +299,7 @@ class SlotAvailabilityCapacityTest extends TestCase
         $student = $this->makeStudent();
 
         $this->actingAs($student)
-            ->get(route('student.appointments.slots') . '?office=Registrar&date=' . $date)
+            ->get(route('student.appointments.slots').'?office=Registrar&date='.$date)
             ->assertOk()
             ->assertJsonFragment(['time' => '09:00 AM - 10:00 AM', 'limit' => 2, 'is_open' => true]);
     }
@@ -318,14 +318,14 @@ class SlotAvailabilityCapacityTest extends TestCase
         $this->registerSlot();
 
         $body = $this->actingAs($this->makeStudent())
-            ->get(route('student.appointments.availability') . '?office=Registrar&month=' . $month)
+            ->get(route('student.appointments.availability').'?office=Registrar&month='.$month)
             ->assertOk()
             ->json();
 
         $date = $future->toDateString();
 
         if (! $body[$date]['available']) {
-            $this->fail('DEBUG ' . json_encode([
+            $this->fail('DEBUG '.json_encode([
                 'date' => $date,
                 'day' => $body[$date] ?? null,
                 'rules' => SlotAvailability::all(['office_id', 'date', 'time_slot', 'max_capacity', 'status'])->toArray(),
@@ -368,7 +368,7 @@ class SlotAvailabilityCapacityTest extends TestCase
         }
 
         $body = $this->actingAs($this->makeStudent())
-            ->get(route('student.appointments.availability') . '?office=Registrar&month=' . $month)
+            ->get(route('student.appointments.availability').'?office=Registrar&month='.$month)
             ->assertOk()
             ->json();
 
@@ -383,7 +383,7 @@ class SlotAvailabilityCapacityTest extends TestCase
         $month = now()->format('Y-m');
 
         $this->actingAs(User::factory()->create(['role' => 'registrar']))
-            ->get(route('registrar.availability.month') . '?office=Registrar&month=' . $month)
+            ->get(route('registrar.availability.month').'?office=Registrar&month='.$month)
             ->assertOk()
             ->assertJsonStructure([now()->toDateString() => ['past', 'available', 'open', 'status']]);
     }
@@ -392,12 +392,19 @@ class SlotAvailabilityCapacityTest extends TestCase
     {
         $student = $this->makeStudent();
 
+        // The confirm-on-every-button handler in app.js runs in the capture
+        // phase and stops the click cold, so a button inside a form is
+        // swallowed unless it opts out. The calendar sits inside the booking
+        // form, and without the attribute its day cells and month arrows
+        // answer a dialog instead of moving the date.
         $this->actingAs($student)
             ->get(route('student.appointments.create'))
             ->assertOk()
             ->assertSee('Preferred Date')
             ->assertSee('Fully booked / Blocked')
-            ->assertSee('x-data="{', false);
+            ->assertSee('x-data="{', false)
+            ->assertSee('data-no-confirm x-on:click="shiftMonth', false)
+            ->assertSee('data-no-confirm data-date=', false);
 
         $booking = $this->makeStudent()->appointments()->create([
             'office' => 'Registrar',
@@ -411,6 +418,7 @@ class SlotAvailabilityCapacityTest extends TestCase
             ->get(route('registrar.appointments.reschedule', $booking))
             ->assertOk()
             ->assertSee('New Date')
-            ->assertSee('Fully booked / Blocked');
+            ->assertSee('Fully booked / Blocked')
+            ->assertSee('data-no-confirm data-date=', false);
     }
 }
