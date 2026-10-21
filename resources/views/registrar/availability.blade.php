@@ -131,6 +131,7 @@
             ====================================================== --}}
             <div class="grid grid-cols-1
                         xl:grid-cols-[420px_1fr]
+                        items-stretch
                         gap-6">
 
 
@@ -139,7 +140,8 @@
                 ================================================== --}}
                 <div
                     x-ref="form"
-                    class="bg-white
+                    class="h-full
+                           bg-white
                            rounded-3xl
                            border border-gray-100
                            shadow-sm
@@ -578,7 +580,8 @@
                 {{-- =================================================
                     RIGHT: SCHEDULE
                 ================================================== --}}
-                <div class="bg-white
+                <div class="h-full
+                            bg-white
                             rounded-3xl
                             border border-gray-100
                             shadow-sm
@@ -656,19 +659,19 @@
 
 
                     {{-- CONTENT --}}
-                    <div class="p-6 sm:p-7">
+                    <div class="p-5 sm:p-6">
 
 
                         {{-- MONTH NAVIGATION --}}
                         <div class="flex items-center
                                     justify-between
-                                    mb-5">
+                                    mb-4">
 
                             <button type="button"
                                     @click="shiftMonth(-1)"
                                     aria-label="Previous month"
                                     class="inline-flex items-center
-                                           px-3 py-2
+                                           px-2.5 py-1.5
                                            rounded-xl
                                            text-sm font-bold
                                            text-gray-500
@@ -698,7 +701,7 @@
                                     @click="shiftMonth(1)"
                                     aria-label="Next month"
                                     class="inline-flex items-center
-                                           px-3 py-2
+                                           px-2.5 py-1.5
                                            rounded-xl
                                            text-sm font-bold
                                            text-gray-500
@@ -723,7 +726,7 @@
 
 
                         {{-- WEEKDAYS --}}
-                        <div class="grid grid-cols-7 gap-2 mb-2">
+                        <div class="grid grid-cols-7 gap-1.5 mb-1.5">
 
                             <template x-for="weekday in weekdays" :key="weekday">
 
@@ -748,32 +751,32 @@
                              on the roster below, so a cell carries no clock
                              times of its own. Padding days are inert; days
                              that have passed can be read but not written. --}}
-                        <div class="grid grid-cols-7 gap-2">
+                        <div class="grid grid-cols-7 gap-1.5">
 
                             <template x-for="(cell, index) in calendarCells" :key="index">
 
                                 <div @click="editCell(cell)"
                                      :title="cell.entry ? cell.entry.date : (cell.iso || '')"
-                                     class="min-h-[124px]
-                                            rounded-xl
+                                     class="min-h-[88px]
+                                            rounded-lg
                                             border
-                                            p-2
+                                            p-1.5
                                             transition"
                                      :class="cellClass(cell)">
 
                                     <template x-if="!cell.blank">
 
                                         <div class="flex flex-col
-                                                    gap-1.5
+                                                    gap-1
                                                     h-full">
 
                                             {{-- DAY --}}
                                             <span class="inline-flex
                                                          items-center
                                                          justify-center
-                                                         w-6 h-6
+                                                         w-5 h-5
                                                          rounded-full
-                                                         text-xs
+                                                         text-[11px]
                                                          font-extrabold"
                                                   :class="cell.today
                                                       ? 'bg-blue-800 text-white'
@@ -785,7 +788,7 @@
                                                   x-text="cell.day"></span>
 
                                             {{-- NOTHING SET ON THIS DATE --}}
-                                            <span class="text-[10px]
+                                            <span class="text-[9px]
                                                           font-bold
                                                           uppercase
                                                           tracking-wide
@@ -798,14 +801,14 @@
                                             <template x-if="cell.entry">
 
                                                 <div class="flex flex-col
-                                                            gap-1.5">
+                                                            gap-1">
 
                                                     <span class="inline-flex
                                                                  w-full
                                                                  text-center
                                                                  px-1 py-0.5
                                                                  rounded-md
-                                                                 text-[9px]
+                                                                 text-[8px]
                                                                  font-extrabold
                                                                  uppercase
                                                                  leading-tight
@@ -838,7 +841,7 @@
 
 
                         {{-- LEGEND --}}
-                        <div class="mt-5
+                        <div class="mt-4
                                     flex
                                     flex-wrap
                                     items-center
