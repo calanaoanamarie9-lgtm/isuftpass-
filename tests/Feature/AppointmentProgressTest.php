@@ -17,10 +17,11 @@ use Tests\TestCase;
  * path stops in place with a cross and a line underneath saying what
  * happened, rather than carrying on as if progress were still being made.
  *
- * It is drawn on the My Appointments list and on the student's own QR
- * page, below the actions they get there - never inside the pass itself:
- * the pass is a shared card, and the copy a scanner opens or the
- * registrar's station reads stays exactly as it was.
+ * It is drawn on the student's own QR page, below the actions they get
+ * there - nowhere else. The My Appointments list carries the status
+ * badge and nothing more, and the pass itself is a shared card: the copy
+ * a scanner opens or the registrar's station reads stays exactly as it
+ * was.
  */
 class AppointmentProgressTest extends TestCase
 {
@@ -47,7 +48,7 @@ class AppointmentProgressTest extends TestCase
         $booking = $this->booking($this->student());
 
         $this->actingAs($booking->user)
-            ->get(route('student.appointments.index'))
+            ->get(route('student.appointments.qr', $booking))
             ->assertOk()
             ->assertSee('Appointment progress')
             ->assertSee('Requested')
@@ -68,7 +69,7 @@ class AppointmentProgressTest extends TestCase
         ]);
 
         $this->actingAs($booking->user)
-            ->get(route('student.appointments.index'))
+            ->get(route('student.appointments.qr', $booking))
             ->assertOk()
             // Requested is behind them: filled, and joined on by a blue line.
             ->assertSee('bg-blue-600 border-blue-600 text-white', false)
@@ -85,7 +86,7 @@ class AppointmentProgressTest extends TestCase
         ]);
 
         $this->actingAs($booking->user)
-            ->get(route('student.appointments.index'))
+            ->get(route('student.appointments.qr', $booking))
             ->assertOk()
             ->assertSee($booking->confirmed_at->format('M j, g:i A'), false)
             ->assertSee($booking->checked_in_at->format('M j, g:i A'), false)
@@ -101,7 +102,7 @@ class AppointmentProgressTest extends TestCase
         ]);
 
         $this->actingAs($booking->user)
-            ->get(route('student.appointments.index', ['tab' => 'cancelled']))
+            ->get(route('student.appointments.qr', $booking))
             ->assertOk()
             // Confirmed was reached, so the path stops in front of Checked in.
             ->assertSee('border-red-300', false)
@@ -119,7 +120,7 @@ class AppointmentProgressTest extends TestCase
         ]);
 
         $this->actingAs($booking->user)
-            ->get(route('student.appointments.index', ['tab' => 'cancelled']))
+            ->get(route('student.appointments.qr', $booking))
             ->assertOk()
             // Nothing was ever confirmed, so it stops in front of Confirmed.
             ->assertSee('border-red-300', false)
@@ -135,7 +136,7 @@ class AppointmentProgressTest extends TestCase
         ]);
 
         $html = $this->actingAs($booking->user)
-            ->get(route('student.appointments.index'))
+            ->get(route('student.appointments.qr', $booking))
             ->assertOk()
             ->getContent();
 
@@ -153,7 +154,7 @@ class AppointmentProgressTest extends TestCase
         ]);
 
         $html = $this->actingAs($booking->user)
-            ->get(route('student.appointments.index', ['tab' => 'completed']))
+            ->get(route('student.appointments.qr', $booking))
             ->assertOk()
             ->getContent();
 
@@ -163,6 +164,28 @@ class AppointmentProgressTest extends TestCase
             $booking->completed_at->format('M j, g:i A'),
             $html
         );
+    }
+
+    /**
+     * The list carries the status badge and nothing more, so a card stays
+     * short enough to scan past - but a booking that is going nowhere
+     * still explains itself there, in the banner the list has always had.
+     */
+    public function test_the_list_carries_no_track_but_still_explains_a_full_slot(): void
+    {
+        // Booked straight into a full slot, so there is no earlier
+        // schedule to point at: the banner is the only place to say it.
+        $booking = $this->booking($this->student(), [
+            'status' => AppointmentStatus::FOR_RESCHEDULE->value,
+        ]);
+
+        $html = $this->actingAs($booking->user)
+            ->get(route('student.appointments.index'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringNotContainsString('Appointment progress', $html);
+        $this->assertSame(1, substr_count($html, 'This slot is full.'));
     }
 
     public function test_the_qr_page_shows_the_track_below_the_students_own_actions(): void
