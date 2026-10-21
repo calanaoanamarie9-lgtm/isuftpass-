@@ -79,5 +79,10 @@ class AdminSidebarTest extends TestCase
 
         $this->assertStringContainsString('Document Requests', $html);
         $this->assertStringNotContainsString('Admin Panel', $html);
+
+        // The brand line is echoed, so a pre-escaped ampersand would print
+        // "&amp;" on screen instead of "&".
+        $this->assertStringContainsString('Digital ID &amp; Access Portal', $html);
+        $this->assertStringNotContainsString('&amp;amp;', $html);
     }
 }

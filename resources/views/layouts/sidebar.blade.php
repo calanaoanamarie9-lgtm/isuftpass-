@@ -94,7 +94,7 @@
                     ISUFSTPASS
                 </p>
                 <p class="text-[10px] text-blue-300 truncate">
-                    {{ $role === 'admin' ? 'Admin Panel' : 'Digital ID &amp; Access Portal' }}
+                    {{ $role === 'admin' ? 'Admin Panel' : 'Digital ID & Access Portal' }}
                 </p>
             </div>
         </div>
