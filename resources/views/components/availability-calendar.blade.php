@@ -9,6 +9,7 @@
     'emit' => false,
     'baseUrl' => '',
     'watchOffice' => '',
+    'blockFull' => false,
 ])
 
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
@@ -21,6 +22,7 @@
         allowPast: {{ $allowPast ? 'true' : 'false' }},
         navigate: {{ $navigate ? 'true' : 'false' }},
         emit: {{ $emit ? 'true' : 'false' }},
+        blockFull: {{ $blockFull ? 'true' : 'false' }},
         baseUrl: {{ \Illuminate\Support\Js::from($baseUrl) }},
         days: {},
         loading: true,
@@ -74,6 +76,11 @@
             const date = button.dataset.date;
             const info = this.days[date];
             if (!info || (info.past && !this.allowPast)) return;
+            // A day with nothing open cannot be chosen when the caller says
+            // so: the reschedule modal must not offer a day it would then
+            // refuse. The booking form leaves them clickable, so a student
+            // can still see what a full day looks like before picking another.
+            if (this.blockFull && !info.available) return;
             if (this.emit) {
                 this.selectedDate = date;
                 this.$dispatch('date-selected', { date: date });
@@ -89,8 +96,12 @@
             const SELECTED   = 'bg-blue-600 text-white font-bold shadow-md scale-105 transition-all';
             const TODAY      = 'bg-green-500 text-white font-bold ring-2 ring-blue-500 ring-offset-1';
             const OPEN       = 'bg-emerald-500 hover:bg-emerald-600 text-white font-semibold';
-            const FULL       = 'bg-red-500 text-white cursor-pointer hover:bg-red-600 font-semibold';
-            const FULL_TODAY = 'bg-red-500 text-white cursor-pointer hover:bg-red-600 font-bold ring-2 ring-blue-500 ring-offset-1';
+            const FULL       = this.blockFull
+                ? 'bg-red-500 text-white cursor-not-allowed font-semibold'
+                : 'bg-red-500 text-white cursor-pointer hover:bg-red-600 font-semibold';
+            const FULL_TODAY = this.blockFull
+                ? 'bg-red-500 text-white cursor-not-allowed font-bold ring-2 ring-blue-500 ring-offset-1'
+                : 'bg-red-500 text-white cursor-pointer hover:bg-red-600 font-bold ring-2 ring-blue-500 ring-offset-1';
             const PAST       = 'bg-gray-100 text-gray-500 cursor-pointer hover:bg-gray-200';
             const GRAY       = 'bg-gray-100 text-gray-400 cursor-not-allowed';
             const EMPTY      = 'bg-gray-50 text-gray-400 cursor-not-allowed';

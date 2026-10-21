@@ -10,6 +10,7 @@
 
         appointment       the booking, for the student's details
         slots-url         where the open slots are read from
+        month-url         where the calendar reads the month's availability
         submit-url        where the new schedule is saved
         method            how it is saved
         require-reason    whether a reason has to be given
@@ -19,6 +20,7 @@
 @props([
     'appointment' => null,
     'slotsUrl' => '',
+    'monthUrl' => '',
     'submitUrl' => '',
     'method' => 'PUT',
     'requireReason' => true,
@@ -47,6 +49,10 @@
          pickSlot: @js($pickSlot),
      })"
      @keydown.escape.window="open = false"
+
+     {{-- The calendar announces the day it picked; the card takes it and
+          reads the slots that day still has open. --}}
+     @date-selected="pickDate($event.detail.date)"
 
      data-appointment-id="{{ $appointment?->id }}"
      data-office="{{ $appointment?->office }}"
@@ -100,7 +106,7 @@
                 bg-slate-950/50 backdrop-blur-sm"
          @click.self="open = false">
 
-        <div class="relative w-full max-w-lg
+        <div class="relative w-full max-w-xl
                     p-6 my-8
                     bg-white rounded-2xl shadow-xl
                     overflow-y-auto max-h-[90vh]"
@@ -114,11 +120,23 @@
 
                 <div>
 
-                    <h3 class="text-lg font-bold text-gray-800">
+                    <div class="flex items-center gap-2 flex-wrap">
 
-                        Reschedule Appointment
+                        <h3 class="text-lg font-bold text-gray-800">
 
-                    </h3>
+                            Reschedule Appointment
+
+                        </h3>
+
+                        {{-- The reference the student quotes on the phone. --}}
+                        <span class="px-2 py-0.5 rounded-md
+                                     bg-blue-100 text-blue-700
+                                     text-[10px] font-black uppercase
+                                     tracking-wide">
+                            {{ $appointment?->reference_code }}
+                        </span>
+
+                    </div>
 
                     <p class="mt-1 text-xs font-semibold text-gray-400">
 
@@ -145,7 +163,7 @@
             </div>
 
 
-            {{-- Whose booking this is --}}
+            {{-- Whose booking this is, and what it holds today --}}
             <div class="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl">
 
                 <span class="text-[10px] font-bold uppercase tracking-wider text-blue-500">
@@ -160,23 +178,50 @@
 
                 </p>
 
-                <p class="text-sm text-gray-600">
+                <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
 
-                    {{ $appointment?->reference_code }} · {{ $appointment?->office }}
+                    <div>
 
-                </p>
+                        <p class="text-[10px] uppercase tracking-widest
+                                  font-black text-blue-500">
+                            Office
+                        </p>
 
-                <p class="mt-1 text-sm text-gray-600">
+                        <p class="text-sm font-bold text-gray-800">
+                            {{ $appointment?->office }}
+                        </p>
 
-                    <span class="font-semibold">Currently:</span>
+                    </div>
 
-                    {{ $appointment?->date->format('F j, Y') }}
+                    <div>
 
-                    ·
+                        <p class="text-[10px] uppercase tracking-widest
+                                  font-black text-blue-500">
+                            Current date
+                        </p>
 
-                    {{ $appointment?->timeToCome() }}
+                        <p class="text-sm font-bold text-gray-800">
+                            {{ $appointment?->date->format('F j, Y') }}
+                        </p>
 
-                </p>
+                    </div>
+
+                    <div>
+
+                        <p class="text-[10px] uppercase tracking-widest
+                                  font-black text-blue-500">
+                            Current time slot
+                        </p>
+
+                        <p class="text-sm font-bold text-gray-800">
+                            {{ $appointment?->time_slot
+                                ?? $appointment?->confirmed_time
+                                ?? 'Set by the office' }}
+                        </p>
+
+                    </div>
+
+                </div>
 
             </div>
 
@@ -229,37 +274,115 @@
             </div>
 
 
-            {{-- The new day --}}
-            <div class="mt-4">
+            {{-- The new day: the same calendar the booking form uses, so a
+                 registrar sees the same green and red the student saw. It is
+                 built only while the modal is open - the list holds one card
+                 per appointment, and a month of availability per card would
+                 be a hundred requests nobody asked for. --}}
+            <div class="mt-5">
 
-                <label for="reschedule-date"
-                       class="block text-[10px] uppercase tracking-widest font-black text-gray-500 mb-1.5">
+                <p class="block text-[10px] uppercase tracking-widest font-black text-gray-500 mb-1.5">
 
                     New date
 
-                </label>
+                </p>
 
-                <input id="reschedule-date"
-                       type="date"
-                       x-model="date"
-                       :min="today"
-                       @change="loadSlots()"
-                       required
+                <template x-if="open">
 
-                       class="w-full rounded-xl
-                              border border-gray-200
-                              bg-white
-                              px-3 py-2.5
-                              text-sm font-bold text-gray-800
-                              outline-none transition
-                              focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                    <x-availability-calendar
+                        office="{{ $appointment?->office }}"
+                        endpoint="{{ $monthUrl }}"
+                        :selected="''"
+                        :min-month="now()->format('Y-m')"
+                        block-full
+                        emit />
 
-                <p x-show="date && !loadingSlots && slots.length === 0"
-                   class="mt-1.5 text-xs font-semibold text-gray-500">
+                </template>
+
+                <p class="mt-2 text-[11px] font-semibold text-gray-500">
+
+                    Green days have open slots; red days are full or closed.
+
+                </p>
+
+                <p x-show="date" class="mt-1 text-sm font-bold text-gray-800">
+
+                    New day: <span x-text="date ? dateLabel(date) : ''"></span>
+
+                </p>
+
+            </div>
+
+
+            {{-- The new hour: the slots the office still has open that day. --}}
+            <div class="mt-5" x-show="pickSlot">
+
+                <p class="block text-[10px] uppercase tracking-widest font-black text-gray-500 mb-1.5">
+
+                    New time slot
+
+                </p>
+
+                <p x-show="loadingSlots"
+                   class="text-xs font-semibold text-blue-600">
+
+                    Checking the open slots…
+
+                </p>
+
+                <p x-show="! loadingSlots && ! date"
+                   class="text-xs font-semibold text-gray-500">
+
+                    Pick a date first.
+
+                </p>
+
+                <p x-show="! loadingSlots && date && openSlots.length === 0"
+                   class="text-xs font-semibold text-gray-500">
 
                     No open slots on that date. Try another day.
 
                 </p>
+
+                <div x-show="! loadingSlots && openSlots.length > 0"
+                     class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+
+                    <template x-for="slot in slots" :key="slot.time">
+
+                        <label class="flex items-center justify-between gap-2
+                                      px-3 py-2.5 rounded-xl border
+                                      text-sm font-bold transition
+                                      cursor-pointer"
+
+                               :class="slot.is_open
+                                   ? (time === slot.time
+                                       ? 'border-blue-600 bg-blue-50 text-blue-800 ring-1 ring-blue-200'
+                                       : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300')
+                                   : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'">
+
+                            <span class="flex items-center gap-2 min-w-0">
+
+                                <input type="radio"
+                                       class="sr-only"
+                                       :name="'reschedule-slot-' + (appointmentId || 'any')"
+                                       :value="slot.time"
+                                       :disabled="! slot.is_open"
+                                       x-model="time" />
+
+                                <span class="truncate" x-text="slot.time"></span>
+
+                            </span>
+
+                            <span class="text-[11px] font-semibold shrink-0"
+                                  x-text="slot.is_open
+                                      ? slot.remaining + ' seat' + (slot.remaining === 1 ? '' : 's')
+                                      : 'Full'"></span>
+
+                        </label>
+
+                    </template>
+
+                </div>
 
             </div>
 
@@ -295,7 +418,7 @@
                         :disabled="submitting || !canSave"
                         class="inline-flex items-center gap-2
                                px-4 py-2.5 rounded-xl
-                               bg-blue-900 text-white
+                               bg-[#1e40af] text-white
                                text-xs font-bold
                                shadow-sm hover:bg-blue-800
                                transition

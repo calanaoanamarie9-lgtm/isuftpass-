@@ -897,6 +897,7 @@
                                     <x-reschedule-card
                                         :appointment="$appointment"
                                         slots-url="{{ route('registrar.appointments.slots') }}"
+                                        month-url="{{ route('registrar.availability.month') }}"
                                         method="PUT"
                                         submit-url="{{ route('registrar.appointments.reschedule.update', $appointment) }}"
                                         :require-reason="true"

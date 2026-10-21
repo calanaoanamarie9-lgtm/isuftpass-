@@ -70,7 +70,9 @@
         'border' => '#facc15',
         'title' => '#a16207',
     ])
-        Arrive 10&ndash;15 minutes early and have your Appointment QR Pass ready on your phone for check-in.
+        Come <strong>15&ndash;30 minutes before</strong> your scheduled time &mdash; failure to arrive
+        on time will result in the <strong>automatic cancellation of your request</strong>.
+        Have your Appointment QR Pass ready on your phone for check-in.
     @endcomponent
 
     @include('emails.partials.button', [

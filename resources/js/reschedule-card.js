@@ -78,6 +78,13 @@ Alpine.data('rescheduleCard', (config = {}) => ({
         return this.reasonPreset.trim();
     },
 
+    // The slots that still have a seat on the day that was picked. A slot
+    // that is full is listed too - the picker shows it as full rather than
+    // hiding it - but only these can be chosen.
+    get openSlots() {
+        return this.slots.filter((slot) => slot.is_open && slot.remaining > 0);
+    },
+
     // The date is the one thing every booking needs. A time slot only when
     // the office takes one - the Registrar answers with the hour itself, so
     // the student picks a day and waits.
@@ -131,6 +138,13 @@ Alpine.data('rescheduleCard', (config = {}) => ({
         this.submitting = false;
     },
 
+    // The calendar picked a day. The card holds it and reads the slots that
+    // day still has open.
+    pickDate(date) {
+        this.date = date;
+        this.loadSlots();
+    },
+
     async loadSlots() {
         this.slots = [];
         this.time = '';
@@ -164,14 +178,14 @@ Alpine.data('rescheduleCard', (config = {}) => ({
 
             const list = Array.isArray(data) ? data : (data.slots || []);
 
-            this.slots = list.filter((slot) => slot.is_open && slot.remaining > 0);
+            this.slots = list;
 
-            // The card does not ask for a time slot: the booking keeps the
-            // hour it already had when that hour is still open on the new
-            // day, and takes the first open one when it is not.
-            const kept = this.slots.find((slot) => slot.time === this.currentTimeSlot);
+            // The hour the booking already had is kept when that hour is
+            // still open on the new day - the booking moves, it does not
+            // restart. When it is not, the hour is picked from the list.
+            const kept = this.openSlots.find((slot) => slot.time === this.currentTimeSlot);
 
-            this.time = (kept || this.slots[0] || {}).time || '';
+            this.time = (kept || this.openSlots[0] || {}).time || '';
         } catch (error) {
             this.error = error.message || 'Could not load the open slots.';
         } finally {
@@ -253,8 +267,8 @@ Alpine.data('rescheduleCard', (config = {}) => ({
 
             await Swal.fire({
                 icon: 'success',
-                title: 'Appointment Rescheduled!',
-                html: data.message || 'The new schedule has been saved and the student has been notified.',
+                title: 'Appointment Rescheduled Successfully!',
+                text: 'An updated QR pass and email notification have been sent.',
                 confirmButtonText: 'OK',
                 confirmButtonColor: '#1e40af',
                 timer: 4000,
