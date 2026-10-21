@@ -404,7 +404,14 @@ class SlotAvailabilityCapacityTest extends TestCase
             ->assertSee('Fully booked / Blocked')
             ->assertSee('x-data="{', false)
             ->assertSee('data-no-confirm x-on:click="shiftMonth', false)
-            ->assertSee('data-no-confirm data-date=', false);
+            ->assertSee('data-no-confirm data-date=', false)
+            // The day the form holds is tracked as selectedDate and painted
+            // with the lifted primary-blue cell; the legend names the states
+            // the grid can show.
+            ->assertSee('selectedDate', false)
+            ->assertSee('bg-blue-600 text-white font-bold shadow-md scale-105 transition-all', false)
+            ->assertSee('Today', false)
+            ->assertSee('Selected', false);
 
         $booking = $this->makeStudent()->appointments()->create([
             'office' => 'Registrar',

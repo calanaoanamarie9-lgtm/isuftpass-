@@ -16,7 +16,7 @@
         office: {{ \Illuminate\Support\Js::from($office) }},
         endpoint: {{ \Illuminate\Support\Js::from($endpoint) }},
         month: {{ \Illuminate\Support\Js::from($initialMonth) }},
-        selected: {{ \Illuminate\Support\Js::from($selected) }},
+        selectedDate: {{ \Illuminate\Support\Js::from($selected) }},
         minMonth: {{ \Illuminate\Support\Js::from($minMonth) }},
         allowPast: {{ $allowPast ? 'true' : 'false' }},
         navigate: {{ $navigate ? 'true' : 'false' }},
@@ -75,19 +75,51 @@
             const info = this.days[date];
             if (!info || (info.past && !this.allowPast)) return;
             if (this.emit) {
-                this.selected = date;
+                this.selectedDate = date;
                 this.$dispatch('date-selected', { date: date });
             } else if (this.navigate) {
                 window.location.href = this.baseUrl + '?date=' + date;
             }
         },
+        // One method owns every visual state of a day, so a cell can only
+        // ever look like one thing. The order below is the order the form
+        // cares about: the date it is holding, the current day, an open day,
+        // then the days that answer to nothing.
         cellClass(date) {
+            const SELECTED   = 'bg-blue-600 text-white font-bold shadow-md scale-105 transition-all';
+            const TODAY      = 'bg-green-500 text-white font-bold ring-2 ring-blue-500 ring-offset-1';
+            const OPEN       = 'bg-emerald-500 hover:bg-emerald-600 text-white font-semibold';
+            const FULL       = 'bg-red-500 text-white cursor-pointer hover:bg-red-600 font-semibold';
+            const FULL_TODAY = 'bg-red-500 text-white cursor-pointer hover:bg-red-600 font-bold ring-2 ring-blue-500 ring-offset-1';
+            const PAST       = 'bg-gray-100 text-gray-500 cursor-pointer hover:bg-gray-200';
+            const GRAY       = 'bg-gray-100 text-gray-400 cursor-not-allowed';
+            const EMPTY      = 'bg-gray-50 text-gray-400 cursor-not-allowed';
+
             const info = this.days[date];
-            if (!info) return 'bg-gray-50 text-gray-400 cursor-not-allowed';
-            if (info.past && !this.allowPast) return 'bg-gray-100 text-gray-400 cursor-not-allowed';
-            if (info.past) return 'bg-gray-100 text-gray-500 cursor-pointer hover:bg-gray-200';
-            if (info.available) return 'bg-green-500 text-white cursor-pointer hover:bg-green-600 font-semibold';
-            return 'bg-red-500 text-white cursor-pointer hover:bg-red-600 font-semibold';
+            const picked = date === this.selectedDate;
+            const today = date === this.todayStr();
+
+            // The date the form holds: solid primary blue, lifted out of the
+            // grid. It outranks every other state, because it is the day the
+            // student chose - even if the month has filled up around it.
+            if (picked) {
+                const live = info && (! info.past || this.allowPast);
+                return SELECTED + (live ? ' cursor-pointer' : ' cursor-not-allowed');
+            }
+
+            // The calendar has nothing to say about this day yet (no office
+            // chosen, or the month request failed), or it has passed.
+            if (! info) return EMPTY;
+            if (info.past && ! this.allowPast) return GRAY;
+            if (info.past) return PAST;
+
+            // Today keeps a blue ring so the current day is never lost among
+            // the others. On an open day it is the current-day colour; a day
+            // that is already full keeps the ring and stays red, since red
+            // is what the legend promises.
+            if (today) return info.available ? TODAY : FULL_TODAY;
+
+            return info.available ? OPEN : FULL;
         },
         todayStr() {
             const t = new Date();
@@ -98,14 +130,11 @@
             const first = new Date(y, m - 1, 1);
             const offset = (first.getDay() + 6) % 7;
             const total = new Date(y, m, 0).getDate();
-            const today = this.todayStr();
             let html = '';
             for (let i = 0; i < offset; i++) html += '<div class=&quot;aspect-square&quot;></div>';
             for (let d = 1; d <= total; d++) {
                 const date = this.month + '-' + String(d).padStart(2, '0');
-                const ring = date === today ? ' ring-2 ring-blue-700 ring-offset-1' : '';
-                const sel = date === this.selected ? ' outline outline-2 outline-offset-1 outline-blue-700' : '';
-                html += '<button type=&quot;button&quot; data-no-confirm data-date=&quot;' + date + '&quot; class=&quot;aspect-square w-full flex items-center justify-center rounded-lg text-sm transition ' + this.cellClass(date) + ring + sel + '&quot;>' + d + '</button>';
+                html += '<button type=&quot;button&quot; data-no-confirm data-date=&quot;' + date + '&quot; class=&quot;aspect-square w-full flex items-center justify-center rounded-lg text-sm transition ' + this.cellClass(date) + '&quot;>' + d + '</button>';
             }
             return html;
         }
@@ -146,7 +175,9 @@
 
     {{-- Legend --}}
     <div class="mt-4 flex flex-wrap items-center gap-4 text-[11px] font-semibold text-gray-500">
-        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-green-500 inline-block"></span> Available</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-blue-600 shadow-md inline-block"></span> Selected</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-green-500 ring-2 ring-blue-500 ring-offset-1 inline-block"></span> Today</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-500 inline-block"></span> Available</span>
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-red-500 inline-block"></span> Fully booked / Blocked</span>
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-gray-100 border border-gray-200 inline-block"></span> Past</span>
     </div>
