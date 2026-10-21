@@ -79,29 +79,90 @@ class RescheduleCardTest extends TestCase
         $this->assertStringContainsString('09:00 AM - 10:00 AM', $html);
     }
 
-    public function test_the_card_offers_a_calendar_and_the_open_hours(): void
+    public function test_the_card_asks_for_a_day_and_a_reason(): void
     {
         [, $appointment] = $this->makeBooking();
 
         $html = $this->renderCard($appointment);
 
-        // The calendar reads the month from the availability endpoint...
+        // The calendar reads the month from the availability endpoint.
         $this->assertStringContainsString('/month', $html);
-        // ...and the hours come from the slots endpoint.
-        $this->assertStringContainsString('/slots', $html);
         $this->assertStringContainsString('New date', $html);
-        $this->assertStringContainsString('New time slot', $html);
         $this->assertStringContainsString('Green days have open slots; red days are full or closed.', $html);
+        // The reason, and the choice of it.
+        $this->assertStringContainsString('Reason for rescheduling', $html);
+        $this->assertStringContainsString('Choose a reason', $html);
         // The actions the registrar ends on.
         $this->assertStringContainsString('Confirm Reschedule', $html);
         $this->assertStringContainsString('Cancel', $html);
+        // The hour is not the card's to ask about: the booking keeps the one
+        // it holds, or waits for the office to set one.
+        $this->assertStringNotContainsString('New time slot', $html);
     }
 
     /**
-     * Neither the list nor the record carries the card: the list is for
-     * scanning, and the record is for reading.
+     * The record says what the move set, so a student who asks where their
+     * appointment went is answered on the page.
      */
-    public function test_no_page_offers_the_reschedule_card(): void
+    public function test_the_record_says_which_schedule_was_set(): void
+    {
+        [, $appointment] = $this->makeBooking();
+
+        // Nothing has moved yet, so the record has nothing to say.
+        $this->actingAs($this->makeRegistrar())
+            ->get(route('registrar.appointments.show', $appointment))
+            ->assertOk()
+            ->assertDontSee('The schedule that was set.');
+
+        $this->actingAs($this->makeRegistrar())
+            ->put(route('registrar.appointments.reschedule.update', $appointment), [
+                'date' => now()->addDays(5)->toDateString(),
+                'reschedule_reason' => 'Office closure',
+            ]);
+
+        $this->actingAs($this->makeRegistrar())
+            ->get(route('registrar.appointments.show', $appointment))
+            ->assertOk()
+            ->assertSee('Rescheduled')
+            ->assertSee('The schedule that was set.')
+            ->assertSee('Schedule')
+            ->assertSee($appointment->refresh()->date->format('F j, Y'))
+            ->assertSee('09:00 AM - 10:00 AM');
+    }
+
+    /**
+     * A booking that moves day keeps the hour it held: the card asks for a
+     * day, and the office's own hour travels with the booking.
+     */
+    public function test_a_day_only_reschedule_keeps_the_hour_the_booking_held(): void
+    {
+        Mail::fake();
+
+        [, $appointment] = $this->makeBooking();
+
+        $date = now()->addDays(5)->toDateString();
+
+        $this->actingAs($this->makeRegistrar())
+            ->put(route('registrar.appointments.reschedule.update', $appointment), [
+                'date' => $date,
+                'reschedule_reason' => 'Office closure',
+            ])
+            ->assertRedirect();
+
+        $appointment->refresh();
+
+        $this->assertEquals(AppointmentStatus::RESCHEDULED->value, $appointment->status);
+        $this->assertEquals($date, $appointment->date->toDateString());
+        $this->assertEquals('09:00 AM - 10:00 AM', $appointment->time_slot);
+        $this->assertEquals(now()->addDays(2)->toDateString(), $appointment->original_date->toDateString());
+    }
+
+    /**
+     * The record carries the card - a booking is moved from the record of
+     * that booking - and the management list does not, because the list is
+     * for scanning.
+     */
+    public function test_the_record_carries_the_card_and_the_list_does_not(): void
     {
         [, $appointment] = $this->makeBooking();
 
@@ -113,7 +174,9 @@ class RescheduleCardTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
-            ->assertDontSee('x-data="rescheduleCard(', false);
+            ->assertSee('x-data="rescheduleCard(', false)
+            ->assertSee('Reschedule Appointment')
+            ->assertSee(route('registrar.appointments.reschedule.update', $appointment), false);
     }
 
     /**

@@ -1,31 +1,34 @@
 {{--
-    The card that moves a booking to another day and hour.
+    The card that moves a booking to another day.
 
     The registrar is the only one who moves a booking: the student asks, the
     office answers with the hour, and the registrar is the one who changes it
     when the office cannot keep it.
 
+    The card asks for two things: the new day, picked from the same calendar
+    the booking form uses - green where the office still has room, red where
+    it does not - and why the booking moves. The hour it already holds stays
+    with it, so a booking that moves day keeps the hour the office gave it,
+    and a booking whose office answers with the hour keeps none and waits
+    for one.
+
     The booking it works on travels on the element as data attributes, and
     the pages it reads come from props:
 
         appointment       the booking, for the student's details
-        slots-url         where the open slots are read from
         month-url         where the calendar reads the month's availability
         submit-url        where the new schedule is saved
         method            how it is saved
         require-reason    whether a reason has to be given
-        pick-slot         whether the office takes a time slot at all
 --}}
 
 @props([
     'appointment' => null,
-    'slotsUrl' => '',
     'monthUrl' => '',
     'submitUrl' => '',
     'method' => 'PUT',
     'requireReason' => true,
     'showReason' => true,
-    'pickSlot' => true,
     'label' => 'Reschedule',
     'variant' => 'secondary',
     'triggerClass' => 'px-4 py-2.5 text-xs',
@@ -42,24 +45,20 @@
 
 <div class="relative"
      x-data="rescheduleCard({
-         slotsUrl: @js($slotsUrl),
          method: @js($method),
          requireReason: @js($requireReason),
          showReason: @js($showReason),
-         pickSlot: @js($pickSlot),
      })"
      @keydown.escape.window="open = false"
 
-     {{-- The calendar announces the day it picked; the card takes it and
-          reads the slots that day still has open. --}}
+     {{-- The calendar announces the day it picked; the card takes it. --}}
      @date-selected="pickDate($event.detail.date)"
 
      data-appointment-id="{{ $appointment?->id }}"
      data-office="{{ $appointment?->office }}"
      data-submit-url="{{ $submitUrl }}"
      data-current-date="{{ $appointment?->date->format('F j, Y') }}"
-     data-current-slot="{{ $appointment?->confirmed_time ?? $appointment?->time_slot }}"
-     data-current-time-slot="{{ $appointment?->time_slot }}">
+     data-current-slot="{{ $appointment?->time_slot ?? $appointment?->confirmed_time }}">
 
     {{-- THE TRIGGER --}}
     <button type="button"
@@ -83,7 +82,7 @@
             <path stroke-linecap="round"
                   stroke-linejoin="round"
                   stroke-width="2"
-                  d="M8 7V3m8 4V3m-9 4h10M5 21h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2z"/>
+                  d="M8 7V3m8 4V3m-9 4h10M5 21h14a2 2 0 002-2V8a2 2 0 00-2-2h10a2 2 0 012 2v11a2 2 0 01-2 2H5z"/>
 
             <path stroke-linecap="round"
                   stroke-linejoin="round"
@@ -166,19 +165,20 @@
             {{-- Whose booking this is, and what it holds today --}}
             <div class="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl">
 
-                <span class="text-[10px] font-bold uppercase tracking-wider text-blue-500">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-                    Student
+                    <div>
 
-                </span>
+                        <p class="text-[10px] uppercase tracking-widest
+                                  font-black text-blue-500">
+                            Student name
+                        </p>
 
-                <p class="font-bold text-gray-800">
+                        <p class="text-sm font-bold text-gray-800">
+                            {{ $appointment?->user->name }}
+                        </p>
 
-                    {{ $appointment?->user->name }}
-
-                </p>
-
-                <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    </div>
 
                     <div>
 
@@ -314,79 +314,6 @@
             </div>
 
 
-            {{-- The new hour: the slots the office still has open that day. --}}
-            <div class="mt-5" x-show="pickSlot">
-
-                <p class="block text-[10px] uppercase tracking-widest font-black text-gray-500 mb-1.5">
-
-                    New time slot
-
-                </p>
-
-                <p x-show="loadingSlots"
-                   class="text-xs font-semibold text-blue-600">
-
-                    Checking the open slots…
-
-                </p>
-
-                <p x-show="! loadingSlots && ! date"
-                   class="text-xs font-semibold text-gray-500">
-
-                    Pick a date first.
-
-                </p>
-
-                <p x-show="! loadingSlots && date && openSlots.length === 0"
-                   class="text-xs font-semibold text-gray-500">
-
-                    No open slots on that date. Try another day.
-
-                </p>
-
-                <div x-show="! loadingSlots && openSlots.length > 0"
-                     class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-
-                    <template x-for="slot in slots" :key="slot.time">
-
-                        <label class="flex items-center justify-between gap-2
-                                      px-3 py-2.5 rounded-xl border
-                                      text-sm font-bold transition
-                                      cursor-pointer"
-
-                               :class="slot.is_open
-                                   ? (time === slot.time
-                                       ? 'border-blue-600 bg-blue-50 text-blue-800 ring-1 ring-blue-200'
-                                       : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300')
-                                   : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'">
-
-                            <span class="flex items-center gap-2 min-w-0">
-
-                                <input type="radio"
-                                       class="sr-only"
-                                       :name="'reschedule-slot-' + (appointmentId || 'any')"
-                                       :value="slot.time"
-                                       :disabled="! slot.is_open"
-                                       x-model="time" />
-
-                                <span class="truncate" x-text="slot.time"></span>
-
-                            </span>
-
-                            <span class="text-[11px] font-semibold shrink-0"
-                                  x-text="slot.is_open
-                                      ? slot.remaining + ' seat' + (slot.remaining === 1 ? '' : 's')
-                                      : 'Full'"></span>
-
-                        </label>
-
-                    </template>
-
-                </div>
-
-            </div>
-
-
             {{-- What went wrong --}}
             <div x-show="error"
                  x-transition
@@ -415,7 +342,7 @@
 
                 <button type="button"
                         @click="confirm()"
-                        :disabled="submitting || !canSave"
+                        :disabled="submitting || ! canSave"
                         class="inline-flex items-center gap-2
                                px-4 py-2.5 rounded-xl
                                bg-[#1e40af] text-white

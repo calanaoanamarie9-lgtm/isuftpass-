@@ -165,23 +165,32 @@ class AppointmentController extends Controller
 
         $data = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today'],
-            'time_slot' => ['required', Rule::in(TimeSlots::forOffice($appointment->office))],
+            'time_slot' => ['nullable', Rule::in(TimeSlots::forOffice($appointment->office))],
             'reschedule_reason' => ['required', 'string', 'max:500'],
         ]);
 
-        $remaining = Appointment::remainingSlots($appointment->office, $data['date'], $data['time_slot'], $appointment->id);
+        // The card asks for a day and a reason. The hour the booking already
+        // holds travels with it: a booking whose office answers with the
+        // hour has none to hold, and waits for one to be set.
+        $timeSlot = $data['time_slot'] ?? $appointment->time_slot;
 
-        if ($remaining < 1) {
-            throw ValidationException::withMessages([
-                'time_slot' => 'The selected time slot is fully booked. Pick another open slot.',
-            ]);
+        if ($timeSlot !== null) {
+            $remaining = Appointment::remainingSlots($appointment->office, $data['date'], $timeSlot, $appointment->id);
+
+            if ($remaining < 1) {
+                throw ValidationException::withMessages([
+                    // A slot the request named is the slot's own fault; one
+                    // the booking carried is the day that is wrong.
+                    $data['time_slot'] !== null ? 'time_slot' : 'date' => 'The '.$timeSlot.' slot is already full on that date. Pick another day.',
+                ]);
+            }
         }
 
         $appointment->update([
             'original_date' => $appointment->original_date ?? $appointment->date,
             'original_time_slot' => $appointment->original_time_slot ?? $appointment->time_slot,
             'date' => $data['date'],
-            'time_slot' => $data['time_slot'],
+            'time_slot' => $timeSlot,
             'reschedule_reason' => $data['reschedule_reason'],
             'status' => AppointmentStatus::RESCHEDULED->value,
             'confirmed_at' => null,
@@ -195,7 +204,7 @@ class AppointmentController extends Controller
         SafeMailer::send($appointment->user, new AppointmentRescheduled($appointment, $oldSchedule));
         $appointment->user->notify(new AppointmentRescheduledNotification($appointment));
 
-        AuditLogger::log('appointment.rescheduled', 'Rescheduled appointment '.$appointment->reference_code.' to '.$data['date'].' ('.$data['time_slot'].').');
+        AuditLogger::log('appointment.rescheduled', 'Rescheduled appointment '.$appointment->reference_code.' to '.$data['date'].' ('.($timeSlot ?? 'hour to be set').').');
 
         // The registrar works from the appointment record itself; each of the
         // eight workspaces has its own appointment list instead. Sending a
