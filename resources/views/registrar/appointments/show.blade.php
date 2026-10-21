@@ -635,40 +635,6 @@
 
                             </div>
 
-
-                            <div class="pt-4 border-t border-slate-100">
-
-                                <div class="flex items-center justify-between">
-
-                                    <div>
-
-                                        <p class="text-[10px] font-bold uppercase
-                                                  tracking-wider text-slate-400">
-
-                                            Slot Capacity
-
-                                        </p>
-
-                                        <p class="text-xs text-slate-400 mt-1">
-                                            Maximum students
-                                        </p>
-
-                                    </div>
-
-
-                                    <span class="px-3 py-1.5 rounded-xl
-                                                 bg-blue-50
-                                                 text-blue-800
-                                                 text-sm font-extrabold">
-
-                                        {{ \App\Models\Appointment::SLOT_LIMITS[$appointment->office] ?? 6 }}
-
-                                    </span>
-
-                                </div>
-
-                            </div>
-
                         </div>
 
                     </div>
