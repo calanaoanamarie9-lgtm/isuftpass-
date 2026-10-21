@@ -16,6 +16,10 @@ use Tests\TestCase;
  * they stand ringed, and what is ahead grey. An appointment that left the
  * path stops in place with a cross and a line underneath saying what
  * happened, rather than carrying on as if progress were still being made.
+ *
+ * It is drawn on the My Appointments list and inside the student's own
+ * verification pass, and nowhere else: the pass is a shared card, and the
+ * copy a scanner opens or the registrar's station reads stays as it was.
  */
 class AppointmentProgressTest extends TestCase
 {
@@ -158,5 +162,47 @@ class AppointmentProgressTest extends TestCase
             $booking->completed_at->format('M j, g:i A'),
             $html
         );
+    }
+
+    public function test_the_students_own_pass_shows_how_far_the_booking_has_got(): void
+    {
+        $booking = $this->booking($this->student(), [
+            'status' => AppointmentStatus::CHECKED_IN->value,
+            'confirmed_at' => now()->subHour(),
+            'checked_in_at' => now()->subMinutes(20),
+        ]);
+
+        $this->actingAs($booking->user)
+            ->get(route('student.appointments.qr', $booking))
+            ->assertOk()
+            ->assertSee('Appointment progress')
+            ->assertSee('aria-current="step"', false)
+            ->assertSee($booking->checked_in_at->format('M j, g:i A'), false);
+    }
+
+    /**
+     * The pass is one card worn by three surfaces. Only the student's own
+     * copy carries the track, so a scanner and the registrar reading the
+     * same code see exactly what they saw before.
+     */
+    public function test_the_shared_card_stays_as_it_was_where_staff_and_scanners_read_it(): void
+    {
+        $booking = $this->booking($this->student(), [
+            'status' => AppointmentStatus::CONFIRMED->value,
+            'confirmed_at' => now()->subHour(),
+        ]);
+
+        $this->get(route('verify.appointment', $booking->qr_token))
+            ->assertOk()
+            ->assertSee('Appointment Verification Pass')
+            ->assertDontSee('Appointment progress');
+
+        $this->actingAs(User::factory()->create(['role' => User::ROLE_REGISTRAR]))
+            ->get(route('registrar.qr.index', [
+                'q' => route('verify.appointment', ['token' => $booking->qr_token]),
+            ]))
+            ->assertOk()
+            ->assertSee('Appointment Verification Pass')
+            ->assertDontSee('Appointment progress');
     }
 }
