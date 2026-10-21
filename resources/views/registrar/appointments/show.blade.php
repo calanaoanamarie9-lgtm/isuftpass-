@@ -212,7 +212,7 @@
 
                                     <span class="w-2 h-2 rounded-full bg-current"></span>
 
-                                    {{ \App\Enums\AppointmentStatus::tryFrom($appointment->status)?->label() ?? ucfirst($appointment->status) }}
+                                    {{ \App\Enums\AppointmentStatus::tryFrom($appointment->status)?->label() ?? ucfirst(str_replace('_', ' ', $appointment->status)) }}
 
                                 </span>
 
@@ -235,6 +235,25 @@
                     <div class="flex flex-wrap items-center gap-2">
 
                         <x-approve-schedule :appointment="$appointment" />
+
+                        {{-- Reschedule — the modal that moves the booking to
+                             another day and hour. It sits in the action bar of
+                             the record itself, beside the history panel below
+                             it, so what was asked for and what it became are
+                             read on one page. --}}
+                        @if (! in_array($appointment->status, ['cancelled', 'completed', 'no_show']))
+
+                            <x-reschedule-card
+                                :appointment="$appointment"
+                                slots-url="{{ route('registrar.appointments.slots') }}"
+                                month-url="{{ route('registrar.availability.month') }}"
+                                method="PUT"
+                                submit-url="{{ route('registrar.appointments.reschedule.update', $appointment) }}"
+                                :require-reason="true"
+                                variant="secondary"
+                                label="Reschedule" />
+
+                        @endif
 
                         {{-- Cancel --}}
                         @unless (in_array($appointment->status, ['completed', 'cancelled']))
@@ -425,148 +444,97 @@
                     </div>
 
 
-                    {{-- =================================================
-                        RESCHEDULE HISTORY
-                    ================================================== --}}
-                    @if ($appointment->rescheduled_at)
+                    {{-- =====================================================
+    RESCHEDULE HISTORY
+====================================================== --}}
+                    @if (
+                        $appointment->status === 'rescheduled' ||
+                        $appointment->rescheduled_at ||
+                        $appointment->original_date
+                    )
 
-                        <div class="bg-white rounded-3xl
-                                    border border-indigo-100
-                                    shadow-sm overflow-hidden">
+                        <div class="bg-white rounded-3xl border border-indigo-100 shadow-sm overflow-hidden">
 
-                            <div class="px-6 py-5
-                                        bg-indigo-50
-                                        border-b border-indigo-100">
-
+                            {{-- HEADER --}}
+                            <div class="px-6 py-5 bg-indigo-50 border-b border-indigo-100">
                                 <div class="flex items-center gap-3">
-
-                                    <div class="w-10 h-10 rounded-xl
-                                                bg-white
-                                                flex items-center justify-center
-                                                shadow-sm">
-
-                                        <svg class="w-5 h-5 text-indigo-700"
-                                             fill="none"
-                                             stroke="currentColor"
-                                             viewBox="0 0 24 24">
-
-                                            <path stroke-linecap="round"
-                                                  stroke-linejoin="round"
-                                                  stroke-width="2"
-                                                  d="M12 8v4l3 2"/>
-
-                                            <path stroke-linecap="round"
-                                                  stroke-linejoin="round"
-                                                  stroke-width="2"
-                                                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-
+                                    <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                                        <svg class="w-5 h-5 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 2"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
-
                                     </div>
-
                                     <div>
+                                        <h2 class="font-bold text-indigo-900">Reschedule History</h2>
+                                        <p class="text-xs text-indigo-600 mt-0.5">Previous and updated appointment schedule</p>
+                                    </div>
+                                </div>
+                            </div>
 
-                                        <h2 class="font-bold text-indigo-900">
-                                            Reschedule History
-                                        </h2>
+                            {{-- HISTORY DETAILS --}}
+                            <div class="p-6 space-y-5">
 
-                                        <p class="text-xs text-indigo-600 mt-0.5">
-                                            Previous appointment information
+                                {{-- ORIGINAL SCHEDULE --}}
+                                <div class="flex gap-4">
+                                    <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                                        <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 4h10M5 21h14a2 2 0 01-2-2V8a2 2 0 012-2h10a2 2 0 012 2v11a2 2 0 01-2 2H5z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Original Schedule</p>
+                                        <p class="text-sm font-bold text-slate-700 mt-1">
+                                            @if ($appointment->original_date)
+                                                {{ \Illuminate\Support\Carbon::parse($appointment->original_date)->format('F j, Y') }}
+                                            @else
+                                                Original date not recorded
+                                            @endif
                                         </p>
-
+                                        <p class="text-sm text-slate-500 mt-1">
+                                            Original time: {{ $appointment->original_time_slot ?: 'Not recorded' }}
+                                        </p>
                                     </div>
-
                                 </div>
 
-                            </div>
+                                <div class="ml-5 h-6 border-l-2 border-dashed border-indigo-200"></div>
 
-
-                            <div class="p-6">
-
-                                <div class="relative pl-8">
-
-                                    <div class="absolute left-2 top-1 bottom-1
-                                                w-px bg-indigo-200"></div>
-
-                                    <div class="absolute left-0 top-1
-                                                w-5 h-5 rounded-full
-                                                bg-indigo-100
-                                                border-4 border-white
-                                                ring-1 ring-indigo-200">
+                                {{-- UPDATED SCHEDULE --}}
+                                <div class="flex gap-4">
+                                    <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                                        <svg class="w-5 h-5 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
                                     </div>
-
-
-                                    <p class="text-[10px] font-bold uppercase
-                                              tracking-[0.15em] text-slate-400">
-
-                                        Rescheduled
-
-                                    </p>
-
-
-                                    <p class="text-sm text-slate-700 mt-2 leading-relaxed">
-
-                                        Moved from
-
-                                        <strong class="text-slate-900">
-
-                                            {{ $appointment->original_date?->format('F j, Y') }}
-
-                                            ·
-
-                                            {{ $appointment->original_time_slot ?? '—' }}
-
-                                        </strong>
-
-                                        to
-
-                                        <strong class="text-indigo-700">
-
-                                            {{ $appointment->date->format('F j, Y') }}
-
-                                            ·
-
-                                            {{ $appointment->time_slot }}
-
-                                        </strong>
-
-                                    </p>
-
-
-                                    <p class="text-xs text-slate-400 mt-2">
-
-                                        {{ $appointment->rescheduled_at->format('M j, Y g:i A') }}
-
-                                    </p>
-
-
-                                    @if ($appointment->reschedule_reason)
-
-                                        <div class="mt-4 p-4 rounded-2xl
-                                                    bg-indigo-50
-                                                    border border-indigo-100">
-
-                                            <p class="text-[10px] font-bold uppercase
-                                                      tracking-wider text-indigo-500">
-
-                                                Reason
-
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-bold uppercase tracking-wider text-indigo-500">Updated Schedule</p>
+                                        <p class="text-sm font-bold text-indigo-800 mt-1">
+                                            @if ($appointment->date)
+                                                {{ \Illuminate\Support\Carbon::parse($appointment->date)->format('F j, Y') }}
+                                            @else
+                                                New date not set
+                                            @endif
+                                        </p>
+                                        <p class="text-sm text-indigo-700 mt-1">
+                                            New time: {{ $appointment->time_slot ?: 'Not set' }}
+                                        </p>
+                                        @if ($appointment->rescheduled_at)
+                                            <p class="text-xs text-slate-400 mt-2">
+                                                Updated on {{ \Illuminate\Support\Carbon::parse($appointment->rescheduled_at)->format('M j, Y g:i A') }}
                                             </p>
-
-                                            <p class="text-sm text-indigo-800 mt-1">
-                                                {{ $appointment->reschedule_reason }}
-                                            </p>
-
-                                        </div>
-
-                                    @endif
-
+                                        @endif
+                                    </div>
                                 </div>
 
-                            </div>
+                                {{-- RESCHEDULE REASON --}}
+                                @if ($appointment->reschedule_reason)
+                                    <div class="p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
+                                        <p class="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Reason for Rescheduling</p>
+                                        <p class="text-sm text-indigo-900 mt-2 leading-relaxed">{{ $appointment->reschedule_reason }}</p>
+                                    </div>
+                                @endif
 
+                            </div>
                         </div>
-
                     @endif
 
                 </div>

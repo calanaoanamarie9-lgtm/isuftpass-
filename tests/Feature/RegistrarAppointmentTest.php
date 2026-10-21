@@ -77,17 +77,18 @@ class RegistrarAppointmentTest extends TestCase
     }
 
     /**
-     * The registrar is the only one who moves a booking: the management
-     * list offers the reschedule card beside View Details, and the details
-     * page does not - there the window moves through Approve & schedule and
-     * its Edit link.
+     * The registrar is the only one who moves a booking, and the record of
+     * that booking is where they do it: the appointment page carries the
+     * reschedule card in its action bar, beside the history panel that
+     * shows what the move changed. The management list is for scanning, so
+     * it carries no card of its own.
      */
-    public function test_the_management_list_offers_the_reschedule_card(): void
+    public function test_the_appointment_record_offers_the_reschedule_card(): void
     {
         [$student, $appointment] = $this->makeStudentWithAppointment();
 
         $this->actingAs($this->makeRegistrar())
-            ->get('/registrar/appointments')
+            ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
             ->assertSee('Reschedule Appointment')
             ->assertSee('x-data="rescheduleCard(', false)
@@ -98,16 +99,14 @@ class RegistrarAppointmentTest extends TestCase
             ->assertSee(route('registrar.appointments.reschedule.update', $appointment), false);
     }
 
-    public function test_the_details_page_offers_no_reschedule_action(): void
+    public function test_the_management_list_offers_no_reschedule_card(): void
     {
         [, $appointment] = $this->makeStudentWithAppointment();
 
         $this->actingAs($this->makeRegistrar())
-            ->get(route('registrar.appointments.show', $appointment))
+            ->get('/registrar/appointments')
             ->assertOk()
-            ->assertDontSee('open-reschedule')
-            ->assertDontSee('Reschedule Appointment')
-            ->assertDontSee('rescheduleModal()');
+            ->assertDontSee('x-data="rescheduleCard(', false);
     }
 
     /**

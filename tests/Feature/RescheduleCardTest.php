@@ -49,7 +49,7 @@ class RescheduleCardTest extends TestCase
         [, $appointment] = $this->makeBooking();
 
         $this->actingAs($this->makeRegistrar())
-            ->get(route('registrar.appointments.index'))
+            ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
             // The header carries the title and the reference together.
             ->assertSee('Reschedule Appointment')
@@ -66,7 +66,7 @@ class RescheduleCardTest extends TestCase
         [, $appointment] = $this->makeBooking();
 
         $this->actingAs($this->makeRegistrar())
-            ->get(route('registrar.appointments.index'))
+            ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
             // The calendar reads the month from the availability endpoint...
             // The endpoints travel inside Alpine's config, where a URL keeps
@@ -84,20 +84,22 @@ class RescheduleCardTest extends TestCase
 
     public function test_the_card_is_offered_only_while_the_booking_can_still_move(): void
     {
+        [, $booking] = $this->makeBooking();
+
         $this->actingAs($this->makeRegistrar())
-            ->get(route('registrar.appointments.index'))
+            ->get(route('registrar.appointments.show', $booking))
             ->assertOk()
-            ->assertSee('Reschedule');
+            ->assertSee('Confirm Reschedule');
 
         foreach ([
             AppointmentStatus::CANCELLED->value,
             AppointmentStatus::COMPLETED->value,
             AppointmentStatus::NO_SHOW->value,
         ] as $status) {
-            $this->makeBooking($status);
+            [, $appointment] = $this->makeBooking($status);
 
             $this->actingAs($this->makeRegistrar())
-                ->get(route('registrar.appointments.index'))
+                ->get(route('registrar.appointments.show', $appointment))
                 ->assertOk()
                 ->assertDontSee('Confirm Reschedule');
         }

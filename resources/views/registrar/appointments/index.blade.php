@@ -885,27 +885,6 @@
 
                                 </a>
 
-
-                                {{-- RESCHEDULE — the registrar is the only
-                                     one who moves a booking: the card takes
-                                     the new day and hour, asks why, and
-                                     notifies the student. --}}
-                                @if ($appointment->status !== 'cancelled'
-                                    && $appointment->status !== 'completed'
-                                    && $appointment->status !== 'no_show')
-
-                                    <x-reschedule-card
-                                        :appointment="$appointment"
-                                        slots-url="{{ route('registrar.appointments.slots') }}"
-                                        month-url="{{ route('registrar.availability.month') }}"
-                                        method="PUT"
-                                        submit-url="{{ route('registrar.appointments.reschedule.update', $appointment) }}"
-                                        :require-reason="true"
-                                        variant="secondary"
-                                        label="Reschedule" />
-
-                                @endif
-
                             </div>
 
                         </div>
