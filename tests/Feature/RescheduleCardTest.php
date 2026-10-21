@@ -8,6 +8,7 @@ use App\Models\Appointment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -155,6 +156,24 @@ class RescheduleCardTest extends TestCase
             ->get(route('registrar.appointments.index'))
             ->assertOk()
             ->assertDontSee('x-data="rescheduleCard(', false);
+    }
+
+    /**
+     * The panel still scrolls - a short screen has to reach the calendar and
+     * the buttons - but the bar is not drawn down its edge.
+     */
+    public function test_the_modal_hides_its_scrollbar(): void
+    {
+        [, $appointment] = $this->makeBooking();
+
+        $html = $this->renderCard($appointment);
+
+        $this->assertStringContainsString('overflow-y-auto max-h-[90vh] scrollbar-hidden', $html);
+
+        // And the utility is really defined, or the class is only a name.
+        $css = File::get(resource_path('css/app.css'));
+
+        $this->assertStringContainsString('.scrollbar-hidden', $css);
     }
 
     /**

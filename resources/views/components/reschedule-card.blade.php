@@ -114,14 +114,14 @@
          x-cloak
          x-transition.opacity
          class="fixed inset-0 z-[60]
-                flex justify-center p-4 overflow-y-auto
+                flex justify-center p-4 overflow-y-auto scrollbar-hidden
                 bg-slate-950/50 backdrop-blur-sm"
          @click.self="open = false">
 
         <div class="relative w-full max-w-xl
                     p-6 my-8
                     bg-white rounded-2xl shadow-xl
-                    overflow-y-auto max-h-[90vh]"
+                    overflow-y-auto max-h-[90vh] scrollbar-hidden"
 
              x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 scale-95"

@@ -4,6 +4,18 @@
 
 [x-cloak] { display: none !important; }
 
+/* A scrollbar nobody needs to see. The panel still scrolls - the wheel, a
+   finger and the keyboard all work - but the bar is not drawn down its
+   edge, so the content is the only thing on the screen. */
+.scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+}
+
 /* Prevent sticky hover states on touch devices (sidebar items)
    so links never appear "selected" after a tap. */
 @media (hover: none) {
