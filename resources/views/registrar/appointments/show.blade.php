@@ -236,25 +236,6 @@
 
                         <x-approve-schedule :appointment="$appointment" />
 
-                        {{-- Reschedule — the modal that moves the booking to
-                             another day and hour. It sits in the action bar of
-                             the record itself, beside the history panel below
-                             it, so what was asked for and what it became are
-                             read on one page. --}}
-                        @if (! in_array($appointment->status, ['cancelled', 'completed', 'no_show']))
-
-                            <x-reschedule-card
-                                :appointment="$appointment"
-                                slots-url="{{ route('registrar.appointments.slots') }}"
-                                month-url="{{ route('registrar.availability.month') }}"
-                                method="PUT"
-                                submit-url="{{ route('registrar.appointments.reschedule.update', $appointment) }}"
-                                :require-reason="true"
-                                variant="secondary"
-                                label="Reschedule" />
-
-                        @endif
-
                         {{-- Cancel --}}
                         @unless (in_array($appointment->status, ['completed', 'cancelled']))
 

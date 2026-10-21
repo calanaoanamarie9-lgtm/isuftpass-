@@ -7,11 +7,12 @@ use App\Mail\AppointmentRescheduled;
 use App\Models\Appointment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
- * The card the registrar opens to move a booking.
+ * The card that moves a booking to another day and hour.
  *
  * It has to answer three questions before the registrar touches anything:
  * which booking this is, what it holds today, and what the office still
@@ -19,6 +20,11 @@ use Tests\TestCase;
  * current day and hour, and a calendar that colours the month the same way
  * the booking form does - green where there is room, red where there is
  * none - with the hours that day still has open listed underneath.
+ *
+ * No page carries the card at the moment: the management list is for
+ * scanning, and the appointment record is for reading. The modal and the
+ * flow behind it are still here, ready to be put back wherever a booking
+ * is moved.
  */
 class RescheduleCardTest extends TestCase
 {
@@ -44,65 +50,70 @@ class RescheduleCardTest extends TestCase
         return [$student, $appointment];
     }
 
+    /**
+     * The card is drawn on its own: no page carries it, so the component is
+     * tested as the piece it is.
+     */
+    private function renderCard(Appointment $appointment): string
+    {
+        return Blade::render(
+            '<x-reschedule-card :appointment="$appointment"'
+            .' slots-url="/slots" month-url="/month" submit-url="/submit" />',
+            ['appointment' => $appointment],
+        );
+    }
+
     public function test_the_card_names_the_booking_it_moves(): void
     {
         [, $appointment] = $this->makeBooking();
 
-        $this->actingAs($this->makeRegistrar())
-            ->get(route('registrar.appointments.show', $appointment))
-            ->assertOk()
-            // The header carries the title and the reference together.
-            ->assertSee('Reschedule Appointment')
-            ->assertSee($appointment->reference_code)
-            // The summary says what the booking holds today.
-            ->assertSee('Office')
-            ->assertSee('Current date')
-            ->assertSee('Current time slot')
-            ->assertSee('09:00 AM - 10:00 AM');
+        $html = $this->renderCard($appointment);
+
+        // The header carries the title and the reference together.
+        $this->assertStringContainsString('Reschedule Appointment', $html);
+        $this->assertStringContainsString($appointment->reference_code, $html);
+        // The summary says what the booking holds today.
+        $this->assertStringContainsString('Office', $html);
+        $this->assertStringContainsString('Current date', $html);
+        $this->assertStringContainsString('Current time slot', $html);
+        $this->assertStringContainsString('09:00 AM - 10:00 AM', $html);
     }
 
     public function test_the_card_offers_a_calendar_and_the_open_hours(): void
     {
         [, $appointment] = $this->makeBooking();
 
+        $html = $this->renderCard($appointment);
+
+        // The calendar reads the month from the availability endpoint...
+        $this->assertStringContainsString('/month', $html);
+        // ...and the hours come from the slots endpoint.
+        $this->assertStringContainsString('/slots', $html);
+        $this->assertStringContainsString('New date', $html);
+        $this->assertStringContainsString('New time slot', $html);
+        $this->assertStringContainsString('Green days have open slots; red days are full or closed.', $html);
+        // The actions the registrar ends on.
+        $this->assertStringContainsString('Confirm Reschedule', $html);
+        $this->assertStringContainsString('Cancel', $html);
+    }
+
+    /**
+     * Neither the list nor the record carries the card: the list is for
+     * scanning, and the record is for reading.
+     */
+    public function test_no_page_offers_the_reschedule_card(): void
+    {
+        [, $appointment] = $this->makeBooking();
+
+        $this->actingAs($this->makeRegistrar())
+            ->get(route('registrar.appointments.index'))
+            ->assertOk()
+            ->assertDontSee('x-data="rescheduleCard(', false);
+
         $this->actingAs($this->makeRegistrar())
             ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
-            // The calendar reads the month from the availability endpoint...
-            // The endpoints travel inside Alpine's config, where a URL keeps
-            // its escaped slashes - so the page carries them that way.
-            ->assertSee(str_replace('/', '\/', route('registrar.availability.month')), false)
-            // ...and the hours come from the slots endpoint.
-            ->assertSee(str_replace('/', '\/', route('registrar.appointments.slots')), false)
-            ->assertSee('New date')
-            ->assertSee('New time slot')
-            ->assertSee('Green days have open slots; red days are full or closed.')
-            // The actions the registrar ends on.
-            ->assertSee('Confirm Reschedule')
-            ->assertSee('Cancel');
-    }
-
-    public function test_the_card_is_offered_only_while_the_booking_can_still_move(): void
-    {
-        [, $booking] = $this->makeBooking();
-
-        $this->actingAs($this->makeRegistrar())
-            ->get(route('registrar.appointments.show', $booking))
-            ->assertOk()
-            ->assertSee('Confirm Reschedule');
-
-        foreach ([
-            AppointmentStatus::CANCELLED->value,
-            AppointmentStatus::COMPLETED->value,
-            AppointmentStatus::NO_SHOW->value,
-        ] as $status) {
-            [, $appointment] = $this->makeBooking($status);
-
-            $this->actingAs($this->makeRegistrar())
-                ->get(route('registrar.appointments.show', $appointment))
-                ->assertOk()
-                ->assertDontSee('Confirm Reschedule');
-        }
+            ->assertDontSee('x-data="rescheduleCard(', false);
     }
 
     /**

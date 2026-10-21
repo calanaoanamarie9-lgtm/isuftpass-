@@ -77,26 +77,19 @@ class RegistrarAppointmentTest extends TestCase
     }
 
     /**
-     * The registrar is the only one who moves a booking, and the record of
-     * that booking is where they do it: the appointment page carries the
-     * reschedule card in its action bar, beside the history panel that
-     * shows what the move changed. The management list is for scanning, so
-     * it carries no card of its own.
+     * The registrar is the only one who moves a booking, and neither the
+     * management list nor the appointment record offers a reschedule action:
+     * the list is for scanning, the record is for reading. The flow itself
+     * - the modal, the endpoint, the email - is still in place.
      */
-    public function test_the_appointment_record_offers_the_reschedule_card(): void
+    public function test_the_appointment_record_offers_no_reschedule_card(): void
     {
         [$student, $appointment] = $this->makeStudentWithAppointment();
 
         $this->actingAs($this->makeRegistrar())
             ->get(route('registrar.appointments.show', $appointment))
             ->assertOk()
-            ->assertSee('Reschedule Appointment')
-            ->assertSee('x-data="rescheduleCard(', false)
-            // The card carries whose booking it is, and where it reads and
-            // writes.
-            ->assertSee($student->name)
-            ->assertSee($appointment->reference_code)
-            ->assertSee(route('registrar.appointments.reschedule.update', $appointment), false);
+            ->assertDontSee('x-data="rescheduleCard(', false);
     }
 
     public function test_the_management_list_offers_no_reschedule_card(): void
