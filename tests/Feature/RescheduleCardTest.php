@@ -164,7 +164,7 @@ class RescheduleCardTest extends TestCase
      */
     public function test_the_record_carries_the_card_and_the_list_does_not(): void
     {
-        [, $appointment] = $this->makeBooking();
+        [, $appointment] = $this->makeBooking(AppointmentStatus::CONFIRMED->value);
 
         $this->actingAs($this->makeRegistrar())
             ->get(route('registrar.appointments.index'))
@@ -177,6 +177,42 @@ class RescheduleCardTest extends TestCase
             ->assertSee('x-data="rescheduleCard(', false)
             ->assertSee('Reschedule Appointment')
             ->assertSee(route('registrar.appointments.reschedule.update', $appointment), false);
+    }
+
+    /**
+     * The office answers first: a booking still waiting to be approved shows
+     * the Approve & schedule trigger and no reschedule button, because it
+     * has no schedule to move yet.
+     */
+    public function test_the_reschedule_button_waits_for_the_offices_answer(): void
+    {
+        [, $appointment] = $this->makeBooking();
+
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get(route('registrar.appointments.show', $appointment))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('Approve &amp; schedule', $html);
+        $this->assertStringNotContainsString('x-data="rescheduleCard(', $html);
+    }
+
+    /**
+     * One reschedule button, and one place that says which schedule was
+     * set. The chip beside it carries that answer, so the record must not
+     * say it twice.
+     */
+    public function test_the_record_says_the_schedule_once_and_offers_one_reschedule_button(): void
+    {
+        [, $appointment] = $this->makeBooking(AppointmentStatus::CONFIRMED->value);
+
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get(route('registrar.appointments.show', $appointment))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, substr_count($html, 'x-data="rescheduleCard('));
+        $this->assertSame(1, substr_count($html, 'The schedule that was set.'));
     }
 
     /**

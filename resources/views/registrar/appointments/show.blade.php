@@ -237,10 +237,11 @@
                         <x-approve-schedule :appointment="$appointment" />
 
                         {{-- Reschedule — the modal that moves the booking to
-                             another day. It sits in the action bar of the
-                             record itself, beside the block that says which
-                             schedule the booking now holds. --}}
-                        @if (! in_array($appointment->status, ['cancelled', 'completed', 'no_show']))
+                             another day. It waits for the office's answer:
+                             a booking still waiting to be approved has
+                             nothing to move yet, and the chip beside it
+                             already carries the schedule that was set. --}}
+                        @if (in_array($appointment->status, ['confirmed', 'rescheduled'], true))
 
                             <x-reschedule-card
                                 :appointment="$appointment"
@@ -248,48 +249,8 @@
                                 method="PUT"
                                 submit-url="{{ route('registrar.appointments.reschedule.update', $appointment) }}"
                                 :require-reason="true"
-                                variant="secondary"
+                                variant="blue"
                                 label="Reschedule" />
-
-                        @endif
-
-                        {{-- What the move set. A booking that has been moved
-                             says so in the action bar, and says which schedule
-                             it now holds - the answer the student is given
-                             when they ask where their appointment went. --}}
-                        @if ($appointment->rescheduled_at
-                            || $appointment->status === 'rescheduled')
-
-                            <div class="px-4 py-2.5 rounded-xl
-                                        border border-indigo-100 bg-indigo-50">
-
-                                <p class="text-[10px] uppercase tracking-widest
-                                          font-black text-indigo-600">
-                                    Rescheduled
-                                </p>
-
-                                <p class="text-xs text-indigo-700 mt-0.5">
-                                    The schedule that was set.
-                                </p>
-
-                                <p class="text-[10px] uppercase tracking-widest
-                                          font-black text-indigo-500 mt-2">
-                                    Schedule
-                                </p>
-
-                                <p class="text-xs font-bold text-indigo-900">
-                                    {{ $appointment->date->format('F j, Y') }}
-                                </p>
-
-                                @if ($appointment->time_slot)
-
-                                    <p class="text-xs font-bold text-indigo-900">
-                                        {{ $appointment->time_slot }}
-                                    </p>
-
-                                @endif
-
-                            </div>
 
                         @endif
 

@@ -78,14 +78,13 @@ class RegistrarAppointmentTest extends TestCase
 
     /**
      * The registrar is the only one who moves a booking, and they do it
-     * from the record of that booking: the appointment page carries the
-     * reschedule card in its action bar, beside the block that says which
-     * schedule the booking now holds. The management list is for scanning,
-     * so it carries no card of its own.
+     * from the record of that booking: once the office has answered, the
+     * appointment page carries the reschedule card in its action bar. The
+     * management list is for scanning, so it carries no card of its own.
      */
     public function test_the_appointment_record_offers_the_reschedule_card(): void
     {
-        [$student, $appointment] = $this->makeStudentWithAppointment();
+        [$student, $appointment] = $this->makeStudentWithAppointment(AppointmentStatus::CONFIRMED->value);
 
         $this->actingAs($this->makeRegistrar())
             ->get(route('registrar.appointments.show', $appointment))

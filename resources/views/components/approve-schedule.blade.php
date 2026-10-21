@@ -73,7 +73,10 @@
         || $errors->has('start_time')
         || $errors->has('end_time');
 
-    $approved = $appointment->status === 'confirmed';
+    // An appointment the office has answered - approved, or moved since -
+    // shows the chip that names the state and opens the schedule behind it.
+    // A booking still waiting shows the Approve & schedule trigger.
+    $answered = in_array($appointment->status, ['confirmed', 'rescheduled'], true);
     $approvable = in_array($appointment->status, ['pending', 'for_reschedule'], true);
 
     $officeClock = fn (string $time): string => sprintf(
@@ -84,7 +87,7 @@
     );
 @endphp
 
-@if ($approved || $approvable)
+@if ($answered || $approvable)
 
     <div class="relative"
          x-data="approveSchedule({
@@ -97,7 +100,7 @@
 
         {{-- APPROVED — the answer is already given, so the chip names the
              state and the card behind it carries the schedule. --}}
-        @if ($approved)
+        @if ($answered)
 
             <button type="button"
                     @click="details = ! details"

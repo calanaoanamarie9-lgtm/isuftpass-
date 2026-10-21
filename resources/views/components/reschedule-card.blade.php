@@ -72,7 +72,9 @@
                    {{ $triggerClass }}
                    {{ $variant === 'primary'
                        ? 'bg-blue-900 text-white hover:bg-blue-800 focus-visible:ring-blue-300'
-                       : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-300' }}">
+                       : ($variant === 'blue'
+                           ? 'border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 focus-visible:ring-blue-300'
+                           : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-300') }}">
 
         <svg class="w-4 h-4 shrink-0"
              fill="none"
