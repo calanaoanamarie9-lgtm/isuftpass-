@@ -354,7 +354,7 @@
                                         <p class="text-[11px]
                                                   text-gray-400">
 
-                                            No student appointments can be booked.
+                                            No appointments can be booked.
 
                                         </p>
 

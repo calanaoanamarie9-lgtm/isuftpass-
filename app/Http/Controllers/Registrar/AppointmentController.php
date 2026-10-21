@@ -277,15 +277,18 @@ class AppointmentController extends Controller
         $date = $data['scheduled_date'] ?? $appointment->date->toDateString();
         $alreadyApproved = $appointment->status === AppointmentStatus::CONFIRMED->value;
 
-        // Offices that set the time themselves (the Registrar) carry no
-        // requested slot, so there is no slot capacity to weigh here — the
-        // day's own queue handles that. An appointment answering itself never
-        // blocks its own edit, so it is left out of the count.
-        if ($appointment->time_slot !== null) {
+        // The hour the office gives the booking decides which of its hours
+        // it sits in, and that hour is the seat it takes: a student asks
+        // for a day, and the office answers with an hour, so the hour is
+        // where the capacity is weighed. An appointment answering itself
+        // never blocks its own edit, so it is left out of the count.
+        $slot = $this->slotFor($appointment->office, $start) ?? $appointment->time_slot;
+
+        if ($slot !== null) {
             $remaining = Appointment::remainingSlots(
                 $appointment->office,
                 $date,
-                $appointment->time_slot,
+                $slot,
                 $alreadyApproved ? $appointment->id : null
             );
 
@@ -305,6 +308,9 @@ class AppointmentController extends Controller
             'date' => $date,
             'start_time' => $start,
             'end_time' => $end,
+            // The hour the booking now sits in, so the day's seats are
+            // counted against it from here on.
+            'time_slot' => $slot,
             // The pass card, both emails and every notification read this one
             // string as the time to arrive, so it stays the start of the
             // window — the range lives beside it.

@@ -10,9 +10,9 @@ use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 /**
- * The Registrar does not ask a student for a time. A booking is a date, and
- * the office answers with the exact time when it approves — so the booking
- * form hides the slot picker and the request arrives with no time_slot.
+ * A booking is a date, and the office answers with the exact time when it
+ * approves — so the booking form asks for no hour at all, for any office,
+ * and the request arrives with no time_slot.
  */
 class RegistrarTimeAtBookingTest extends TestCase
 {
@@ -50,7 +50,7 @@ class RegistrarTimeAtBookingTest extends TestCase
         $this->assertSame(AppointmentStatus::PENDING->value, $appointment->status);
     }
 
-    public function test_booking_another_office_still_requires_a_time_slot(): void
+    public function test_booking_another_office_asks_for_no_time_slot_either(): void
     {
         Mail::fake();
         Notification::fake();
@@ -63,18 +63,42 @@ class RegistrarTimeAtBookingTest extends TestCase
                 'purpose' => 'Counseling',
                 'date' => now()->addDays(3)->toDateString(),
             ])
-            ->assertSessionHasErrors('time_slot');
+            ->assertRedirect(route('student.appointments.index'));
 
-        $this->assertSame(0, $student->appointments()->count());
+        $appointment = $student->appointments()->firstOrFail();
+
+        // The hour is the office's to give, so the booking waits without one.
+        $this->assertNull($appointment->time_slot);
+        $this->assertSame(AppointmentStatus::PENDING->value, $appointment->status);
     }
 
-    public function test_the_booking_form_hides_the_time_picker_for_the_registrar(): void
+    public function test_the_booking_form_asks_for_no_time_at_all(): void
     {
         $this->actingAs($this->makeStudent())
             ->get(route('student.appointments.create'))
             ->assertOk()
-            ->assertSee('id="time-section"', false)
-            ->assertSee("const registrarOffice = 'Registrar'", false);
+            ->assertDontSee('id="time-section"', false)
+            ->assertDontSee('Select Time')
+            ->assertDontSee('Available Time Slots')
+            ->assertDontSee('Select an available time slot');
+    }
+
+    /**
+     * The parent and guest forms are the same form with one step more: the
+     * child's details sit between the date and the notes.
+     */
+    public function test_the_parent_form_numbers_its_steps_around_the_removed_time_step(): void
+    {
+        $parent = User::factory()->create([
+            'role' => 'student',
+            'registration_type' => 'parent',
+        ]);
+
+        $this->actingAs($parent)
+            ->get(route('student.appointments.create'))
+            ->assertOk()
+            ->assertDontSee('Select Time')
+            ->assertSee('Student ID');
     }
 
     public function test_the_registrar_can_approve_a_booking_that_had_no_requested_time(): void
@@ -102,6 +126,9 @@ class RegistrarTimeAtBookingTest extends TestCase
 
         $this->assertSame(AppointmentStatus::CONFIRMED->value, $appointment->status);
         $this->assertSame('9:00 AM', $appointment->confirmed_time);
+        // The hour the office gave decides which of its hours the booking
+        // sits in, and that is the seat it takes.
+        $this->assertSame('09:00 AM - 10:00 AM', $appointment->time_slot);
     }
 
     public function test_time_to_come_reads_pending_until_the_registrar_answers(): void

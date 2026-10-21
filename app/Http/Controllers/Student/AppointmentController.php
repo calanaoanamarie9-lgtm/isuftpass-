@@ -179,9 +179,12 @@ class AppointmentController extends Controller
             // still demands text: see resolvePurpose().
             'purpose_other' => ['required_if:purpose,'.AppointmentPurposes::OTHER, 'nullable', 'string', 'max:255'],
             'date' => ['required', 'date', 'after_or_equal:today'],
+            // The student asks for a day; the office answers with the hour
+            // when it approves, so no slot is asked for here. One that
+            // arrives from an older form is still read, so a booking made
+            // before the change keeps the hour it was given.
             'time_slot' => [
                 'nullable',
-                Rule::requiredIf(! Office::setsTimeOnApproval($office)),
                 'in:'.implode(',', TimeSlots::forOffice($office)),
             ],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -202,8 +205,9 @@ class AppointmentController extends Controller
         $data = array_diff_key($data, $extras);
         $this->persistRequesterDetails($user, $extras);
 
-        // The Registrar asks for a date alone — it answers with the time when
-        // it approves, so there is no requested slot to weigh for capacity.
+        // The student asks for a day — the office answers with the hour when
+        // it approves — so there is no requested slot to weigh for capacity
+        // here. A booking made from an older form may still name one.
         $timeSlot = $data['time_slot'] ?? null;
 
         $check = $timeSlot === null
@@ -408,9 +412,12 @@ class AppointmentController extends Controller
             // still demands text when "Other" is chosen.
             'purpose_other' => ['required_if:purpose,'.AppointmentPurposes::OTHER, 'nullable', 'string', 'max:255'],
             'date' => ['required', 'date', 'after_or_equal:today'],
+            // The student asks for a day; the office answers with the hour
+            // when it approves, so no slot is asked for here. One that
+            // arrives from an older form is still read, so a booking made
+            // before the change keeps the hour it was given.
             'time_slot' => [
                 'nullable',
-                Rule::requiredIf(! Office::setsTimeOnApproval($office)),
                 'in:'.implode(',', TimeSlots::forOffice($office)),
             ],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -428,10 +435,12 @@ class AppointmentController extends Controller
         $data['purpose'] = $this->resolvePurpose($data);
         unset($data['purpose_other']);
 
-        $timeSlot = $data['time_slot'] ?? null;
+        // The student edits a day, not an hour: the hour the office gave the
+        // booking stays with it, and a day that moves sends the booking back
+        // for a fresh answer.
+        $timeSlot = $data['time_slot'] ?? $appointment->time_slot;
 
-        $scheduleChanged = $appointment->date->toDateString() !== $data['date']
-            || $appointment->time_slot !== $timeSlot;
+        $scheduleChanged = $appointment->date->toDateString() !== $data['date'];
         $officeChanged = $appointment->office !== $data['office'];
 
         if ($scheduleChanged && $timeSlot !== null) {
