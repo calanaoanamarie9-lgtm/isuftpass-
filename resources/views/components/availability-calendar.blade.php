@@ -189,7 +189,7 @@
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-blue-600 shadow-md inline-block"></span> Selected</span>
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-green-500 ring-2 ring-blue-500 ring-offset-1 inline-block"></span> Today</span>
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-500 inline-block"></span> Available</span>
-        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-red-500 inline-block"></span> Fully booked / Blocked</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-red-500 inline-block"></span> Fully booked</span>
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-gray-100 border border-gray-200 inline-block"></span> Past</span>
     </div>
 </div>

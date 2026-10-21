@@ -401,7 +401,7 @@ class SlotAvailabilityCapacityTest extends TestCase
             ->get(route('student.appointments.create'))
             ->assertOk()
             ->assertSee('Preferred Date')
-            ->assertSee('Fully booked / Blocked')
+            ->assertSee('Fully booked')
             ->assertSee('x-data="{', false)
             ->assertSee('data-no-confirm x-on:click="shiftMonth', false)
             ->assertSee('data-no-confirm data-date=', false)
@@ -425,7 +425,7 @@ class SlotAvailabilityCapacityTest extends TestCase
             ->get(route('registrar.appointments.reschedule', $booking))
             ->assertOk()
             ->assertSee('New Date')
-            ->assertSee('Fully booked / Blocked')
+            ->assertSee('Fully booked')
             ->assertSee('data-no-confirm data-date=', false);
     }
 }
