@@ -32,7 +32,9 @@
         'border' => '#facc15',
         'title' => '#a16207',
     ])
-        &bull; Please arrive <strong>10&ndash;15 minutes early</strong>.<br>
+        &bull; Come <strong>15&ndash;30 minutes before</strong> your scheduled time.<br>
+        &bull; Failure to arrive on time will result in the
+        <strong>automatic cancellation of your request</strong>.<br>
         &bull; Have your <strong>Appointment QR Pass ready on your phone</strong> for check-in
         &mdash; find it under "My Digital ID / QR Pass" in the ISUFSTPASS portal.
     @endcomponent
