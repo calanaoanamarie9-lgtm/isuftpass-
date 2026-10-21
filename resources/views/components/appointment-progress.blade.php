@@ -2,12 +2,16 @@
 
 {{--
     The four steps a booking walks - Requested, Confirmed, Checked in,
-    Completed - drawn as one line across the card. The steps behind the
-    student are filled blue, the step the appointment stands on is ringed,
-    the steps ahead are grey, and the line joins them in the order they are
-    walked. An appointment that left the path (cancelled, or a no show)
-    stops in place with a cross instead, and the line under the track says
-    what happened.
+    Completed - drawn as a vertical timeline, the way the request tracking
+    on My Requests draws its own: the steps behind the student are solid
+    blue ticks, the step the appointment stands on is the same tick with a
+    Current badge beside its name, the steps ahead are grey circles still
+    carrying their number, and a line joins one to the next as far as the
+    student has actually got.
+
+    An appointment that left the path (cancelled, or a no show) stops in
+    place with a cross instead, and the panel under the timeline says what
+    happened - the same place My Requests leaves its history.
 
     What a status means, and where it puts the student, is decided in
     App\Support\AppointmentProgress. This file only draws it.
@@ -18,127 +22,181 @@
     $notice = \App\Support\AppointmentProgress::notice($appointment);
     $stoppedTone = $notice['tone'] ?? null;
 
+    $reached = fn ($step) => in_array($step['state'], ['done', 'current'], true);
+
     $circle = [
-        'done' => 'bg-blue-600 border-blue-600 text-white',
-        'current' => 'bg-blue-50 border-blue-600 text-blue-700 ring-4 ring-blue-100',
-        'ahead' => 'bg-white border-gray-200 text-gray-400',
+        'done' => 'bg-[#174b91] text-white',
+        'current' => 'bg-[#174b91] text-white',
+        'ahead' => 'bg-white border-2 border-gray-300 text-gray-400',
         'stopped' => $stoppedTone === 'no_show'
-            ? 'bg-gray-50 border-gray-300 text-gray-500'
-            : 'bg-red-50 border-red-300 text-red-500',
+            ? 'bg-white border-2 border-gray-300 text-gray-500'
+            : 'bg-red-50 border-2 border-red-300 text-red-500',
     ];
 
-    $label = [
-        'done' => 'text-blue-700 font-bold',
-        'current' => 'text-blue-700 font-black',
-        'ahead' => 'text-gray-400 font-semibold',
+    $title = [
+        'done' => 'text-gray-900',
+        'current' => 'text-gray-900',
+        'ahead' => 'text-gray-500',
         'stopped' => $stoppedTone === 'no_show'
-            ? 'text-gray-600 font-bold'
-            : 'text-red-500 font-bold',
-    ];
-
-    // The join between two steps is blue only as far as the student has
-    // actually got: a line out of a step they have passed, and grey once
-    // it leads into one that is still ahead or where the path stopped.
-    $track = [
-        'done' => 'bg-blue-600',
-        'current' => 'bg-gray-200',
-        'ahead' => 'bg-gray-200',
-        'stopped' => 'bg-gray-200',
+            ? 'text-gray-600'
+            : 'text-red-600',
     ];
 @endphp
 
-<div {{ $attributes->merge(['class' => 'mt-5']) }}>
+<div {{ $attributes->merge(['class' => 'pt-5 sm:pt-6']) }}>
 
-    <p class="text-[10px] uppercase tracking-widest
-              text-gray-400 font-bold mb-3">
-        Appointment progress
-    </p>
+    <div class="mb-7">
 
-    <ol class="flex items-start gap-1">
+        <p class="text-[10px] font-black tracking-[0.18em]
+                  text-[#174b91] uppercase">
 
-        @foreach ($steps as $step)
+            Tracking
 
-            <li class="flex-1 min-w-0 flex items-start"
+        </p>
 
-                @if ($step['state'] === 'current') aria-current="step" @endif>
+        <h2 class="text-xl font-black text-gray-900 mt-1">
+            Appointment progress
+        </h2>
 
-                <div class="flex-1 min-w-0 flex flex-col items-center gap-1.5">
+        <div class="flex items-center gap-2 mt-3 text-xs text-gray-500">
 
-                    {{-- The step itself --}}
-                    <span class="w-8 h-8 shrink-0 rounded-full border-2
-                                 flex items-center justify-center
-                                 {{ $circle[$step['state']] }}">
+            <span class="w-2 h-2 rounded-full bg-blue-600 shrink-0"></span>
 
-                        @if ($step['state'] === 'done')
+            <span>
+                Tracking live — updates automatically.
+            </span>
 
-                            <svg class="w-4 h-4"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 viewBox="0 0 24 24">
-                                <path stroke-linecap="round"
-                                      stroke-linejoin="round"
-                                      stroke-width="3"
-                                      d="M20 6L9 17l-5-5"/>
-                            </svg>
+        </div>
 
-                        @elseif ($step['state'] === 'stopped')
+    </div>
 
-                            <svg class="w-4 h-4"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 viewBox="0 0 24 24">
-                                <path stroke-linecap="round"
-                                      stroke-linejoin="round"
-                                      stroke-width="3"
-                                      d="M6 6l12 12M18 6L6 18"/>
-                            </svg>
 
-                        @else
+    {{-- ================================================================
+         TIMELINE
+    ================================================================= --}}
+    <div class="relative">
 
-                            <span class="text-xs font-black">
-                                {{ $loop->iteration }}
-                            </span>
+        @foreach ($steps as $index => $step)
 
-                        @endif
+            <div class="relative flex gap-5 pb-9 last:pb-0"
 
-                    </span>
+                 @if ($step['state'] === 'current') aria-current="step" @endif>
 
-                    <span class="text-[10px] leading-tight text-center
-                                 {{ $label[$step['state']] }}">
-                        {{ $step['label'] }}
-                    </span>
+                {{-- =================================================
+                     CONNECTING LINE
+                ================================================== --}}
+                @unless ($loop->last)
 
-                    @if ($step['caption'])
+                    <div class="absolute left-[19px] top-10 bottom-0 w-[2px]
+                                {{ $step['state'] === 'done'
+                                    ? 'bg-[#2459a5]'
+                                    : 'bg-gray-200' }}"
+                         aria-hidden="true"></div>
 
-                        <span class="text-[10px] leading-tight text-center
-                                     text-gray-400">
-                            {{ $step['caption'] }}
-                        </span>
+                @endunless
+
+
+                {{-- =================================================
+                     STEP CIRCLE
+                ================================================== --}}
+                <div class="relative z-10 w-10 h-10 rounded-full
+                            flex items-center justify-center flex-shrink-0
+                            {{ $circle[$step['state']] }}">
+
+                    @if ($reached($step))
+
+                        <svg class="w-5 h-5"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+
+                            <path stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2.5"
+                                  d="M5 13l4 4L19 7"/>
+
+                        </svg>
+
+                    @elseif ($step['state'] === 'stopped')
+
+                        <svg class="w-5 h-5"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+
+                            <path stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2.5"
+                                  d="M6 6l12 12M18 6L6 18"/>
+
+                        </svg>
+
+                    @else
+
+                        {{ $index + 1 }}
 
                     @endif
 
                 </div>
 
-                {{-- The line on to the next step --}}
-                @unless ($loop->last)
 
-                    <span class="w-2 shrink-0 flex items-center mt-[15px]"
-                          aria-hidden="true">
-                        <span class="h-0.5 w-full rounded-full
-                                     {{ $track[$step['state']] }}"></span>
-                    </span>
+                {{-- =================================================
+                     STEP CONTENT
+                ================================================== --}}
+                <div class="pt-1 min-w-0">
 
-                @endunless
+                    <div class="flex flex-wrap items-center gap-2">
 
-            </li>
+                        <h3 class="text-base font-black {{ $title[$step['state']] }}">
+                            {{ $step['label'] }}
+                        </h3>
+
+                        @if ($step['state'] === 'current')
+
+                            <span class="px-2 py-0.5 rounded-md
+                                         bg-blue-100 text-blue-700
+                                         text-[9px] font-black uppercase
+                                         tracking-wide">
+
+                                Current
+
+                            </span>
+
+                        @endif
+
+                    </div>
+
+                    <p class="mt-1 text-xs text-gray-500 leading-5">
+
+                        {{ $step['state'] === 'stopped'
+                            ? 'This step was never reached.'
+                            : $step['subtext'] }}
+
+                    </p>
+
+                    @if ($step['caption'])
+
+                        <p class="mt-1 text-[10px] font-semibold
+                                  text-gray-400">
+
+                            {{ $step['caption'] }}
+
+                        </p>
+
+                    @endif
+
+                </div>
+
+            </div>
 
         @endforeach
 
-    </ol>
+    </div>
+
 
     @if ($notice)
 
-        <div class="mt-3 rounded-xl border px-4 py-3 text-sm font-semibold
+        <div class="mt-1 rounded-xl border px-4 py-3 text-sm font-semibold
 
             @if ($stoppedTone === 'no_show')
                 border-gray-200 bg-gray-50 text-gray-600

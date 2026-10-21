@@ -9,13 +9,17 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The track that tells a student how far their booking has got.
+ * The timeline that tells a student how far their booking has got.
  *
- * Every appointment card draws the same four steps - Requested, Confirmed,
- * Checked in, Completed - with the steps behind the student filled, where
- * they stand ringed, and what is ahead grey. An appointment that left the
- * path stops in place with a cross and a line underneath saying what
- * happened, rather than carrying on as if progress were still being made.
+ * Every appointment draws the same four steps - Requested, Confirmed,
+ * Checked in, Completed - the way My Requests draws its own tracking:
+ * a vertical timeline whose steps behind the student are solid blue
+ * ticks, the step the appointment stands on is that tick with a Current
+ * badge beside its name, and the steps ahead are grey circles still
+ * carrying their number, joined in the order they are walked. An
+ * appointment that left the path (cancelled, or a no show) stops in
+ * place with a cross and a line underneath saying what happened,
+ * rather than carrying on as if progress were still being made.
  *
  * It is drawn on the student's own QR page, below the actions they get
  * there - nowhere else. The My Appointments list carries the status
@@ -54,9 +58,9 @@ class AppointmentProgressTest extends TestCase
             ->assertSee('Requested')
             ->assertSee('Checked in')
             ->assertSee('Completed')
-            // Requested is where it stands, so it is the ringed step.
+            // Requested is where it stands, so it is the ticked step.
             ->assertSee('aria-current="step"', false)
-            ->assertSee('ring-4 ring-blue-100', false)
+            ->assertSee('bg-[#174b91] text-white', false)
             ->assertSee($booking->created_at->format('M j, g:i A'), false)
             ->assertDontSee('This appointment was cancelled');
     }
@@ -72,7 +76,7 @@ class AppointmentProgressTest extends TestCase
             ->get(route('student.appointments.qr', $booking))
             ->assertOk()
             // Requested is behind them: filled, and joined on by a blue line.
-            ->assertSee('bg-blue-600 border-blue-600 text-white', false)
+            ->assertSee('bg-[#174b91] text-white', false)
             ->assertSee('aria-current="step"', false)
             ->assertSee($booking->confirmed_at->format('M j, g:i A'), false);
     }
@@ -158,12 +162,66 @@ class AppointmentProgressTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertSame(4, substr_count($html, 'bg-blue-600 border-blue-600 text-white'));
+        $this->assertSame(4, substr_count($html, 'bg-[#174b91] text-white'));
         $this->assertStringNotContainsString('aria-current="step"', $html);
+        // Nothing is outstanding, so no step wears the Current badge.
+        $this->assertStringNotContainsString('bg-blue-100 text-blue-700', $html);
         $this->assertStringContainsString(
             $booking->completed_at->format('M j, g:i A'),
             $html
         );
+    }
+
+    /**
+     * The panel reads the way the tracking on My Requests reads: an
+     * eyebrow over the heading, a live dot saying it updates by itself,
+     * and four steps that each say in a sentence what they are - with a
+     * badge naming the one the appointment stands on.
+     */
+    public function test_the_timeline_reads_the_way_the_request_tracking_does(): void
+    {
+        $booking = $this->booking($this->student(), [
+            'status' => AppointmentStatus::CHECKED_IN->value,
+            'confirmed_at' => now()->subHour(),
+            'checked_in_at' => now()->subMinutes(10),
+        ]);
+
+        $html = $this->actingAs($booking->user)
+            ->get(route('student.appointments.qr', $booking))
+            ->assertOk()
+            ->assertSee('Tracking live — updates automatically.')
+            // The step ahead is still a grey circle carrying its number.
+            ->assertSee('bg-white border-2 border-gray-300 text-gray-400', false)
+            ->assertSee('bg-blue-100 text-blue-700', false)
+            ->assertSee('Your appointment request has been submitted.')
+            ->assertSee('The office has approved your schedule and time slot.')
+            ->assertSee('Your QR pass was scanned at the main gate.')
+            ->assertSee('Your appointment transaction is complete.')
+            ->getContent();
+
+        // The Current badge sits on Checked in - the step it stands on -
+        // and on nothing else.
+        $this->assertSame(1, substr_count($html, 'bg-blue-100 text-blue-700'));
+        $this->assertSame(1, substr_count($html, 'aria-current="step"'));
+    }
+
+    /**
+     * A step that never happened must not claim it did: the timeline
+     * crosses it out and says so, leaving the notice below to say why.
+     */
+    public function test_a_step_that_never_happened_does_not_read_as_happened(): void
+    {
+        $booking = $this->booking($this->student(), [
+            'status' => AppointmentStatus::CANCELLED->value,
+            'confirmed_at' => now()->subDay(),
+            'cancelled_at' => now()->subHour(),
+        ]);
+
+        $this->actingAs($booking->user)
+            ->get(route('student.appointments.qr', $booking))
+            ->assertOk()
+            ->assertSee('This step was never reached.')
+            ->assertDontSee('Your QR pass was scanned at the main gate.');
     }
 
     /**

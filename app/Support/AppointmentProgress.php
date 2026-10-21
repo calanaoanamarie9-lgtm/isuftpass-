@@ -17,14 +17,36 @@ class AppointmentProgress
 {
     /**
      * The steps in the order a student walks them: key, the label they read
-     * (sentence case, the way the rest of the app names things), and the
-     * column that carries the moment it happened.
+     * (sentence case, the way the rest of the app names things), the column
+     * that carries the moment it happened, and the line under the step
+     * saying what that stage is - the same way the tracking on My Requests
+     * talks about the stages of a document.
      */
     private const STEPS = [
-        ['key' => 'requested', 'label' => 'Requested', 'at' => 'created_at'],
-        ['key' => 'confirmed', 'label' => 'Confirmed', 'at' => 'confirmed_at'],
-        ['key' => 'checked_in', 'label' => 'Checked in', 'at' => 'checked_in_at'],
-        ['key' => 'completed', 'label' => 'Completed', 'at' => 'completed_at'],
+        [
+            'key' => 'requested',
+            'label' => 'Requested',
+            'at' => 'created_at',
+            'subtext' => 'Your appointment request has been submitted.',
+        ],
+        [
+            'key' => 'confirmed',
+            'label' => 'Confirmed',
+            'at' => 'confirmed_at',
+            'subtext' => 'The office has approved your schedule and time slot.',
+        ],
+        [
+            'key' => 'checked_in',
+            'label' => 'Checked in',
+            'at' => 'checked_in_at',
+            'subtext' => 'Your QR pass was scanned at the main gate.',
+        ],
+        [
+            'key' => 'completed',
+            'label' => 'Completed',
+            'at' => 'completed_at',
+            'subtext' => 'Your appointment transaction is complete.',
+        ],
     ];
 
     /**
@@ -37,9 +59,11 @@ class AppointmentProgress
      *
      * plus that step's timestamp, when it has one, so a card can show when
      * each thing happened without reading a column itself. A step that has
-     * not happened carries no caption rather than an empty one.
+     * not happened carries no caption rather than an empty one. Its
+     * subtext is still there, because that is what the stage says about
+     * the booking - only the moment is missing.
      *
-     * @return array<int, array{key: string, label: string, state: string, caption: string|null}>
+     * @return array<int, array{key: string, label: string, state: string, subtext: string, caption: string|null}>
      */
     public static function steps(Appointment $appointment): array
     {
@@ -66,6 +90,7 @@ class AppointmentProgress
                 'key' => $step['key'],
                 'label' => $step['label'],
                 'state' => $state,
+                'subtext' => $step['subtext'],
                 'caption' => in_array($state, ['done', 'current'], true) && $at
                     ? $at->format('M j, g:i A')
                     : null,
