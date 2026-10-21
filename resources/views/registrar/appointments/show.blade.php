@@ -153,10 +153,6 @@
 
                                         </span>
 
-                                        <span class="text-xs text-blue-200">
-                                            Student Appointment
-                                        </span>
-
                                     </div>
 
 
