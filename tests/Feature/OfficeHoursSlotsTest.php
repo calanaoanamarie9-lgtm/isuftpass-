@@ -64,10 +64,14 @@ class OfficeHoursSlotsTest extends TestCase
             ->assertSee('Office Hours')
             ->assertSee('value="08:00"', false)
             ->assertSee('value="17:00"', false)
-            // The Specific Slots panel opens with the manual From / To window.
-            ->assertSee('x-model="rangeFrom"', false)
-            ->assertSee('x-model="rangeTo"', false)
-            ->assertSee('Type a time window')
+            // The page names two states for a date, and no slot picker: the
+            // office's hours decide the hours.
+            ->assertSee('Open Entire Day')
+            ->assertSee('Close Entire Day')
+            ->assertDontSee('Specific Slots')
+            ->assertDontSee('x-model="rangeFrom"', false)
+            ->assertDontSee('x-model="rangeTo"', false)
+            ->assertDontSee('Select range')
             ->assertDontSee('Daily Slots')
             ->assertDontSee('slots per day');
     }
