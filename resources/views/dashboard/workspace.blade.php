@@ -39,7 +39,7 @@
                        class="inline-flex items-center justify-center px-5 py-3 border border-white/25 text-white text-sm font-bold rounded-xl hover:bg-white/10 transition">
                         QR Scanner
                     </a>
-                    <a href="{{ route($prefix . '.appointments') }}"
+                    <a href="{{ route($prefix . '.appointments.index') }}"
                        class="inline-flex items-center justify-center px-5 py-3 bg-yellow-400 text-blue-950 text-sm font-bold rounded-xl hover:bg-yellow-300 transition shadow-lg">
                         Manage Appointments
                     </a>
@@ -49,7 +49,7 @@
 
         {{-- Stats --}}
         <div class="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <a href="{{ route($prefix . '.appointments') }}"
+            <a href="{{ route($prefix . '.appointments.index') }}"
                class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:border-blue-300 hover:shadow-md transition">
                 <div class="w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,7 +60,7 @@
                 <p class="text-sm text-gray-500">Total Appointments</p>
             </a>
 
-            <a href="{{ route($prefix . '.appointments') }}"
+            <a href="{{ route($prefix . '.appointments.index') }}"
                class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:border-red-300 hover:shadow-md transition">
                 <div class="w-11 h-11 bg-red-50 rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +71,7 @@
                 <p class="text-sm text-gray-500">Awaiting Action</p>
             </a>
 
-            <a href="{{ route($prefix . '.appointments') }}"
+            <a href="{{ route($prefix . '.appointments.index') }}"
                class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:border-green-300 hover:shadow-md transition">
                 <div class="w-11 h-11 bg-green-50 rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,7 +100,7 @@
             <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
                     <h2 class="font-bold text-gray-900">Recent Appointments</h2>
-                    <a href="{{ route($prefix . '.appointments') }}"
+                    <a href="{{ route($prefix . '.appointments.index') }}"
                        class="text-xs font-bold text-blue-700 hover:text-blue-900 transition">View all</a>
                 </div>
 
@@ -138,7 +138,7 @@
                         <h2 class="font-bold text-gray-900">Quick Actions</h2>
                     </div>
                     <div class="p-4 grid grid-cols-2 gap-3">
-                        <a href="{{ route($prefix . '.appointments') }}"
+                        <a href="{{ route($prefix . '.appointments.index') }}"
                            class="rounded-xl bg-blue-50 hover:bg-blue-100 transition p-3 text-center">
                             <svg class="w-5 h-5 mx-auto text-blue-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
                             <p class="mt-2 text-xs font-bold text-blue-800">Appointments</p>
@@ -148,7 +148,7 @@
                             <svg class="w-5 h-5 mx-auto text-green-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z"/></svg>
                             <p class="mt-2 text-xs font-bold text-green-800">QR Scanner</p>
                         </a>
-                        <a href="{{ route($prefix . '.availability') }}"
+                        <a href="{{ route($prefix . '.availability.index') }}"
                            class="rounded-xl bg-yellow-50 hover:bg-yellow-100 transition p-3 text-center">
                             <svg class="w-5 h-5 mx-auto text-yellow-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
                             <p class="mt-2 text-xs font-bold text-yellow-800">Availability</p>

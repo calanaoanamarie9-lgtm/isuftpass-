@@ -1,5 +1,11 @@
 <x-app-layout>
 
+    @php
+        // The routes this page uses are the ones of whoever is reading it:
+        // the registrar's own, or an office workspace's.
+        $prefix = $prefix ?? 'registrar';
+    @endphp
+
     <div class="min-h-screen bg-[#f4f7fb] py-8">
 
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -7,7 +13,7 @@
             {{-- =========================================================
                 BACK TO APPOINTMENTS
             ========================================================== --}}
-            <a href="{{ route('registrar.appointments.index') }}"
+            <a href="{{ route($prefix.'.appointments.index') }}"
                class="inline-flex items-center gap-2 text-sm font-semibold
                       text-slate-500 hover:text-blue-800 transition">
 
@@ -238,16 +244,16 @@
                         <x-reschedule-card
                             :appointment="$appointment"
                             :trigger="false"
-                            month-url="{{ route('registrar.availability.month') }}"
+                            month-url="{{ route($prefix.'.availability.month') }}"
                             method="PUT"
-                            submit-url="{{ route('registrar.appointments.reschedule.update', $appointment) }}"
+                            submit-url="{{ route($prefix.'.appointments.reschedule.update', $appointment) }}"
                             :require-reason="true" />
 
                         {{-- Cancel --}}
                         @unless (in_array($appointment->status, ['completed', 'cancelled']))
 
                             <form method="POST"
-                                  action="{{ route('registrar.appointments.cancel', $appointment) }}"
+                                  action="{{ route($prefix.'.appointments.cancel', $appointment) }}"
                                   data-confirm="This will cancel the student's appointment and notify them."
                                   data-confirm-ok="Yes, cancel it">
 

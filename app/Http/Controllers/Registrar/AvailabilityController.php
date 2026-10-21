@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Registrar;
 
-use App\Enums\AppointmentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Office;
 use App\Models\SlotAvailability;
 use App\Support\AuditLogger;
+use App\Support\AvailabilityPage;
 use App\Support\SlotAvailabilityService;
 use App\Support\TimeSlots;
 use Carbon\Carbon;
@@ -58,11 +58,8 @@ class AvailabilityController extends Controller
         $month = $this->resolveMonth($request->input('month'));
 
         return view('registrar.availability', [
-            'office' => Office::where('name', $this->officeKey())->first(),
-            'timeSlots' => TimeSlots::forOffice($this->officeKey()),
-            'month' => $month,
-            'schedule' => $this->buildSchedule($month),
-            'rosterByDate' => $this->rosterByDate(),
+            ...AvailabilityPage::for($this->officeKey(), $month),
+            'prefix' => 'registrar',
         ]);
     }
 
@@ -86,39 +83,7 @@ class AvailabilityController extends Controller
      */
     private function rosterByDate(): array
     {
-        return Appointment::query()
-            ->with('user:id,name')
-            ->where('office', $this->officeKey())
-            ->firstComeFirstServed()
-            ->get()
-            ->groupBy(fn (Appointment $appointment) => $appointment->date->toDateString())
-            ->map(function ($appointments) {
-                $rows = [];
-                $number = 0;
-
-                foreach ($appointments as $appointment) {
-                    $cancelled = $appointment->status === AppointmentStatus::CANCELLED->value;
-
-                    $rows[] = [
-                        'name' => $appointment->user?->name ?? '—',
-                        'status' => $appointment->status,
-                        // The button this office presses reads "Approve", so
-                        // the list names the result the same way.
-                        'statusLabel' => $appointment->status === AppointmentStatus::CONFIRMED->value
-                            ? 'Approved'
-                            : (AppointmentStatus::tryFrom($appointment->status)?->label()
-                                ?? ucfirst($appointment->status)),
-                        // When the office told this student to arrive, once
-                        // it has answered their request.
-                        'time' => $appointment->confirmed_time,
-                        'cancelled' => $cancelled,
-                        'number' => $cancelled ? null : ++$number,
-                    ];
-                }
-
-                return $rows;
-            })
-            ->all();
+        return AvailabilityPage::roster($this->officeKey());
     }
 
     /**
@@ -424,27 +389,7 @@ class AvailabilityController extends Controller
      */
     private function configForDate(string $date): array
     {
-        $service = app(SlotAvailabilityService::class);
-        $slots = TimeSlots::forOffice($this->officeKey());
-
-        $openSlots = collect($slots)
-            ->filter(fn (string $slot) => $service->checkForOffice($this->officeKey(), $date, $slot)['status'] !== SlotAvailability::STATUS_BLOCKED)
-            ->values();
-
-        $office = Office::where('name', $this->officeKey())->first();
-        $dateRule = $office ? SlotAvailability::query()
-            ->where('office_id', $office->id)
-            ->whereDate('date', $date)
-            ->whereNotNull('max_capacity')
-            ->first() : null;
-
-        return [
-            'type' => $openSlots->isEmpty()
-                ? 'closed'
-                : ($openSlots->count() === count($slots) ? 'open' : 'slots'),
-            'slots' => $openSlots->all(),
-            'max_capacity' => $dateRule?->max_capacity ?? $office?->default_slot_capacity ?? 8,
-        ];
+        return AvailabilityPage::configForDate($this->officeKey(), $date);
     }
 
     /**
@@ -461,62 +406,11 @@ class AvailabilityController extends Controller
      */
     private function buildSchedule(string $month): array
     {
-        $office = Office::where('name', $this->officeKey())->first();
-        $slots = TimeSlots::forOffice($this->officeKey());
-        $total = count($slots);
-
-        // The '!' keeps the month pinned to its first day, so a month name
-        // typed on the 31st cannot overflow into the next one.
-        $monthStart = Carbon::createFromFormat('!Y-m', $month);
-        $monthEnd = $monthStart->copy()->endOfMonth();
-
-        $groups = SlotAvailability::query()
-            ->when($office, fn ($query) => $query->where('office_id', $office->id))
-            ->whereNotNull('date')
-            ->whereDate('date', '>=', $monthStart->toDateString())
-            ->whereDate('date', '<=', $monthEnd->toDateString())
-            ->orderBy('date')
-            ->get()
-            ->groupBy(fn (SlotAvailability $rule) => Carbon::parse($rule->date)->toDateString());
-
-        return $groups->map(function ($group, string $date) use ($slots, $total) {
-            $available = $group->filter(
-                fn (SlotAvailability $rule) => $rule->status === SlotAvailability::STATUS_AVAILABLE
-                    && in_array($rule->time_slot, $slots, true)
-            );
-
-            $type = $available->isEmpty()
-                ? 'closed'
-                : ($available->count() === $total ? 'open' : 'slots');
-
-            return [
-                'id' => $date,
-                'date' => Carbon::parse($date)->format('F j, Y'),
-                'type' => $type,
-                // Days set hour by hour can no longer be set that way, so
-                // one that still carries such data reads as partly open
-                // instead of by the hours it used to name.
-                'typeLabel' => [
-                    'open' => 'Open Entire Day',
-                    'closed' => 'Closed',
-                    'slots' => 'Partly Open',
-                ][$type],
-            ];
-        })->values()->all();
+        return AvailabilityPage::schedule($this->officeKey(), $month);
     }
 
     private function resolveMonth(?string $month): string
     {
-        if ($month && preg_match('/^\d{4}-\d{2}$/', $month)) {
-            try {
-                // '!' clears the day, so '2026-02' asked for on the 31st
-                // cannot overflow into March and hand back the wrong month.
-                return Carbon::createFromFormat('!Y-m', $month)->format('Y-m');
-            } catch (\Throwable) {
-                // fall through to current month
-            }
-        }
-
-        return now()->format('Y-m');
+        return AvailabilityPage::resolveMonth($month);
     }
 }

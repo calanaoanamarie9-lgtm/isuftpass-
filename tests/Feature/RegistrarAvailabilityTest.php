@@ -38,38 +38,62 @@ class RegistrarAvailabilityTest extends TestCase
     }
 
     /**
-     * The registrar opens or closes a whole day — there is no slot picker
-     * and no time editor on this page. The typed From / To window, the
-     * slot tick-list, and the office's slot-times editor all live on the
-     * nine workspace pages; this page carries none of them.
+     * One page for every office.
+     *
+     * The Availability page opens or closes a whole day, and it can also be
+     * narrowed to the hours that stay open - the typed From / To window and
+     * the tick-list. The registrar and the eight office workspaces read the
+     * same page now, so both are on it.
      */
-    public function test_the_registrar_page_opens_or_closes_a_whole_day_without_a_slot_picker(): void
+    public function test_the_availability_page_offers_a_whole_day_or_the_hours_that_stay_open(): void
     {
         $html = $this->actingAs($this->makeRegistrar())
             ->get('/registrar/availability')
             ->assertOk()
             ->assertSee('Open Entire Day')
             ->assertSee('Close Entire Day')
-            // Neither availability type can be narrowed to slots.
-            ->assertDontSee('Specific Slots')
-            ->assertDontSee('Tick the slots to open')
-            ->assertDontSee('x-model="selectedSlots"', false)
-            ->assertDontSee('Open Slots')
-            // The typed From / To window is not here.
-            ->assertDontSee('Specific Time Range')
-            ->assertDontSee('Type the hours to open')
-            ->assertDontSee('x-model="rangeFrom"', false)
-            ->assertDontSee('x-model="rangeTo"', false)
-            ->assertDontSee('Select range')
-            // And neither is the office's slot-times editor.
+            // And the day can be narrowed to hours.
+            ->assertSee('Specific Slots')
+            ->assertSee('x-model="selectedSlots"', false)
+            ->assertSee('x-model="rangeFrom"', false)
+            ->assertSee('x-model="rangeTo"', false)
+            ->assertSee('Select range')
+            ->assertSee('Type a time window')
+            // The office's own slot-times editor is still not here.
             ->assertDontSee('Slot Times')
             ->assertDontSee('Back to hourly')
             ->assertDontSee('Add Slot')
             ->getContent();
 
-        // No slot is offered as a choice anywhere in the form.
+        // Every hour of the day is offered as a choice.
         foreach (TimeSlots::forOffice('Registrar') as $slot) {
-            $this->assertStringNotContainsString('value="'.$slot.'"', $html);
+            $this->assertStringContainsString('value="'.$slot.'"', $html);
+        }
+    }
+
+    /**
+     * The office workspaces read the very same page, with the same choices
+     * on it - the same month grid, the same whole-day options, the same
+     * hours to narrow a day to.
+     */
+    public function test_an_office_workspace_reads_the_same_availability_page(): void
+    {
+        $staff = User::factory()->create(['role' => 'ssc', 'office' => 'SSC']);
+
+        $html = $this->actingAs($staff)
+            ->get('/ssc/availability')
+            ->assertOk()
+            ->assertSee('Set Availability')
+            ->assertSee('Availability Schedule')
+            ->assertSee('Open Entire Day')
+            ->assertSee('Close Entire Day')
+            ->assertSee('Specific Slots')
+            ->assertSee('x-model="selectedSlots"', false)
+            ->assertSee('x-model="rangeFrom"', false)
+            ->getContent();
+
+        foreach (TimeSlots::forOffice('SSC') as $slot) {
+            $this->assertStringContainsString('value="'.$slot.'"', $html);
         }
     }
 

@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Workspace;
 
 use App\Http\Controllers\Controller;
-use App\Models\Appointment;
 use App\Models\ConsultationService;
+use App\Support\AppointmentList;
+use App\Support\AvailabilityPage;
 use App\Support\CheckInList;
-use App\Support\TimeSlots;
 use App\Support\WorkspaceDashboard;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
@@ -30,28 +31,19 @@ class OfficeWorkspaceController extends Controller
         ]);
     }
 
-    public function appointments(): View
+    public function appointments(Request $request): View
     {
-        $office = auth()->user()->officeScope();
-
-        return view('workspace.appointments', [
-            'office' => $office,
-            'appointments' => Appointment::with('user')
-                ->where('office', $office)
-                ->firstComeFirstServed()
-                ->paginate(12),
-            'workspacePrefix' => 'workspace',
+        return view('registrar.appointments.index', [
+            ...AppointmentList::for(request()->user(), $request),
+            'prefix' => 'workspace',
         ]);
     }
 
-    public function availability(): View
+    public function availability(Request $request): View
     {
-        $office = auth()->user()->officeScope();
-
-        return view('workspace.availability', [
-            'office' => $office,
-            'timeSlots' => TimeSlots::forOffice($office),
-            'workspacePrefix' => 'workspace',
+        return view('registrar.availability', [
+            ...AvailabilityPage::for(auth()->user()->officeScope(), $request->input('month')),
+            'prefix' => 'workspace',
         ]);
     }
 

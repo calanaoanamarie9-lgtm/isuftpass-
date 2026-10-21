@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Offices;
 
 use App\Http\Controllers\Controller;
-use App\Models\Appointment;
 use App\Models\ConsultationService;
+use App\Support\AppointmentList;
+use App\Support\AvailabilityPage;
 use App\Support\CheckInList;
-use App\Support\TimeSlots;
 use App\Support\WorkspaceDashboard;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class SscController extends Controller
@@ -19,22 +20,19 @@ class SscController extends Controller
         return view('Offices.SSC.dashboard', WorkspaceDashboard::data(self::OFFICE));
     }
 
-    public function appointments(): View
+    public function appointments(Request $request): View
     {
-        return view('Offices.SSC.appointments', [
-            'office' => self::OFFICE,
-            'appointments' => Appointment::with('user')
-                ->where('office', self::OFFICE)
-                ->firstComeFirstServed()
-                ->paginate(12),
+        return view('registrar.appointments.index', [
+            ...AppointmentList::for(request()->user(), $request),
+            'prefix' => 'ssc',
         ]);
     }
 
-    public function availability(): View
+    public function availability(Request $request): View
     {
-        return view('Offices.SSC.availability', [
-            'office' => self::OFFICE,
-            'timeSlots' => TimeSlots::forOffice(self::OFFICE),
+        return view('registrar.availability', [
+            ...AvailabilityPage::for(self::OFFICE, $request->input('month')),
+            'prefix' => 'ssc',
         ]);
     }
 

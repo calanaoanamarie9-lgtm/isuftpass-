@@ -1,5 +1,11 @@
 <x-app-layout>
 
+    @php
+        // The routes this page uses are the ones of whoever is reading it:
+        // the registrar's own, or an office workspace's.
+        $prefix = $prefix ?? 'registrar';
+    @endphp
+
     <div class="min-h-screen bg-slate-50 py-8">
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -381,7 +387,7 @@
 
 
                 <form method="GET"
-                      action="{{ route('registrar.appointments.index') }}"
+                      action="{{ route($prefix.'.appointments.index') }}"
                       class="grid grid-cols-1 lg:grid-cols-12 gap-3">
 
                     {{-- SEARCH --}}
@@ -603,7 +609,7 @@
                             {{-- =================================================
                                 STUDENT
                             ================================================= --}}
-                            <a href="{{ route('registrar.appointments.show', $appointment) }}"
+                            <a href="{{ route($prefix.'.appointments.show', $appointment) }}"
                                class="lg:col-span-4 min-w-0">
 
                                 <div class="flex items-start gap-3">
@@ -839,7 +845,7 @@
 
 
                                 {{-- VIEW DETAILS --}}
-                                <a href="{{ route('registrar.appointments.show', $appointment) }}"
+                                <a href="{{ route($prefix.'.appointments.show', $appointment) }}"
                                    class="inline-flex
                                           items-center
                                           justify-center

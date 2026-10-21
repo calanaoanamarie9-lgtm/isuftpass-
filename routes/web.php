@@ -601,6 +601,10 @@ $workspaceRoutes = function (): void {
     Route::get('/availability/schedule', [AvailabilityController::class, 'schedule'])
         ->name('availability.schedule');
 
+    // The month the calendar paints: which days still have room.
+    Route::get('/availability/month', [AvailabilityController::class, 'month'])
+        ->name('availability.month');
+
     Route::get('/availability/settings/{date}', [AvailabilityController::class, 'settings'])
         ->where('date', '[0-9]{4}-[0-9]{2}-[0-9]{2}')
         ->name('availability.settings');
@@ -608,8 +612,16 @@ $workspaceRoutes = function (): void {
     Route::get('/appointments/slots', [RegistrarAppointmentController::class, 'slots'])
         ->name('appointments.slots');
 
+    // The record of one booking, and what can be done to it - the same page
+    // the registrar reads, pinned by the policy to this office.
+    Route::get('/appointments/{appointment}', [RegistrarAppointmentController::class, 'show'])
+        ->name('appointments.show');
+
     Route::put('/appointments/{appointment}/reschedule', [RegistrarAppointmentController::class, 'updateReschedule'])
         ->name('appointments.reschedule.update');
+
+    Route::post('/appointments/{appointment}/cancel', [RegistrarAppointmentController::class, 'cancel'])
+        ->name('appointments.cancel');
 
     // Approve (confirm) a pending / for-reschedule appointment of this office.
     Route::post('/appointments/{appointment}/confirm', [RegistrarAppointmentController::class, 'confirm'])
@@ -618,8 +630,8 @@ $workspaceRoutes = function (): void {
 
 Route::middleware(['auth', 'verified', 'role:department'])->prefix('cici')->name('cici.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [CiciController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [CiciController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [CiciController::class, 'availability'])->name('availability');
+    Route::get('/appointments', [CiciController::class, 'appointments'])->name('appointments.index');
+    Route::get('/availability', [CiciController::class, 'availability'])->name('availability.index');
     Route::get('/qr', [CiciController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [CiciController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
@@ -630,8 +642,8 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('cici')->name
 
 Route::middleware(['auth', 'verified', 'role:department'])->prefix('cbmsd')->name('cbmsd.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [CbmsdController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [CbmsdController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [CbmsdController::class, 'availability'])->name('availability');
+    Route::get('/appointments', [CbmsdController::class, 'appointments'])->name('appointments.index');
+    Route::get('/availability', [CbmsdController::class, 'availability'])->name('availability.index');
     Route::get('/qr', [CbmsdController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [CbmsdController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
@@ -642,8 +654,8 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('cbmsd')->nam
 
 Route::middleware(['auth', 'verified', 'role:department'])->prefix('coag')->name('coag.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [CoagController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [CoagController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [CoagController::class, 'availability'])->name('availability');
+    Route::get('/appointments', [CoagController::class, 'appointments'])->name('appointments.index');
+    Route::get('/availability', [CoagController::class, 'availability'])->name('availability.index');
     Route::get('/qr', [CoagController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [CoagController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
@@ -654,8 +666,8 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('coag')->name
 
 Route::middleware(['auth', 'verified', 'role:department'])->prefix('coed')->name('coed.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [CoedController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [CoedController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [CoedController::class, 'availability'])->name('availability');
+    Route::get('/appointments', [CoedController::class, 'appointments'])->name('appointments.index');
+    Route::get('/availability', [CoedController::class, 'availability'])->name('availability.index');
     Route::get('/qr', [CoedController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [CoedController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
@@ -666,8 +678,8 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('coed')->name
 
 Route::middleware(['auth', 'verified', 'role:department,ssc'])->prefix('ssc')->name('ssc.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [SscController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [SscController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [SscController::class, 'availability'])->name('availability');
+    Route::get('/appointments', [SscController::class, 'appointments'])->name('appointments.index');
+    Route::get('/availability', [SscController::class, 'availability'])->name('availability.index');
     Route::get('/qr', [SscController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [SscController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
@@ -678,8 +690,8 @@ Route::middleware(['auth', 'verified', 'role:department,ssc'])->prefix('ssc')->n
 
 Route::middleware(['auth', 'verified', 'role:department,accounting'])->prefix('accounting')->name('accounting.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [AccountingController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [AccountingController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [AccountingController::class, 'availability'])->name('availability');
+    Route::get('/appointments', [AccountingController::class, 'appointments'])->name('appointments.index');
+    Route::get('/availability', [AccountingController::class, 'availability'])->name('availability.index');
     Route::get('/qr', [AccountingController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [AccountingController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
@@ -690,8 +702,8 @@ Route::middleware(['auth', 'verified', 'role:department,accounting'])->prefix('a
 
 Route::middleware(['auth', 'verified', 'role:department,library'])->prefix('library')->name('library.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [LibraryController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [LibraryController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [LibraryController::class, 'availability'])->name('availability');
+    Route::get('/appointments', [LibraryController::class, 'appointments'])->name('appointments.index');
+    Route::get('/availability', [LibraryController::class, 'availability'])->name('availability.index');
     Route::get('/qr', [LibraryController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [LibraryController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
@@ -712,8 +724,8 @@ Route::middleware(['auth', 'verified', 'role:department,library'])->prefix('libr
 */
 Route::middleware(['auth', 'verified', 'role:department,office'])->prefix('workspace')->name('workspace.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [OfficeWorkspaceController::class, 'dashboard'])->name('dashboard');
-    Route::get('/appointments', [OfficeWorkspaceController::class, 'appointments'])->name('appointments');
-    Route::get('/availability', [OfficeWorkspaceController::class, 'availability'])->name('availability');
+    Route::get('/appointments', [OfficeWorkspaceController::class, 'appointments'])->name('appointments.index');
+    Route::get('/availability', [OfficeWorkspaceController::class, 'availability'])->name('availability.index');
     Route::get('/qr', [OfficeWorkspaceController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [OfficeWorkspaceController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');

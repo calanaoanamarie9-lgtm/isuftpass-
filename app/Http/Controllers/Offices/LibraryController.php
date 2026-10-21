@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Offices;
 
 use App\Http\Controllers\Controller;
-use App\Models\Appointment;
 use App\Models\ConsultationService;
+use App\Support\AppointmentList;
+use App\Support\AvailabilityPage;
 use App\Support\CheckInList;
-use App\Support\TimeSlots;
 use App\Support\WorkspaceDashboard;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class LibraryController extends Controller
@@ -17,22 +18,19 @@ class LibraryController extends Controller
         return view('Offices.Library.dashboard', WorkspaceDashboard::data('Library'));
     }
 
-    public function appointments(): View
+    public function appointments(Request $request): View
     {
-        return view('Offices.Library.appointments', [
-            'office' => 'Library',
-            'appointments' => Appointment::with('user')
-                ->where('office', 'Library')
-                ->firstComeFirstServed()
-                ->paginate(12),
+        return view('registrar.appointments.index', [
+            ...AppointmentList::for(request()->user(), $request),
+            'prefix' => 'library',
         ]);
     }
 
-    public function availability(): View
+    public function availability(Request $request): View
     {
-        return view('Offices.Library.availability', [
-            'office' => 'Library',
-            'timeSlots' => TimeSlots::forOffice('Library'),
+        return view('registrar.availability', [
+            ...AvailabilityPage::for('Library', $request->input('month')),
+            'prefix' => 'library',
         ]);
     }
 

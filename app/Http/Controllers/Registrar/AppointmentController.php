@@ -12,6 +12,7 @@ use App\Models\Appointment;
 use App\Notifications\AppointmentApprovedNotification;
 use App\Notifications\AppointmentCancelledNotification;
 use App\Notifications\AppointmentRescheduledNotification;
+use App\Support\AppointmentList;
 use App\Support\AuditLogger;
 use App\Support\SafeMailer;
 use App\Support\TimeSlots;
@@ -20,6 +21,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -34,65 +36,9 @@ class AppointmentController extends Controller
      */
     public function index(Request $request): View
     {
-        Gate::authorize('viewAny', Appointment::class);
-
-        // The filter speaks the office's language: "Approved" is the label the
-        // page prints for a stored "confirmed" status, so the option is turned
-        // back into the value the column actually holds.
-        $statusFilter = $request->query('status');
-        $statusFilter = is_string($statusFilter) ? $statusFilter : null;
-
-        $userTypeFilter = $request->query('user_type');
-        $userTypeFilter = is_string($userTypeFilter) ? $userTypeFilter : null;
-
-        $status = [
-            'pending' => AppointmentStatus::PENDING->value,
-            'approved' => AppointmentStatus::CONFIRMED->value,
-            'rescheduled' => AppointmentStatus::RESCHEDULED->value,
-            'cancelled' => AppointmentStatus::CANCELLED->value,
-        ][$statusFilter] ?? null;
-
-        // The System Admin answers for every office, so their appointment
-        // list is not narrowed to one - the list names the office on each
-        // row. A registrar or an office account still sees only its own.
-        $appointmentsQuery = Appointment::with('user')
-            ->when(
-                auth()->user()->role !== 'admin',
-                fn ($query) => $query->where('office', auth()->user()->officeScope())
-            )
-            ->when($status, fn ($query) => $query->where('status', $status));
-
-        // Applicant classification filter. "Student" is every account that
-        // signed up as a student (registration_type is left null for them);
-        // alumni / parent / guest were typed into registration_type at signup.
-        $userTypes = [
-            'student' => 'Student',
-            'alumni' => 'Alumni',
-            'parent' => 'Parent',
-            'guest' => 'Guest',
-        ];
-
-        $userTypeFilter = is_string($userTypeFilter) && array_key_exists($userTypeFilter, $userTypes)
-            ? $userTypeFilter
-            : null;
-
-        if ($userTypeFilter === 'student') {
-            $appointmentsQuery->whereHas('user', fn ($q) => $q->whereNull('registration_type'));
-        } elseif ($userTypeFilter !== null) {
-            // "Parent" also covers the legacy 'guardian' registration_type.
-            $registrations = $userTypeFilter === 'parent' ? ['parent', 'guardian'] : [$userTypeFilter];
-            $appointmentsQuery->whereHas('user', fn ($q) => $q->whereIn('registration_type', $registrations));
-        }
-
-        $appointments = $appointmentsQuery
-            ->firstComeFirstServed()
-            ->paginate(12)
-            ->withQueryString();
-
         return view('registrar.appointments.index', [
-            'appointments' => $appointments,
-            'statusFilter' => $statusFilter,
-            'userTypeFilter' => $userTypeFilter,
+            ...AppointmentList::for(request()->user(), $request),
+            'prefix' => 'registrar',
         ]);
     }
 
@@ -102,7 +48,23 @@ class AppointmentController extends Controller
 
         return view('registrar.appointments.show', [
             'appointment' => $appointment->load('user'),
+            'prefix' => $this->prefix(),
         ]);
+    }
+
+    /**
+     * The routes the page answers to, named for whoever is reading it.
+     *
+     * The same pages are read by the registrar and by the eight office
+     * workspaces, and each of them has its own set of routes - so the page
+     * takes the prefix of the route it was opened on, and every link and
+     * every fetch it makes stays inside that account's own group.
+     */
+    private function prefix(): string
+    {
+        $name = request()->route()?->getName() ?? '';
+
+        return Str::before($name, '.') ?: 'registrar';
     }
 
     public function printAll()
@@ -246,12 +208,22 @@ class AppointmentController extends Controller
         // The registrar works from the appointment record itself; each of the
         // eight workspaces has its own appointment list instead. Sending a
         // workspace to registrar.appointments.show would land it on a page its
-        // role cannot open — it would 403 one screen after succeeding — so go to
-        // whichever index actually exists for this account.
-        $workspaceIndex = strtolower(auth()->user()->officeScope()).'.appointments';
-        $redirect = Route::has($workspaceIndex)
-            ? route($workspaceIndex)
-            : route('registrar.appointments.show', $appointment);
+        // role cannot open — it would 403 one screen after succeeding — so an
+        // office account goes back to its own list, and everyone else to the
+        // record they just changed.
+        $redirect = route('registrar.appointments.show', $appointment);
+
+        if (in_array(auth()->user()->role, ['department', 'ssc', 'accounting', 'library', 'office'], true)) {
+            $office = strtolower(auth()->user()->officeScope());
+
+            foreach ([$office, 'workspace'] as $candidate) {
+                if (Route::has($candidate.'.appointments.index')) {
+                    $redirect = route($candidate.'.appointments.index');
+
+                    break;
+                }
+            }
+        }
 
         if ($request->wantsJson()) {
             return response()->json([

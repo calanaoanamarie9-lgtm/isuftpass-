@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
-use App\Models\Appointment;
 use App\Models\ConsultationService;
+use App\Support\AppointmentList;
+use App\Support\AvailabilityPage;
 use App\Support\CheckInList;
-use App\Support\TimeSlots;
 use App\Support\WorkspaceDashboard;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class CbmsdController extends Controller
@@ -19,32 +20,19 @@ class CbmsdController extends Controller
         ));
     }
 
-    public function appointments(): View
+    public function appointments(Request $request): View
     {
-        $user = auth()->user();
-        $office = $user->officeScope();
-
-        $appointments = Appointment::with('user')
-            ->where('office', $office)
-            ->firstComeFirstServed()
-            ->paginate(12);
-
-        return view('departments.CBMSD.appointments', [
-            'office' => $office,
-            'appointments' => $appointments,
+        return view('registrar.appointments.index', [
+            ...AppointmentList::for(request()->user(), $request),
+            'prefix' => 'cbmsd',
         ]);
     }
 
-    public function availability(): View
+    public function availability(Request $request): View
     {
-        $user = auth()->user();
-        $office = $user->officeScope();
-
-        $timeSlots = TimeSlots::forOffice($office);
-
-        return view('departments.CBMSD.availability', [
-            'office' => $office,
-            'timeSlots' => $timeSlots,
+        return view('registrar.availability', [
+            ...AvailabilityPage::for(auth()->user()->officeScope(), $request->input('month')),
+            'prefix' => 'cbmsd',
         ]);
     }
 

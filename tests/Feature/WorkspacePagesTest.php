@@ -219,7 +219,7 @@ class WorkspacePagesTest extends TestCase
                 'time_slot' => Appointment::TIME_SLOTS[3],
                 'reschedule_reason' => 'Student request',
             ])
-            ->assertRedirect(route('ssc.appointments'));
+            ->assertRedirect(route('ssc.appointments.index'));
 
         $this->assertSame(AppointmentStatus::RESCHEDULED->value, $appointment->fresh()->status);
     }
