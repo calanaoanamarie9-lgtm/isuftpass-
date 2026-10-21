@@ -16,7 +16,8 @@ import Swal from 'sweetalert2';
 Alpine.data('rescheduleCard', (config = {}) => ({
     open: false,
     date: '',
-    time: '',
+    startTime: '',
+    endTime: '',
     reasonPreset: '',
     reasonOther: '',
     submitting: false,
@@ -61,9 +62,14 @@ Alpine.data('rescheduleCard', (config = {}) => ({
         return this.root ? this.root.dataset.currentSlot || '' : '';
     },
 
-    // The hour the booking already held, as the time field wants it.
-    get currentTime() {
-        return this.root ? this.root.dataset.currentTime || '' : '';
+    // The window the booking holds now: the hour it was given, if it holds
+    // one, and the hour that hour ends.
+    get currentStart() {
+        return this.root ? this.root.dataset.currentStart || '' : '';
+    },
+
+    get currentEnd() {
+        return this.root ? this.root.dataset.currentEnd || '' : '';
     },
 
     // The hours the office keeps - the time cannot sit outside them.
@@ -85,13 +91,17 @@ Alpine.data('rescheduleCard', (config = {}) => ({
         return this.reasonPreset.trim();
     },
 
-    // A day, an hour and a reason are what a booking needs to move.
+    // A day, a window and a reason are what a booking needs to move.
     get canSave() {
         if (!this.date) {
             return false;
         }
 
-        if (!this.time) {
+        if (!this.startTime) {
+            return false;
+        }
+
+        if (this.endTime && this.endTime <= this.startTime) {
             return false;
         }
 
@@ -112,7 +122,8 @@ Alpine.data('rescheduleCard', (config = {}) => ({
         });
     },
 
-    // '09:00' as '9:00 AM'.
+    // '09:00' as '9:00' - the clock the fields hold, read the way it is
+    // written.
     clock(value) {
         if (!value) {
             return '';
@@ -120,14 +131,24 @@ Alpine.data('rescheduleCard', (config = {}) => ({
 
         const [hour, minute] = value.split(':').map(Number);
 
-        return String(hour % 12 || 12).padStart(2, '0')
-            + ':' + String(minute).padStart(2, '0')
-            + ' ' + (hour < 12 ? 'AM' : 'PM');
+        return String(hour) + ':' + String(minute).padStart(2, '0');
+    },
+
+    // The window, written the way the office says it out loud:
+    // "8:40-9:00".
+    windowLabel() {
+        if (!this.startTime) {
+            return '';
+        }
+
+        return this.clock(this.startTime)
+            + (this.endTime ? '-' + this.clock(this.endTime) : '');
     },
 
     reset() {
         this.date = '';
-        this.time = this.currentTime;
+        this.startTime = this.currentStart;
+        this.endTime = this.currentEnd;
         this.reasonPreset = '';
         this.reasonOther = '';
         this.error = '';
@@ -154,7 +175,7 @@ Alpine.data('rescheduleCard', (config = {}) => ({
                     <p class="text-sm font-bold text-gray-800">${this.currentDate}${this.currentSlot ? ' · ' + this.currentSlot : ''}</p>
 
                     <p class="text-[10px] uppercase tracking-widest text-gray-400 mt-4">New day</p>
-                    <p class="text-sm font-bold text-blue-900">${this.dateLabel(this.date)} · ${this.clock(this.time)}</p>
+                    <p class="text-sm font-bold text-blue-900">${this.dateLabel(this.date)} · ${this.windowLabel()}</p>
 
                     <p class="text-[10px] uppercase tracking-widest text-gray-400 mt-4">Reason</p>
                     <p class="text-sm font-semibold text-gray-700">${this.reason}</p>
@@ -193,7 +214,8 @@ Alpine.data('rescheduleCard', (config = {}) => ({
                 },
                 body: JSON.stringify({
                     date: this.date,
-                    time: this.time || null,
+                    start_time: this.startTime || null,
+                    end_time: this.endTime || null,
                     reschedule_reason: this.reason || null,
                 }),
             });

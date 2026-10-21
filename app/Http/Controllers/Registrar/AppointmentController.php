@@ -166,32 +166,48 @@ class AppointmentController extends Controller
         $data = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today'],
             'time' => ['nullable', 'date_format:H:i'],
+            'start_time' => ['nullable', 'date_format:H:i'],
+            'end_time' => ['nullable', 'date_format:H:i'],
             'time_slot' => ['nullable', Rule::in(TimeSlots::forOffice($appointment->office))],
             'reschedule_reason' => ['required', 'string', 'max:500'],
         ]);
 
         $hours = TimeSlots::hoursFor($appointment->office);
 
-        // The hour the student is told to turn up, and the window it covers.
-        // The office answers with a clock, not a range: the range is the
-        // hour the office keeps that begins there.
-        $start = $data['time'] ?? null;
-        $end = null;
-        $slot = $data['time_slot'] ?? $appointment->time_slot;
+        // The window the student is told to turn up in: an hour, not one of
+        // the office's numbered slots. The registrar answers "come at 8:40,
+        // and you are done by 9:00", and the range is that.
+        $start = $data['start_time'] ?? $data['time'] ?? null;
+        $end = $data['end_time'] ?? null;
 
         if ($start !== null) {
             if ($start < $hours['open'] || $start > $hours['close']) {
                 throw ValidationException::withMessages([
-                    'time' => 'The time has to sit inside office hours ('
+                    'start_time' => 'The time has to sit inside office hours ('
                         .self::clock($hours['open']).' - '.self::clock($hours['close']).').',
                 ]);
             }
 
-            [$slot, $end] = $this->windowFor($appointment->office, $start);
+            if ($end !== null && $end <= $start) {
+                throw ValidationException::withMessages([
+                    'end_time' => 'The window has to run forward - the end must be after the start.',
+                ]);
+            }
+
+            if ($end !== null && $end > $hours['close']) {
+                throw ValidationException::withMessages([
+                    'end_time' => 'The window has to sit inside office hours ('
+                        .self::clock($hours['open']).' - '.self::clock($hours['close']).').',
+                ]);
+            }
         }
 
-        // A booking the card did not name a slot for keeps the hour it
-        // holds, and the seat that hour has on the new day is checked.
+        // The office's own hour that holds the window is the seat the
+        // booking takes, so it still counts against that hour's capacity.
+        $slot = $data['time_slot'] ?? ($start !== null
+            ? $this->slotFor($appointment->office, $start)
+            : $appointment->time_slot);
+
         if ($slot !== null) {
             $remaining = Appointment::remainingSlots($appointment->office, $data['date'], $slot, $appointment->id);
 
@@ -366,28 +382,31 @@ class AppointmentController extends Controller
     }
 
     /**
-     * The office's own hour that begins at a given clock, and the hour it
-     * ends: the slot the booking will sit in, and the window it covers.
+     * The office's own hour that holds a given clock: the slot the booking
+     * sits in, and so the seat it takes on that day.
      *
-     * An office whose hours do not begin at that clock gets an hour of its
-     * own instead, and no slot - the booking still has a time, it simply
-     * does not take up one of the office's numbered hours.
-     *
-     * @return array{0: string|null, 1: string|null}
+     * An office whose hours do not cover that clock gets none - the
+     * booking still has a time, it simply does not take up one of the
+     * office's numbered hours.
      */
-    private function windowFor(string $office, string $start): array
+    private function slotFor(string $office, string $start): ?string
     {
         foreach (TimeSlots::forOffice($office) as $label) {
             [$from, $to] = array_pad(explode(' - ', $label, 2), 2, '');
 
-            if (self::twentyFour($from) === $start) {
-                return [$label, self::twentyFour($to)];
+            $fromTime = self::twentyFour($from);
+            $toTime = self::twentyFour($to);
+
+            if ($fromTime === null || $toTime === null) {
+                continue;
+            }
+
+            if ($start >= $fromTime && $start < $toTime) {
+                return $label;
             }
         }
 
-        $end = Carbon::parse($start)->addHour()->format('H:i');
-
-        return [null, $end];
+        return null;
     }
 
     /**

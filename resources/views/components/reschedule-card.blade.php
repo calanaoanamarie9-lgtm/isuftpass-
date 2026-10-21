@@ -60,19 +60,27 @@
         return sprintf('%02d:%02d', (int) $hour, (int) $minute);
     };
 
-    $currentTime = $clock($appointment?->start_time);
+    $currentStart = $clock($appointment?->start_time);
+    $currentEnd = $clock($appointment?->end_time);
 
-    if ($currentTime === null && $appointment?->time_slot) {
-        [$from] = array_pad(explode(' - ', (string) $appointment->time_slot, 2), 2, '');
+    if ($currentStart === null && $appointment?->time_slot) {
+        [$from, $to] = array_pad(explode(' - ', (string) $appointment->time_slot, 2), 2, '');
 
         if (preg_match('/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i', trim($from), $matches)) {
             $hour = ((int) $matches[1]) % 12 + (strtoupper($matches[3]) === 'PM' ? 12 : 0);
 
-            $currentTime = sprintf('%02d:%02d', $hour, (int) $matches[2]);
+            $currentStart = sprintf('%02d:%02d', $hour, (int) $matches[2]);
+        }
+
+        if (preg_match('/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i', trim($to), $matches)) {
+            $hour = ((int) $matches[1]) % 12 + (strtoupper($matches[3]) === 'PM' ? 12 : 0);
+
+            $currentEnd = sprintf('%02d:%02d', $hour, (int) $matches[2]);
         }
     }
 
-    $currentTime = $currentTime ?? $hours['open'];
+    $currentStart = $currentStart ?? $hours['open'];
+    $currentEnd = $currentEnd ?? '';
 
     $clockLabel = function (?string $time): string {
         [$hour, $minute] = array_pad(explode(':', (string) $time, 2), 2, '00');
@@ -103,7 +111,8 @@
      data-submit-url="{{ $submitUrl }}"
      data-current-date="{{ $appointment?->date->format('F j, Y') }}"
      data-current-slot="{{ $appointment?->time_slot ?? $appointment?->confirmed_time }}"
-     data-current-time="{{ $currentTime }}"
+     data-current-start="{{ $currentStart }}"
+     data-current-end="{{ $currentEnd }}"
      data-office-open="{{ $hours['open'] }}"
      data-office-close="{{ $hours['close'] }}">
 
@@ -353,32 +362,97 @@
             </div>
 
 
-            {{-- The hour the student should turn up. One clock, not a range:
-                 the office answers with the time, and the window it covers
-                 follows from it. --}}
+            {{-- The window the student is told to turn up in: an hour, not
+                 one of the office's numbered slots. "Come at 8:40, and you
+                 are done by 9:00" is the office's answer. --}}
             <div class="mt-5">
 
-                <label for="reschedule-time-{{ $appointment?->id }}"
-                       class="block text-[10px] uppercase tracking-widest font-black text-gray-500 mb-1.5">
+                <p class="block text-[10px] uppercase tracking-widest font-black text-gray-500 mb-1.5">
 
                     Time
 
-                </label>
+                </p>
 
-                <input id="reschedule-time-{{ $appointment?->id }}"
-                       type="time"
-                       x-model="time"
-                       :min="officeOpen"
-                       :max="officeClose"
-                       required
+                <div class="flex items-end gap-2">
 
-                       class="w-full rounded-xl
-                              border border-gray-200
-                              bg-white
-                              px-3 py-2.5
-                              text-sm font-bold text-gray-800
-                              outline-none transition
-                              focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                    <div class="flex-1 min-w-0">
+
+                        <label for="reschedule-start-{{ $appointment?->id }}"
+                               class="block text-[10px]
+                                      uppercase
+                                      tracking-widest
+                                      font-black
+                                      text-gray-500
+                                      mb-1.5">
+
+                            Start
+
+                        </label>
+
+                        <input id="reschedule-start-{{ $appointment?->id }}"
+                               type="time"
+                               x-model="startTime"
+                               :min="officeOpen"
+                               :max="officeClose"
+                               required
+
+                               class="w-full
+                                      min-w-0
+                                      rounded-xl
+                                      border border-gray-200
+                                      bg-white
+                                      px-2 py-2.5
+                                      text-xs
+                                      font-bold
+                                      text-gray-800
+                                      focus:border-blue-500
+                                      focus:ring-2
+                                      focus:ring-blue-200
+                                      outline-none
+                                      transition">
+
+                    </div>
+
+                    <span class="pb-2.5 text-gray-400 font-bold">–</span>
+
+                    <div class="flex-1 min-w-0">
+
+                        <label for="reschedule-end-{{ $appointment?->id }}"
+                               class="block text-[10px]
+                                      uppercase
+                                      tracking-widest
+                                      font-black
+                                      text-gray-500
+                                      mb-1.5">
+
+                            End
+
+                        </label>
+
+                        <input id="reschedule-end-{{ $appointment?->id }}"
+                               type="time"
+                               x-model="endTime"
+                               :min="startTime || officeOpen"
+                               :max="officeClose"
+
+                               class="w-full
+                                      min-w-0
+                                      rounded-xl
+                                      border border-gray-200
+                                      bg-white
+                                      px-2 py-2.5
+                                      text-xs
+                                      font-bold
+                                      text-gray-800
+                                      focus:border-blue-500
+                                      focus:ring-2
+                                      focus:ring-blue-200
+                                      outline-none
+                                      transition">
+
+                    </div>
+
+                </div>
 
                 <p class="mt-1.5 text-[11px]
                           font-semibold
@@ -388,6 +462,13 @@
                     {{ $clockLabel($hours['open']) }}
                     –
                     {{ $clockLabel($hours['close']) }}
+
+                </p>
+
+                <p x-show="windowLabel()"
+                   class="mt-1 text-sm font-bold text-gray-800">
+
+                    <span x-text="windowLabel()"></span>
 
                 </p>
 

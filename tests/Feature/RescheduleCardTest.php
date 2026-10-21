@@ -177,29 +177,31 @@ class RescheduleCardTest extends TestCase
     }
 
     /**
-     * The card asks for a clock, not a range: one time, held inside the
-     * hours the office keeps.
+     * The card asks for a window, not one of the office's numbered hours:
+     * a start and an end, so the registrar can answer "come at 8:40, and
+     * you are done by 9:00".
      */
-    public function test_the_card_asks_for_a_time_inside_the_offices_hours(): void
+    public function test_the_card_asks_for_a_window_inside_the_offices_hours(): void
     {
         [, $appointment] = $this->makeBooking();
 
         $html = $this->renderCard($appointment);
 
         $this->assertStringContainsString('type="time"', $html);
+        $this->assertMatchesRegularExpression('/>\s*Start\s*</', $html);
+        $this->assertMatchesRegularExpression('/>\s*End\s*</', $html);
         $this->assertStringContainsString('Office hours', $html);
         $this->assertStringContainsString('8:00 AM', $html);
         $this->assertStringContainsString('5:00 PM', $html);
-        // A clock, not a slot range.
+        // A window, not a slot range.
         $this->assertStringNotContainsString('New time slot', $html);
     }
 
     /**
-     * A reschedule with an hour answers with that hour: the window it
-     * covers, the time the pass reads, and the office's own slot that
-     * begins there.
+     * A reschedule with a window answers with that window: the start, the
+     * end, the time the pass reads, and the office's own hour that holds it.
      */
-    public function test_a_reschedule_with_a_time_moves_the_hour(): void
+    public function test_a_reschedule_with_a_window_moves_the_hour(): void
     {
         Mail::fake();
 
@@ -208,17 +210,19 @@ class RescheduleCardTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->put(route('registrar.appointments.reschedule.update', $appointment), [
                 'date' => now()->addDays(5)->toDateString(),
-                'time' => '10:00',
+                'start_time' => '08:40',
+                'end_time' => '09:00',
                 'reschedule_reason' => 'Office closure',
             ])
             ->assertRedirect();
 
         $appointment->refresh();
 
-        $this->assertEquals('10:00', $appointment->start_time);
-        $this->assertEquals('11:00', $appointment->end_time);
-        $this->assertEquals('10:00 AM', $appointment->confirmed_time);
-        $this->assertEquals('10:00 AM - 11:00 AM', $appointment->time_slot);
+        $this->assertEquals('08:40', $appointment->start_time);
+        $this->assertEquals('09:00', $appointment->end_time);
+        $this->assertEquals('8:40 AM', $appointment->confirmed_time);
+        // The office's hour that holds the window is the seat it takes.
+        $this->assertEquals('08:00 AM - 09:00 AM', $appointment->time_slot);
     }
 
     /**
@@ -234,10 +238,31 @@ class RescheduleCardTest extends TestCase
         $this->actingAs($this->makeRegistrar())
             ->put(route('registrar.appointments.reschedule.update', $appointment), [
                 'date' => now()->addDays(5)->toDateString(),
-                'time' => '03:00',
+                'start_time' => '03:00',
                 'reschedule_reason' => 'Office closure',
             ])
-            ->assertSessionHasErrors('time');
+            ->assertSessionHasErrors('start_time');
+
+        Mail::assertNothingSent();
+    }
+
+    /**
+     * A window that does not run forward is refused rather than stored.
+     */
+    public function test_a_window_that_does_not_run_forward_is_refused(): void
+    {
+        Mail::fake();
+
+        [, $appointment] = $this->makeBooking(AppointmentStatus::CONFIRMED->value);
+
+        $this->actingAs($this->makeRegistrar())
+            ->put(route('registrar.appointments.reschedule.update', $appointment), [
+                'date' => now()->addDays(5)->toDateString(),
+                'start_time' => '09:00',
+                'end_time' => '08:40',
+                'reschedule_reason' => 'Office closure',
+            ])
+            ->assertSessionHasErrors('end_time');
 
         Mail::assertNothingSent();
     }
