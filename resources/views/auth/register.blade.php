@@ -13,6 +13,7 @@
           rel="stylesheet">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('partials.asset-guard')
 
     @include('partials.pwa-head')
 </head>

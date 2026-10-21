@@ -13,6 +13,7 @@ use App\Support\TimeSlots;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class AvailabilityController extends Controller
@@ -36,7 +37,15 @@ class AvailabilityController extends Controller
             'month' => ['required', 'date_format:Y-m'],
         ]);
 
-        return response()->json($service->monthOverview($data['office'] ?? $this->officeKey(), $data['month']));
+        $office = $data['office'] ?? $this->officeKey();
+
+        // The month says which days an office still has room, which is the
+        // same question the slots endpoint answers a day at a time - so it
+        // answers it under the same rule: the registrar and the System Admin
+        // read any office, every other staff account reads its own.
+        Gate::authorize('readOffice', [Appointment::class, $office]);
+
+        return response()->json($service->monthOverview($office, $data['month']));
     }
 
     /**

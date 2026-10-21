@@ -15,6 +15,7 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @include('partials.asset-guard')
     </head>
     <body class="font-sans antialiased">
         <div x-data="{ open: false }" class="min-h-screen bg-gray-100">

@@ -124,3 +124,8 @@ document.addEventListener('click', (event) => {
 }, true); // capture phase so it runs before page-specific handlers.
 
 Alpine.start();
+
+// The page says it is ready. A browser holding a page whose bundle the
+// last deploy deleted never gets here, and the guard in the layout can
+// tell the difference between a page that booted and a page that did not.
+window.__isufstpassReady = true;

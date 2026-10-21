@@ -28,6 +28,7 @@
         'resources/css/app.css',
         'resources/js/app.js'
     ])
+    @include('partials.asset-guard')
 </head>
 
 <body class="min-h-screen bg-slate-100 font-sans">
