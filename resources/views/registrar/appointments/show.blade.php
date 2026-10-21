@@ -234,6 +234,9 @@
 
                     <div class="flex flex-wrap items-center gap-2">
 
+                        {{-- The status: the chip opens the card that says
+                             which schedule was set. It is not an action -
+                             it moves nothing. --}}
                         <x-approve-schedule :appointment="$appointment" />
 
                         {{-- Cancel --}}

@@ -180,6 +180,28 @@ class RescheduleCardTest extends TestCase
     }
 
     /**
+     * The green chip is the status, not an action: it opens the card that
+     * says which schedule was set, and it opens nothing else.
+     */
+    public function test_the_status_badge_opens_its_own_card_and_nothing_else(): void
+    {
+        [, $appointment] = $this->makeBooking(AppointmentStatus::CONFIRMED->value);
+
+        $html = $this->actingAs($this->makeRegistrar())
+            ->get(route('registrar.appointments.show', $appointment))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('details = ! details', $html);
+        $this->assertSame(1, substr_count($html, 'The schedule that was set.'));
+        // And that card carries the schedule that was set.
+        $this->assertStringContainsString($appointment->date->format('F j, Y'), $html);
+        $this->assertStringContainsString($appointment->scheduledRange(), $html);
+        // The modal is nowhere near it.
+        $this->assertStringNotContainsString('Choose a reason', $html);
+    }
+
+    /**
      * The office answers first: a booking still waiting to be approved shows
      * the Approve & schedule trigger.
      */
