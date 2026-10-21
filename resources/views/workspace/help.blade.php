@@ -28,7 +28,7 @@
                 </div>
 
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                    <h2 class="flex items-center gap-2 font-bold text-gray-900 mb-3"><svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> Time Slot Settings</h2>
+                    <h2 class="flex items-center gap-2 font-bold text-gray-900 mb-3"><svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> Availability</h2>
                     <ol class="text-sm text-gray-600 space-y-2 list-decimal list-inside">
                         <li>Go to <strong>Availability</strong> to configure available dates.</li>
                         <li>Set a date to <strong>Open All Day</strong> or <strong>Closed</strong>.</li>
