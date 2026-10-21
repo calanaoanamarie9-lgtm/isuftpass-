@@ -31,16 +31,9 @@
                 The card itself is the shared x-appointment-pass-card — the
                 same component the scanned page and the registrar's station
                 render — so this view only adds what belongs to the student's
-                own copy: how far the booking has got, and the download
-                buttons. Both go in the slot the card leaves for exactly
-                this, which is why a scanner and the registrar reading the
-                same code still see the pass exactly as it always was.
+                own copy: the download buttons.
             --}}
             <x-appointment-pass-card :appointment="$appointment">
-
-                {{-- Progress: how far this booking has got, on the
-                     student's own pass and nowhere else. --}}
-                <x-appointment-progress :appointment="$appointment" />
 
                 {{-- Download --}}
                 <a href="{{ route('student.appointments.qr.download', $appointment) }}"
@@ -148,6 +141,22 @@
                 </div>
 
             @endif
+
+
+            {{-- =========================================================
+                PROGRESS
+                Below the pass and below the student's own actions, so the
+                track is this page's word on where the booking stands
+                rather than part of the pass a scanner verifies. The panel
+                leaves the top edge to the track's own spacing.
+            ========================================================== --}}
+            <div class="mt-6 bg-white rounded-2xl
+                        border border-gray-200
+                        shadow-sm p-5 sm:p-6 pt-0 sm:pt-0">
+
+                <x-appointment-progress :appointment="$appointment" />
+
+            </div>
 
 
             {{-- =========================================================
