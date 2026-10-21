@@ -150,12 +150,6 @@
 
                     </div>
 
-                    <p class="mt-1 text-xs font-semibold text-gray-400">
-
-                        Pick the new day and hour, and say why it moves.
-
-                    </p>
-
                 </div>
 
                 <button type="button"
@@ -310,13 +304,7 @@
 
                 </template>
 
-                <p class="mt-2 text-[11px] font-semibold text-gray-500">
-
-                    Green days have open slots; red days are full or closed.
-
-                </p>
-
-                <p x-show="date" class="mt-1 text-sm font-bold text-gray-800">
+                <p x-show="date" class="mt-2 text-sm font-bold text-gray-800">
 
                     New day: <span x-text="date ? dateLabel(date) : ''"></span>
 

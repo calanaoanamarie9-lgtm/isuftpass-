@@ -88,7 +88,6 @@ class RescheduleCardTest extends TestCase
         // The calendar reads the month from the availability endpoint.
         $this->assertStringContainsString('/month', $html);
         $this->assertStringContainsString('New date', $html);
-        $this->assertStringContainsString('Green days have open slots; red days are full or closed.', $html);
         // The reason, and the choice of it.
         $this->assertStringContainsString('Reason for rescheduling', $html);
         $this->assertStringContainsString('Choose a reason', $html);
