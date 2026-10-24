@@ -51,6 +51,28 @@ enum Office: string
     }
 
     /**
+     * Offices a student can book an appointment with.
+     *
+     * Every office is bookable except the Cashier's, which is a payment
+     * counter rather than an appointment desk: a student settles fees at the
+     * counter, and the document-request flow is what sends them there. The
+     * Cashier stays in toSelect() — it is still an office a document request,
+     * a visitor's destination or an announcement can name.
+     */
+    public static function bookable(): array
+    {
+        return array_diff_key(self::toSelect(), [self::Cashier->value => true]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function bookableKeys(): array
+    {
+        return array_keys(self::bookable());
+    }
+
+    /**
      * Offices that do not ask the student for a time when they book.
      *
      * A student booking one of these picks a date only; the office answers

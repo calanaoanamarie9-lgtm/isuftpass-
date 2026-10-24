@@ -257,21 +257,40 @@ class RolePermissionTest extends TestCase
     // Appointments
     // ---------------------------------------------------------------------
 
-    public function test_booking_page_shows_all_nine_offices(): void
+    public function test_booking_page_offers_every_office_but_the_cashier(): void
     {
-        // All nine offices are available to every user role.
+        // Every office is bookable except the Cashier's: it is a payment
+        // counter, not an appointment desk.
         $this->actingAs($this->user('student'))
             ->get('/student/appointments/create')
             ->assertOk()
             ->assertSee('Student Support Center (SSC)')
             ->assertSee('Registrar')
             ->assertSee('Accounting')
-            ->assertSee('Cashier')
+            ->assertDontSee('Cashier')
             ->assertSee('Library')
             ->assertSee('CICI')
             ->assertSee('CBMSD')
             ->assertSee('COAG')
             ->assertSee('COED');
+    }
+
+    public function test_student_cannot_book_the_cashier(): void
+    {
+        Mail::fake();
+        Notification::fake();
+
+        $student = $this->user('student');
+
+        $this->actingAs($student)
+            ->post('/student/appointments', [
+                'office' => 'Cashier',
+                'purpose' => 'Payment of School Fees',
+                'date' => now()->addDays(3)->toDateString(),
+            ])
+            ->assertSessionHasErrors('office');
+
+        $this->assertSame(0, $student->appointments()->count());
     }
 
     public function test_student_can_book_any_office(): void

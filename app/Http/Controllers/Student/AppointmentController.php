@@ -157,6 +157,9 @@ class AppointmentController extends Controller
     public function availability(Request $request)
     {
         $data = $request->validate([
+            // Read-only: the calendar asks this for whichever office the
+            // form carries, including a booking still sitting with a closed
+            // office.
             'office' => ['required', 'in:'.implode(',', Office::toSelectKeys())],
             'month' => ['required', 'date_format:Y-m'],
         ]);
@@ -171,7 +174,7 @@ class AppointmentController extends Controller
         $user = Auth::user();
 
         $data = $request->validate([
-            'office' => ['required', 'in:'.implode(',', Office::toSelectKeys())],
+            'office' => ['required', 'in:'.implode(',', Office::bookableKeys())],
             'purpose' => ['required', 'string', 'max:255'],
             // The hidden "Please specify purpose" box is emptied by the
             // TrimStrings / ConvertEmptyStringsToNull middleware, so a chosen
@@ -405,7 +408,10 @@ class AppointmentController extends Controller
         $office = (string) $request->input('office');
 
         $data = $request->validate([
-            'office' => ['required', 'in:'.implode(',', Office::toSelectKeys())],
+            // A booking already made with the Cashier's office (before it
+            // stopped taking appointments) can still be edited; no new one can
+            // be moved to it.
+            'office' => ['required', 'in:'.implode(',', array_unique([...Office::bookableKeys(), $appointment->office]))],
             'purpose' => ['required', 'string', 'max:255'],
             // Same as store(): a preset purpose submits the emptied (null)
             // specify box, so the rule stays nullable while resolvePurpose()

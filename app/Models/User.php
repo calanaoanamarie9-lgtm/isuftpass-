@@ -315,17 +315,18 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * Offices this account may book, as value => label.
      *
-     * Every role sees the same nine canonical offices — SSC, Registrar,
-     * Cashier, Accounting, Library and the four colleges — because the
-     * booking form must offer exactly that list. Validation, the
-     * book-appointment gate and the form dropdown all read from this
-     * method, so the three can never disagree.
+     * Every role sees the same list — SSC, Registrar, Accounting, Library and
+     * the four colleges — because the booking form must offer exactly what a
+     * student may book. The Cashier's is not among them: it is a payment
+     * counter, not an appointment desk. Validation, the book-appointment gate
+     * and the form dropdown all read from this method, so the three can never
+     * disagree.
      *
      * @return array<string, string>
      */
     public function bookableOffices(): array
     {
-        return Office::toSelect();
+        return Office::bookable();
     }
 
     public function canBookOffice(string $office): bool

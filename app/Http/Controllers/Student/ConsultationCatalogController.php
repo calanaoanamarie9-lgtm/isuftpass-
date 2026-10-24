@@ -19,6 +19,10 @@ class ConsultationCatalogController extends Controller
         $services = ConsultationService::query()
             ->active()
             ->ordered()
+            // Only services of offices a student can actually book: a card
+            // that preselects an unbookable office would dead-end on the
+            // booking form's own list.
+            ->whereIn('office', Office::bookableKeys())
             ->get()
             ->groupBy(fn (ConsultationService $service) => $service->office)
             ->filter()

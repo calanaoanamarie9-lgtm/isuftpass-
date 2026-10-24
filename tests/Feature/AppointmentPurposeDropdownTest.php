@@ -152,7 +152,7 @@ class AppointmentPurposeDropdownTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "purposeOtherInput.disabled = ! isOther",
+            'purposeOtherInput.disabled = ! isOther',
             $html,
             'A preset purpose must disable the hidden specify box so it is not submitted.'
         );
@@ -172,8 +172,8 @@ class AppointmentPurposeDropdownTest extends TestCase
     {
         $html = $this->actingAs($this->makeStudent())
             ->get(route('student.appointments.create', [
-                'office' => 'Cashier',
-                'purpose' => 'Payment of School Fees',
+                'office' => 'Accounting',
+                'purpose' => 'Payment Concerns',
             ]))
             ->assertOk()
             ->getContent();
