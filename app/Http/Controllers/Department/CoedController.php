@@ -57,14 +57,4 @@ class CoedController extends Controller
             'services' => ConsultationService::forOffice($office)->ordered()->get(),
         ]);
     }
-
-    public function help(): View
-    {
-        $user = auth()->user();
-        $office = $user->officeScope();
-
-        return view('departments.COED.help', [
-            'office' => $office,
-        ]);
-    }
 }

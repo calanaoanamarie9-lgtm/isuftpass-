@@ -49,11 +49,4 @@ class LibraryController extends Controller
             'services' => ConsultationService::forOffice('Library')->ordered()->get(),
         ]);
     }
-
-    public function help(): View
-    {
-        return view('Offices.Library.help', [
-            'office' => 'Library',
-        ]);
-    }
 }

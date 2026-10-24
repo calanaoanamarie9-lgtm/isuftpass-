@@ -51,11 +51,4 @@ class SscController extends Controller
             'services' => ConsultationService::forOffice(self::OFFICE)->ordered()->get(),
         ]);
     }
-
-    public function help(): View
-    {
-        return view('Offices.SSC.help', [
-            'office' => self::OFFICE,
-        ]);
-    }
 }

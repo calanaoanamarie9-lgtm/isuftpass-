@@ -635,7 +635,6 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('cici')->name
     Route::get('/qr', [CiciController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [CiciController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
-    Route::get('/help', [CiciController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
@@ -647,7 +646,6 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('cbmsd')->nam
     Route::get('/qr', [CbmsdController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [CbmsdController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
-    Route::get('/help', [CbmsdController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
@@ -659,7 +657,6 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('coag')->name
     Route::get('/qr', [CoagController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [CoagController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
-    Route::get('/help', [CoagController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
@@ -671,7 +668,6 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('coed')->name
     Route::get('/qr', [CoedController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [CoedController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
-    Route::get('/help', [CoedController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
@@ -683,7 +679,6 @@ Route::middleware(['auth', 'verified', 'role:department,ssc'])->prefix('ssc')->n
     Route::get('/qr', [SscController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [SscController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
-    Route::get('/help', [SscController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
@@ -695,7 +690,6 @@ Route::middleware(['auth', 'verified', 'role:department,accounting'])->prefix('a
     Route::get('/qr', [AccountingController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [AccountingController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
-    Route::get('/help', [AccountingController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
@@ -707,7 +701,6 @@ Route::middleware(['auth', 'verified', 'role:department,library'])->prefix('libr
     Route::get('/qr', [LibraryController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [LibraryController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
-    Route::get('/help', [LibraryController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });
@@ -729,7 +722,6 @@ Route::middleware(['auth', 'verified', 'role:department,office'])->prefix('works
     Route::get('/qr', [OfficeWorkspaceController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [OfficeWorkspaceController::class, 'consultations'])->name('consultations');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
-    Route::get('/help', [OfficeWorkspaceController::class, 'help'])->name('help');
 
     $workspaceRoutes();
 });

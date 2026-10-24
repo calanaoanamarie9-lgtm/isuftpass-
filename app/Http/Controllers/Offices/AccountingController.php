@@ -49,11 +49,4 @@ class AccountingController extends Controller
             'services' => ConsultationService::forOffice('Accounting')->ordered()->get(),
         ]);
     }
-
-    public function help(): View
-    {
-        return view('Offices.Accounting.help', [
-            'office' => 'Accounting',
-        ]);
-    }
 }

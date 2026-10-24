@@ -66,11 +66,4 @@ class OfficeWorkspaceController extends Controller
             'services' => ConsultationService::forOffice($office)->ordered()->get(),
         ]);
     }
-
-    public function help(): View
-    {
-        return view('workspace.help', [
-            'office' => auth()->user()->officeScope(),
-        ]);
-    }
 }
