@@ -436,10 +436,6 @@
                                 Account Information
                             </h2>
 
-                            <p class="text-sm text-slate-500 mt-1">
-                                Update your name and email address.
-                            </p>
-
                         </div>
 
                     </div>

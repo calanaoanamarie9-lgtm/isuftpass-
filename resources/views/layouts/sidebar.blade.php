@@ -13,7 +13,7 @@
         $role === 'guard' => ($user->office ?? null) ? $user->office . ' Security' : 'Campus Security',
         $role === 'ssc' => 'SSC Office',
         $role === 'accounting' => 'Accounting Office',
-        $role === 'library' => 'Library Office',
+        $role === 'library' => 'Library Profile',
         $role === 'cashier' => 'Cashier Profile',
         default => 'Student Profile',
     };
