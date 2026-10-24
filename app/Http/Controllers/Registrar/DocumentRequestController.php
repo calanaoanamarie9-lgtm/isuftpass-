@@ -101,7 +101,9 @@ class DocumentRequestController extends Controller
      * recorded it (paid_at) before a request can be released or completed.
      * Approval itself deliberately is NOT gated — the registrar signs off
      * first and the cashier collects afterwards. Rejecting stays available
-     * so an unpaid request is never left stuck with no way out.
+     * only while the request is unpaid, so an unpaid request is never left
+     * stuck with no way out; once the money is in, refunding it is the way
+     * back.
      *
      * @return RedirectResponse|null the redirect to send while still unpaid
      */
@@ -337,6 +339,17 @@ class DocumentRequestController extends Controller
     public function cancel(Request $request, DocumentRequest $documentRequest): RedirectResponse
     {
         abort_if(! $documentRequest->isActive(), 404);
+
+        // A paid request is past rejecting: the cashier has collected the
+        // money and issued the Official Receipt, so settling it back is a
+        // refund, not a rejection. The page hides the button; this is what
+        // still holds if the form is posted by hand.
+        if ($documentRequest->isPaid()) {
+            return back()->with('error', sprintf(
+                'Payment for %s has already been recorded, so the request cannot be rejected. Refund the payment first if it must not go ahead.',
+                $documentRequest->request_number,
+            ));
+        }
 
         $data = $request->validate([
             'reason' => ['nullable', 'string', 'max:500'],

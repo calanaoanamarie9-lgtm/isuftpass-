@@ -527,6 +527,47 @@ class RegistrarDocumentRequestModuleTest extends TestCase
         );
     }
 
+    public function test_a_paid_request_cannot_be_rejected(): void
+    {
+        [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::AWAITING_OR_VALIDATION->value);
+
+        $this->assertNotNull($request->paid_at);
+
+        $this->actingAs($this->makeRegistrar())
+            ->post('/registrar/document-requests/'.$request->id.'/cancel', [
+                'reason' => 'Changed my mind.',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $request->refresh();
+
+        // The cashier has the money and the student has the receipt: the
+        // request is not rejected behind the payment.
+        $this->assertEquals(DocumentRequestStatus::AWAITING_OR_VALIDATION->value, $request->status);
+        $this->assertNull($request->cancelled_at);
+        $this->assertNull($request->rejection_reason);
+    }
+
+    public function test_the_reject_form_is_gone_once_the_request_is_paid(): void
+    {
+        [, $paid] = $this->makeStudentWithRequest(DocumentRequestStatus::AWAITING_OR_VALIDATION->value);
+
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/document-requests/'.$paid->id)
+            ->assertOk()
+            ->assertSee('ready to process')
+            ->assertDontSee('Reject Request');
+
+        [, $unpaid] = $this->makeStudentWithRequest(DocumentRequestStatus::FOR_SIGNATURE->value);
+        $unpaid->update(['paid_at' => null]);
+
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/document-requests/'.$unpaid->id)
+            ->assertOk()
+            ->assertSee('Reject Request');
+    }
+
     public function test_show_page_hands_an_approved_request_over_to_the_cashier(): void
     {
         [, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::FOR_SIGNATURE->value);
@@ -580,6 +621,9 @@ class RegistrarDocumentRequestModuleTest extends TestCase
     public function test_registrar_can_cancel_request_and_notify_student(): void
     {
         [$student, $request] = $this->makeStudentWithRequest();
+
+        // Rejecting is for a request the office has not been paid for yet.
+        $request->update(['paid_at' => null]);
 
         $this->actingAs($this->makeRegistrar())
             ->post('/registrar/document-requests/'.$request->id.'/cancel')

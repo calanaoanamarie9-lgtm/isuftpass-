@@ -53,7 +53,7 @@ class DocumentRequestStatusEmailTest extends TestCase
         [$student, $request] = $this->makeStudentWithRequest();
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertRedirect();
 
         $request->refresh();
@@ -75,7 +75,7 @@ class DocumentRequestStatusEmailTest extends TestCase
         [$student, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::PROCESSING->value);
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertRedirect();
 
         $request->refresh();
@@ -96,7 +96,7 @@ class DocumentRequestStatusEmailTest extends TestCase
         [$student, $request] = $this->makeStudentWithRequest(DocumentRequestStatus::READY_FOR_PICKUP->value);
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next')
+            ->post('/registrar/document-requests/'.$request->id.'/next')
             ->assertRedirect();
 
         $request->refresh();
@@ -121,7 +121,7 @@ class DocumentRequestStatusEmailTest extends TestCase
         $releaseDate = now()->addDays(3)->toDateString();
 
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/next', [
+            ->post('/registrar/document-requests/'.$request->id.'/next', [
                 'release_date' => $releaseDate,
                 'release_time' => '13:30',
             ])
@@ -172,8 +172,11 @@ class DocumentRequestStatusEmailTest extends TestCase
 
         [$student, $request] = $this->makeStudentWithRequest();
 
+        // A request is only rejectable while it is unpaid.
+        $request->update(['paid_at' => null]);
+
         $this->actingAs($this->makeRegistrar())
-            ->post('/registrar/document-requests/' . $request->id . '/cancel', [
+            ->post('/registrar/document-requests/'.$request->id.'/cancel', [
                 'reason' => 'Incomplete requirements submitted',
             ])
             ->assertRedirect();

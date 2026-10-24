@@ -1235,7 +1235,12 @@
                                 @endif
 
 
-                                {{-- REJECT --}}
+                                {{-- REJECT — never once the cashier has taken
+                                     the payment: the money is collected and
+                                     receipted, so the way back is a refund,
+                                     not a rejection. --}}
+                                @if (! $request->isPaid())
+
                                 <form method="POST"
                                       action="{{ route('registrar.document-requests.cancel', $request) }}"
                                       data-confirm="The student will be notified that their request was rejected."
@@ -1288,6 +1293,8 @@
                                     </button>
 
                                 </form>
+
+                                @endif
 
 
                                 <div class="border-t border-gray-100"></div>
