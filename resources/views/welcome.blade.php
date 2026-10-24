@@ -182,7 +182,7 @@
                           text-blue-50
                           sm:text-xl">
 
-                    A QR Code-Based Transaction Management System designed to make
+                    A QR Code-Based Online Transaction Management System designed to make
                     university services faster, easier, and more convenient for
                     students, alumni, parents, and visitors.
 
