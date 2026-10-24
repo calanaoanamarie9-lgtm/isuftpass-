@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>
-        ISUFSTPASS - QR Code-Based Document Management System
+        ISUFSTPASS - QR Code-Based Online TransactionManagement System
     </title>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -95,8 +95,8 @@
         <div class="absolute inset-0">
 
             <img
-                src="{{ asset('images/isufst-campus.jpg') }}"
-                alt="ISUFST Campus"
+                src="/images/isufst-dingle-campus.png"
+                alt="ISUFST Dingle Campus"
                 class="h-full w-full object-cover"
             >
 
@@ -160,12 +160,12 @@
 
 
                 {{-- Subtitle --}}
-<h2 class="mt-4 max-w-3xl
+                <h2 class="mt-4 max-w-3xl
                        text-3xl font-black leading-[1.08]
                        text-blue-200
                        sm:text-4xl lg:text-5xl">
 
-                    A QR Code-Based
+                    A QR Code-Based Online
                     <br>
                     Transaction
                     <br>
@@ -184,7 +184,7 @@
 
                     A QR Code-Based Transaction Management System designed to make
                     university services faster, easier, and more convenient for
-                    students, alumni, faculty, and visitors.
+                    students, alumni, parents, and visitors.
 
                 </p>
 

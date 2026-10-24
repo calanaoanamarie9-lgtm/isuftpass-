@@ -7,6 +7,7 @@ use App\Enums\Office;
 use App\Http\Controllers\Controller;
 use App\Mail\AppointmentBooked;
 use App\Models\Appointment;
+use App\Models\LibraryService;
 use App\Models\SlotAvailability;
 use App\Models\User;
 use App\Notifications\AppointmentBookedNotification;
@@ -123,10 +124,42 @@ class AppointmentController extends Controller
         $user = Auth::user();
         $offices = $user->bookableOffices();
 
+        // Build the purposes select map dynamically.
+        // For the Library office, pull active library consultation services
+        // from the database so the dropdown updates when the Admin Panel
+        // adds, edits, or deactivates services. For other offices keep the
+        // existing AppointmentPurposes logic.
+        $purposes = [];
+
+        foreach (array_keys($offices) as $office) {
+            if ($office === Office::Library->value) {
+                $serviceNames = LibraryService::where('is_active', true)
+                    ->ordered()
+                    ->pluck('name', 'name')
+                    ->toArray();
+                $officePurposes = array_merge(
+                    [
+                        'Library Orientation',
+                        'Research Assistance',
+                        'Reference Assistance',
+                        'Thesis / Capstone Consultation',
+                        'Online Database Assistance',
+                        'Borrowing & Returning of Materials',
+                        'General Library Consultation',
+                    ],
+                    $serviceNames,
+                );
+            } else {
+                $officePurposes = AppointmentPurposes::forOffice($office);
+            }
+
+            $purposes[$office] = array_merge($officePurposes, [AppointmentPurposes::OTHER => AppointmentPurposes::OTHER]);
+        }
+
         return view('student.appointments.create', [
             'offices' => $offices,
             'slotLimits' => Appointment::SLOT_LIMITS,
-            'purposes' => AppointmentPurposes::toSelectMap(array_keys($offices)),
+            'purposes' => $purposes,
 
             // Role-specific requester details (parent's child, guest's ID).
             'requester' => $user,
