@@ -118,21 +118,6 @@
                     {{-- RIGHT --}}
                     <div class="flex flex-wrap items-center gap-3">
 
-                        <span class="inline-flex items-center
-                                     px-4 py-2
-                                     rounded-full
-                                     bg-white
-                                     border border-gray-200
-                                     text-xs
-                                     font-semibold
-                                     text-gray-600
-                                     shadow-sm">
-
-                            Request #{{ $request->request_number }}
-
-                        </span>
-
-
                         <span class="inline-flex items-center gap-2
                                      px-4 py-2
                                      rounded-full
