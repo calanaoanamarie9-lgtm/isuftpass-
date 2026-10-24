@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Offices;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConsultationService;
+use App\Models\LibraryService;
 use App\Support\AppointmentList;
 use App\Support\AvailabilityPage;
 use App\Support\CheckInList;
@@ -47,6 +48,25 @@ class LibraryController extends Controller
         return view('Offices.Library.consultations', [
             'office' => 'Library',
             'services' => ConsultationService::forOffice('Library')->ordered()->get(),
+        ]);
+    }
+
+    /**
+     * The auxiliary services — computers, referrals, scans and so on.
+     *
+     * The cards are rendered on the server so the page works without
+     * JavaScript; $cards feeds the search, the category chips and the request
+     * panel, so both read the same catalogue.
+     */
+    public function services(): View
+    {
+        $services = LibraryService::query()->active()->ordered()->get();
+
+        return view('Offices.Library.services', [
+            'office' => 'Library',
+            'services' => $services,
+            'cards' => $services->map->toCard()->values(),
+            'categories' => LibraryService::CATEGORIES,
         ]);
     }
 }

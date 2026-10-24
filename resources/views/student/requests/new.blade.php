@@ -357,7 +357,7 @@
                                   text-gray-500">
 
                             Request academic records and documents from
-                            the records office using the official
+                            the registrar office using the official
                             requisition form.
 
                         </p>

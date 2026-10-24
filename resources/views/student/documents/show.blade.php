@@ -260,7 +260,7 @@
                                                text-blue-200
                                                uppercase"
                                     >
-                                        ILOILO STATE UNIVERSITY
+                                        ILOILO STATE UNIVERSITY OF  FISHERIES SCIENCE AND TECHNOLOGY
                                     </p>
 
                                     <h2

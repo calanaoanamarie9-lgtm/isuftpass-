@@ -700,6 +700,7 @@ Route::middleware(['auth', 'verified', 'role:department,library'])->prefix('libr
     Route::get('/availability', [LibraryController::class, 'availability'])->name('availability.index');
     Route::get('/qr', [LibraryController::class, 'qrScanner'])->name('qr.index');
     Route::get('/consultations', [LibraryController::class, 'consultations'])->name('consultations');
+    Route::get('/services', [LibraryController::class, 'services'])->name('services');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
 
     $workspaceRoutes();

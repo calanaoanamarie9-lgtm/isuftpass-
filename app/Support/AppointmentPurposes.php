@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\Office;
+use App\Models\LibraryService;
 
 /**
  * Curated appointment purposes offered in the booking form's dynamic Purpose
@@ -71,15 +72,18 @@ class AppointmentPurposes
                 'Official Receipt & Payment Records',
                 'General Accounting Consultation',
             ],
-            Office::Library->value => [
-                'Library Orientation',
-                'Research Assistance',
-                'Reference Assistance',
-                'Thesis / Capstone Consultation',
-                'Online Database Assistance',
-                'Borrowing & Returning of Materials',
-                'General Library Consultation',
-            ],
+            Office::Library->value => array_merge(
+                [
+                    'Library Orientation',
+                    'Research Assistance',
+                    'Reference Assistance',
+                    'Thesis / Capstone Consultation',
+                    'Online Database Assistance',
+                    'Borrowing & Returning of Materials',
+                    'General Library Consultation',
+                ],
+                LibraryService::active()->ordered()->pluck('name', 'name')->toArray(),
+            ),
             Office::Cici->value,
             Office::CBMSD->value,
             Office::Coag->value,
