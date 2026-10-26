@@ -126,6 +126,7 @@
                 MAIN FORM
             ========================================================== --}}
             <form method="POST"
+                  @if (! $appointment) data-feedback-form @endif
                   action="{{ $appointment
                             ? route('student.appointments.update', $appointment)
                             : route('student.appointments.store') }}">
@@ -993,5 +994,7 @@
         );
 
     </script>
+
+    <x-feedback-modal :enabled="! $appointment" />
 
 </x-app-layout>

@@ -24,18 +24,13 @@ class FeedbackController extends Controller
             'id' => ['required', 'integer'],
         ]);
 
-        $feedbackable = $validated['kind'] === 'appointment'
-            ? Appointment::findOrFail($validated['id'])
-            : DocumentRequest::findOrFail($validated['id']);
+        $feedbackable = $this->resolveFeedbackable($validated['kind'], (int) $validated['id']);
 
         Gate::authorize('view', $feedbackable);
 
         $this->ensureCompleted($feedbackable);
 
-        $already = Feedback::where('user_id', Auth::id())
-            ->where('feedbackable_type', get_class($feedbackable))
-            ->where('feedbackable_id', $feedbackable->id)
-            ->exists();
+        $already = $this->alreadyRated($feedbackable);
 
         return view('student.feedback.create', [
             'feedbackable' => $feedbackable,
@@ -53,36 +48,39 @@ class FeedbackController extends Controller
             'comment' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $feedbackable = $validated['kind'] === 'appointment'
-            ? Appointment::findOrFail($validated['id'])
-            : DocumentRequest::findOrFail($validated['id']);
+        $feedbackable = $this->resolveFeedbackable($validated['kind'], (int) $validated['id']);
 
         Gate::authorize('view', $feedbackable);
         $this->ensureCompleted($feedbackable);
 
-        $exists = Feedback::where('user_id', Auth::id())
-            ->where('feedbackable_type', get_class($feedbackable))
-            ->where('feedbackable_id', $feedbackable->id)
-            ->exists();
-
-        if ($exists) {
+        if ($this->alreadyRated($feedbackable)) {
             return back()->with('error', 'You have already submitted feedback for this service.');
         }
 
-        $serviceArea = $validated['kind'] === 'appointment'
-            ? $feedbackable->office
-            : $feedbackable->documents->pluck('name')->join(', ');
-
-        Auth::user()->feedbacks()->create([
-            'feedbackable_type' => get_class($feedbackable),
-            'feedbackable_id' => $feedbackable->id,
-            'service_area' => $serviceArea,
-            'rating' => $validated['rating'],
-            'comment' => $validated['comment'],
-        ]);
+        Feedback::recordFor(
+            Auth::user(),
+            $feedbackable,
+            (int) $validated['rating'],
+            $validated['comment'] ?? null,
+        );
 
         return redirect()->route('dashboard')
             ->with('status', 'Thank you! Your feedback has been recorded.');
+    }
+
+    private function resolveFeedbackable(string $kind, int $id): Appointment|DocumentRequest
+    {
+        return $kind === 'appointment'
+            ? Appointment::findOrFail($id)
+            : DocumentRequest::findOrFail($id);
+    }
+
+    private function alreadyRated(Appointment|DocumentRequest $feedbackable): bool
+    {
+        return Feedback::where('user_id', Auth::id())
+            ->where('feedbackable_type', $feedbackable->getMorphClass())
+            ->where('feedbackable_id', $feedbackable->id)
+            ->exists();
     }
 
     private function ensureCompleted(Appointment|DocumentRequest $feedbackable): void

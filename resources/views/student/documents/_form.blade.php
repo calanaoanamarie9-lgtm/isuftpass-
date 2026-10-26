@@ -128,6 +128,7 @@
                 MAIN FORM
             ========================================================== --}}
             <form method="POST"
+                  @if (! $isEdit) data-feedback-form @endif
                   action="{{ $isEdit
                             ? route('student.documents.update', $documentRequest)
                             : route('student.documents.store') }}">
@@ -906,5 +907,7 @@
         });
 
     </script>
+
+    <x-feedback-modal :enabled="! $isEdit" />
 
 </x-app-layout>

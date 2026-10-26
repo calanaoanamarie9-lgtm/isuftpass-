@@ -7,17 +7,21 @@ use App\Enums\Office;
 use App\Http\Controllers\Controller;
 use App\Mail\AppointmentBooked;
 use App\Models\Appointment;
+use App\Models\Feedback;
 use App\Models\SlotAvailability;
 use App\Models\User;
 use App\Notifications\AppointmentBookedNotification;
 use App\Notifications\AppointmentCancelledNotification;
+use App\Notifications\AppointmentOfficeNotification;
 use App\Support\AppointmentPurposes;
 use App\Support\QrPassCard;
 use App\Support\QrUrl;
 use App\Support\RegistrarNotifier;
 use App\Support\SafeMailer;
+use Illuminate\Support\Facades\Notification;
 use App\Support\SlotAvailabilityService;
 use App\Support\TimeSlots;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -195,7 +199,7 @@ class AppointmentController extends Controller
         return response()->json(app(SlotAvailabilityService::class)->monthOverview($data['office'], $data['month']));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $office = (string) $request->input('office');
 
@@ -266,6 +270,16 @@ class AppointmentController extends Controller
         SafeMailer::send($appointment->user, new AppointmentBooked($appointment));
         $appointment->user->notify(new AppointmentBookedNotification($appointment));
 
+        // Send office notification so the desk sees the new booking on their queue.
+        $recipients = User::query()
+            ->where('role', User::ROLE_REGISTRAR)
+            ->where('is_active', true)
+            ->where('approval_status', User::APPROVAL_APPROVED)
+            ->get();
+        if ($recipients->isNotEmpty()) {
+            Notification::send($recipients, new AppointmentOfficeNotification($appointment));
+        }
+
         // The registrar owns the appointment pipeline: a new booking is
         // their cue to confirm — or to move it when the slot overflowed.
         RegistrarNotifier::appointment(
@@ -287,7 +301,10 @@ class AppointmentController extends Controller
                 )
         );
 
-        return redirect()
+        // Flash first: the rating modal opens before the browser leaves this
+        // page, and the confirmation still has to greet them on the page
+        // they land on afterwards.
+        $redirect = redirect()
             ->route('student.appointments.index')
             ->with(
                 'status',
@@ -295,6 +312,22 @@ class AppointmentController extends Controller
                     ? 'The chosen slot is full. Your appointment was recorded as For Reschedule — the Registrar will move it to the next available slot.'
                     : 'Appointment booked. A confirmation email has been sent.'
             );
+
+        // The form posts in the background so the rating modal can open
+        // before the redirect. A plain (no-JavaScript) submit still gets
+        // the ordinary redirect.
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'feedback' => [
+                    'transactionType' => Feedback::TYPE_APPOINTMENT,
+                    'transactionId' => $appointment->id,
+                    'redirect' => route('student.appointments.index'),
+                ],
+            ]);
+        }
+
+        return $redirect;
     }
 
     /**
