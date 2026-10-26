@@ -7,7 +7,6 @@ use App\Enums\Office;
 use App\Http\Controllers\Controller;
 use App\Mail\AppointmentBooked;
 use App\Models\Appointment;
-use App\Models\LibraryService;
 use App\Models\SlotAvailability;
 use App\Models\User;
 use App\Notifications\AppointmentBookedNotification;
@@ -124,42 +123,16 @@ class AppointmentController extends Controller
         $user = Auth::user();
         $offices = $user->bookableOffices();
 
-        // Build the purposes select map dynamically.
-        // For the Library office, pull active library consultation services
-        // from the database so the dropdown updates when the Admin Panel
-        // adds, edits, or deactivates services. For other offices keep the
-        // existing AppointmentPurposes logic.
-        $purposes = [];
-
-        foreach (array_keys($offices) as $office) {
-            if ($office === Office::Library->value) {
-                $serviceNames = LibraryService::where('is_active', true)
-                    ->ordered()
-                    ->pluck('name', 'name')
-                    ->toArray();
-                $officePurposes = array_merge(
-                    [
-                        'Library Orientation',
-                        'Research Assistance',
-                        'Reference Assistance',
-                        'Thesis / Capstone Consultation',
-                        'Online Database Assistance',
-                        'Borrowing & Returning of Materials',
-                        'General Library Consultation',
-                    ],
-                    $serviceNames,
-                );
-            } else {
-                $officePurposes = AppointmentPurposes::forOffice($office);
-            }
-
-            $purposes[$office] = array_merge($officePurposes, [AppointmentPurposes::OTHER => AppointmentPurposes::OTHER]);
-        }
-
+        // The Purpose options are built live from each office's active
+        // consultation services, so the first render already matches what
+        // the /appointments/services endpoint below will answer — no flash
+        // of one list before the fetch lands. "Other" is closed with every
+        // office, and an office with no rows of its own falls back to its
+        // curated list.
         return view('student.appointments.create', [
             'offices' => $offices,
             'slotLimits' => Appointment::SLOT_LIMITS,
-            'purposes' => $purposes,
+            'purposes' => AppointmentPurposes::toActiveSelectMap(array_keys($offices)),
 
             // Role-specific requester details (parent's child, guest's ID).
             'requester' => $user,
@@ -167,6 +140,28 @@ class AppointmentController extends Controller
             // Pre-filled when the student arrived from the consultation
             // catalogue: ?office=Accounting&purpose=Payment Concerns
             'preselect' => $request->only(['office', 'purpose']),
+        ]);
+    }
+
+    /**
+     * JSON endpoint: the active consultation services offered by one office,
+     * which is what the booking form's Purpose dropdown is rebuilt from when
+     * the student changes office.
+     *
+     * Each office's own panel owns these rows, so adding, renaming,
+     * deactivating or deleting a service is visible here on the very next
+     * request — no hardcoded list to keep in step. An office without rows
+     * answers with its curated fallback instead of an empty list.
+     */
+    public function getServicesByOffice(Request $request)
+    {
+        $data = $request->validate([
+            'office' => ['required', 'in:'.implode(',', Office::toSelectKeys())],
+        ]);
+
+        return response()->json([
+            'office' => $data['office'],
+            'services' => AppointmentPurposes::activeServices($data['office']),
         ]);
     }
 
@@ -422,7 +417,12 @@ class AppointmentController extends Controller
             'appointment' => $appointment,
             'offices' => $offices,
             'slotLimits' => Appointment::SLOT_LIMITS,
-            'purposes' => AppointmentPurposes::toSelectMap(array_keys($offices)),
+
+            // Same live source as create(): the edit form's Purpose dropdown
+            // is rebuilt from the office's own panel services, never from a
+            // curated list — a service the office has removed must not come
+            // back here while editing.
+            'purposes' => AppointmentPurposes::toActiveSelectMap(array_keys($offices)),
             'requester' => $user,
         ]);
     }

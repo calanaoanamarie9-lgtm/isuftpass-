@@ -33,7 +33,17 @@ class AppServiceProvider extends ServiceProvider
         // configured app.url instead of whatever host the browser happened
         // to use — a "127.0.0.1" link opened on a phone points at the phone
         // itself, not this server.
-        URL::forceRootUrl(config('app.url'));
+        //
+        // The exception is a request served on the local dev host: pinning
+        // the live URL there would make every in-app link and form action
+        // jump to the Render site while testing locally, so the dev host
+        // keeps its own root. Console runs (queue, scheduler) still pin to
+        // app.url and production already serves app.url, so neither changes
+        // — the only cost is that emails rendered during a localhost request
+        // carry the dev host.
+        if (app()->runningInConsole() || ! in_array(request()->getHost(), ['localhost', '127.0.0.1', '[::1]', '::1'], true)) {
+            URL::forceRootUrl(config('app.url'));
+        }
 
         RateLimiter::for('auth', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
 

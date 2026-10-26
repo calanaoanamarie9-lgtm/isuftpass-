@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\Office;
+use App\Models\ConsultationService;
 use App\Models\LibraryService;
 
 /**
@@ -97,22 +98,60 @@ class AppointmentPurposes
     }
 
     /**
-     * The full office => [purpose value => label] map that drives the booking
-     * form's dynamic Purpose dropdown, with the "Other" option appended to
-     * every office.
+     * The office's active consultation services, as {id, name} pairs — the
+     * live source the booking form's Purpose dropdown is built from.
+     *
+     * The database wins whenever the office keeps rows of its own: a service
+     * its panel adds, renames, deactivates or deletes changes this list on
+     * the next request, with no hardcoded edit and no deploy — deactivating
+     * the last one leaves only "Other" rather than resurrecting the built-in
+     * baseline. An office that has never had a row (the Registrar, the SSC)
+     * falls back to the curated list above, so its dropdown never comes up
+     * empty.
+     *
+     * @return list<array{id: int|null, name: string}>
+     */
+    public static function activeServices(?string $office): array
+    {
+        if ($office !== null && $office !== '') {
+            $exists = ConsultationService::query()->forOffice($office)->exists();
+
+            if ($exists) {
+                return ConsultationService::query()
+                    ->forOffice($office)
+                    ->active()
+                    ->ordered()
+                    ->get(['id', 'name'])
+                    ->map(fn (ConsultationService $service) => ['id' => $service->id, 'name' => $service->name])
+                    ->all();
+            }
+        }
+
+        return array_map(
+            fn (string $name) => ['id' => null, 'name' => $name],
+            self::forOffice($office ?: null),
+        );
+    }
+
+    /**
+     * The full office => [purpose value => label] map the booking form uses,
+     * built live from every office's active services and closed with "Other".
+     *
+     * Values are the purpose names themselves, so a choice posts the label the
+     * office will read back on the appointment — not a positional index.
      *
      * @param  list<string>  $offices
      * @return array<string, array<string, string>>
      */
-    public static function toSelectMap(array $offices): array
+    public static function toActiveSelectMap(array $offices): array
     {
         $map = [];
 
         foreach ($offices as $office) {
             $purposes = [];
 
-            foreach (self::forOffice($office) as $purpose) {
-                $purposes[$purpose] = $purpose;
+            foreach (self::activeServices($office) as $service) {
+                $purposes[$service['name']] = $service['name'];
             }
 
             $purposes[self::OTHER] = 'Other';

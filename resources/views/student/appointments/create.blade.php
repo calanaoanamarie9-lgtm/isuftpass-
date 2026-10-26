@@ -273,14 +273,21 @@
 
                                     </label>
 
+                                    {{-- The Purpose list belongs to the chosen office, so the field stays
+                                         disabled — and stays a plain prompt — until an office is picked
+                                         and its services have arrived. --}}
                                     <select id="purpose"
                                             name="purpose"
                                             required
+                                            @disabled($selectedOffice === null || $selectedOffice === '')
                                             class="w-full rounded-xl border-gray-300
                                                    bg-white text-sm text-gray-800
                                                    shadow-sm
                                                    focus:border-blue-600
-                                                   focus:ring-blue-600">
+                                                   focus:ring-blue-600
+                                                   disabled:cursor-not-allowed
+                                                   disabled:bg-gray-50
+                                                   disabled:text-gray-400">
 
                                         <option value="">
                                             Select a purpose
@@ -730,6 +737,122 @@
         const purposeOtherInput = document.getElementById('purpose_other');
         const otherPurpose = {{ Js::from(\App\Support\AppointmentPurposes::OTHER) }};
         const purposesByOffice = {{ Js::from($purposes) }};
+        const servicesUrl = {{ Js::from(route('student.appointments.services')) }};
+
+        // The Purpose options belong to the chosen office, so they are fetched
+        // from that office's own active services on every change instead of
+        // being baked into the page. Only the newest request may write to the
+        // select — a slow answer for an office the student already left would
+        // otherwise overwrite the list for the one they picked.
+        let purposeRequest = null;
+
+
+        // One line at a time: the prompt when nothing is chosen, a loading
+        // state while the office's services are on their way, then the list.
+        function setPurposePlaceholder(text) {
+
+            purposeSelect.innerHTML = '';
+
+            const placeholder = document.createElement('option');
+
+            placeholder.value = '';
+            placeholder.textContent = text;
+
+            purposeSelect.appendChild(placeholder);
+            purposeSelect.value = '';
+
+        }
+
+
+        // Fetch the office's active services and rebuild the dropdown from
+        // them. The select is disabled for the whole round trip, so a purpose
+        // can never be picked from a list that is about to change.
+        async function loadPurposes(office, selected = '') {
+
+            if (purposeRequest !== null) {
+
+                purposeRequest.abort();
+                purposeRequest = null;
+
+            }
+
+
+            // No office yet: nothing to ask for, and the field stays locked.
+            if (! office) {
+
+                setPurposePlaceholder('Select a purpose');
+                purposeSelect.disabled = true;
+                toggleOtherPurpose();
+
+                return;
+
+            }
+
+
+            purposeSelect.disabled = true;
+            setPurposePlaceholder('Loading purposes…');
+
+            const controller = new AbortController();
+
+            purposeRequest = controller;
+
+            try {
+
+                const response = await fetch(
+                    servicesUrl + '?office=' + encodeURIComponent(office),
+                    {
+                        headers: { 'Accept': 'application/json' },
+                        signal: controller.signal
+                    }
+                );
+
+
+                if (! response.ok) {
+
+                    throw new Error('Purpose list request failed with status ' + response.status);
+
+                }
+
+                const payload = await response.json();
+                const list = {};
+
+                (payload.services || []).forEach(service => {
+
+                    list[service.name] = service.name;
+
+                });
+
+                // "Other" is the form's own free-text escape hatch rather than
+                // a service the office offers, so it closes every list.
+                list[otherPurpose] = 'Other';
+
+                renderPurposes(list, selected);
+
+            } catch (error) {
+
+                // A superseded request is not a failure — a newer office is
+                // already loading. Anything else falls back to the list the
+                // server rendered, so the student is never left stuck.
+                if (error.name === 'AbortError') {
+
+                    return;
+
+                }
+
+                renderPurposes(purposesByOffice[office] || {}, selected);
+
+            } finally {
+
+                if (purposeRequest === controller) {
+
+                    purposeRequest = null;
+                    purposeSelect.disabled = ! officeEl.value;
+
+                }
+
+            }
+
+        }
 
 
         // The student asks for a day; the office answers with the hour, so
@@ -757,22 +880,14 @@
 
         }
 
-        // The Purpose options depend on the chosen office, so they are rebuilt
-        // on every change. A purpose that no longer appears in the new list
-        // (legacy value or a catalogue deep-link) is kept selectable so it is
-        // never silently dropped.
-        function renderPurposes(office, selected = '') {
+        // Rebuild the dropdown from a {purpose value => label} map — the one
+        // the office's services endpoint just answered with, or the server's
+        // own list as the offline fallback. A purpose kept from an earlier
+        // booking or a catalogue deep-link that is no longer in the list stays
+        // selectable and selected, so it is never silently dropped.
+        function renderPurposes(list, selected = '') {
 
-            const list = purposesByOffice[office] || {};
-
-            purposeSelect.innerHTML = '';
-
-            const placeholder = document.createElement('option');
-
-            placeholder.value = '';
-            placeholder.textContent = 'Select a purpose';
-
-            purposeSelect.appendChild(placeholder);
+            setPurposePlaceholder('Select a purpose');
 
 
             if (selected && selected !== otherPurpose && ! (selected in list)) {
@@ -844,7 +959,7 @@
 
                 applyStepNumbers();
 
-                renderPurposes(officeEl.value, '');
+                loadPurposes(officeEl.value, '');
 
             }
         );
@@ -867,7 +982,12 @@
 
                 applyStepNumbers();
 
-                renderPurposes(officeEl.value, purposeSelect.value);
+                // The options the server rendered already are this office's
+                // own list, so the first paint needs no fetch — only the lock
+                // (no office chosen yet) and the "Other" box to be settled.
+                purposeSelect.disabled = ! officeEl.value;
+
+                renderPurposes(purposesByOffice[officeEl.value] || {}, purposeSelect.value);
 
             }
         );

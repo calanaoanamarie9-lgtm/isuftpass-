@@ -381,6 +381,9 @@ Route::middleware(['auth', 'verified', 'role:student'])->prefix('student')->name
     Route::get('/appointments/create', [AppointmentController::class, 'create'])->name('appointments.create');
     Route::get('/appointments/slots', [AppointmentController::class, 'slots'])->name('appointments.slots');
     Route::get('/appointments/availability', [AppointmentController::class, 'availability'])->name('appointments.availability');
+    // Purpose options for one office, so the booking form can rebuild its
+    // dropdown when the office changes.
+    Route::get('/appointments/services', [AppointmentController::class, 'getServicesByOffice'])->name('appointments.services');
     Route::post('/appointments', [AppointmentController::class, 'store'])->name('appointments.store');
     Route::get('/appointments/{appointment}/qr', [AppointmentController::class, 'qr'])->name('appointments.qr');
     Route::get('/appointments/{appointment}/qr/download', [AppointmentController::class, 'downloadQr'])->name('appointments.qr.download');
