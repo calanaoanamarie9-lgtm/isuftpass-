@@ -3,11 +3,13 @@
     {{-- =========================================================
         CONSULTATION SERVICE — CREATE / EDIT FORM
 
-        Shared by every office / department. The route prefix is derived
-        from $office, which the controller already resolved server-side
-        from the signed-in account.
+        Shared by every office / department. The controller passes the
+        route-group prefix the request arrived on, because an SSC or
+        self-registered office account manages its services from the
+        shared 'workspace' group — deriving it from $office would point
+        those forms at a route the account is not allowed to use (403).
     ========================================================== --}}
-    @php($prefix = strtolower($office))
+    @php($prefix = $prefix ?? strtolower($office))
 
     <div class="min-h-screen bg-[#f6f8fc] py-8">
 

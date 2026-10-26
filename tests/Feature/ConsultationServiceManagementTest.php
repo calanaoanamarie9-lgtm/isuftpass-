@@ -280,6 +280,68 @@ class ConsultationServiceManagementTest extends TestCase
             ->assertDontSee('Deactivate');
     }
 
+    /**
+     * The SSC account is a generic role 'office' staff account
+     * (office = 'SSC'): its workspace lives under /workspace, while /ssc is
+     * the role:ssc group. The shared create/edit form must therefore target
+     * the group the request came in on — deriving it from the office name
+     * sent the SSC form to /ssc/consultations and answered 403.
+     */
+    public function test_the_ssc_office_account_can_add_a_service_from_its_workspace(): void
+    {
+        $staff = User::factory()->create(['role' => 'office', 'office' => 'SSC']);
+
+        $this->actingAs($staff)
+            ->get('/workspace/consultations/create')
+            ->assertOk()
+            ->assertSee('action="'.route('workspace.consultations.store').'"', false);
+
+        $this->actingAs($staff)
+            ->post('/workspace/consultations', [
+                'name' => 'Scholarship & Financial Assistance',
+                'description' => 'Student scholarship help desk.',
+                'is_active' => '1',
+            ])
+            ->assertRedirect(route('workspace.consultations'))
+            ->assertSessionHas('status');
+
+        $service = ConsultationService::firstWhere('name', 'Scholarship & Financial Assistance');
+
+        $this->assertNotNull($service);
+        $this->assertSame('SSC', $service->office);
+    }
+
+    public function test_the_ssc_office_account_can_edit_its_service_from_its_workspace(): void
+    {
+        $staff = User::factory()->create(['role' => 'office', 'office' => 'SSC']);
+        $service = ConsultationService::create(['office' => 'SSC', 'name' => 'Scholarship']);
+
+        $this->actingAs($staff)
+            ->get('/workspace/consultations/'.$service->id.'/edit')
+            ->assertOk()
+            ->assertSee(route('workspace.consultations.update', $service));
+
+        $this->actingAs($staff)
+            ->put('/workspace/consultations/'.$service->id, ['name' => 'Scholarship & Aid'])
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $this->assertSame('Scholarship & Aid', $service->fresh()->name);
+    }
+
+    /**
+     * /ssc stays the role:ssc group — a role 'office' account does not get to
+     * borrow it, which is why the form must target the workspace group.
+     */
+    public function test_a_role_office_account_cannot_post_to_the_ssc_group(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'office', 'office' => 'SSC']))
+            ->post('/ssc/consultations', ['name' => 'Not allowed'])
+            ->assertForbidden();
+
+        $this->assertSame(0, ConsultationService::count());
+    }
+
     public function test_students_cannot_toggle_services(): void
     {
         $service = ConsultationService::create([

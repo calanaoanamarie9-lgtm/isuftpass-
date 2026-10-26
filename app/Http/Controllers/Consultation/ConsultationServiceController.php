@@ -24,6 +24,10 @@ class ConsultationServiceController extends Controller
         return view('consultations.form', [
             'office' => $this->office(),
             'service' => null,
+            // The route group the form arrived on — not the office name. An
+            // SSC / self-registered office account works from the shared
+            // 'workspace' group, whose prefix does not match its office name.
+            'prefix' => $this->prefix(),
         ]);
     }
 
@@ -49,6 +53,7 @@ class ConsultationServiceController extends Controller
         return view('consultations.form', [
             'office' => $this->office(),
             'service' => $consultationService,
+            'prefix' => $this->prefix(),
         ]);
     }
 
