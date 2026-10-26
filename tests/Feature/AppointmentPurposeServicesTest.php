@@ -18,8 +18,11 @@ use Tests\TestCase;
  * deactivating or deleting a service changes the student's form on the very
  * next request — no hardcoded list to keep in step.
  *
- * An office that keeps no rows of its own (the Registrar, the SSC) falls
- * back to its curated list rather than offering an empty dropdown.
+ * Offices with a services panel (the four colleges, SSC, Accounting, Library
+ * and every self-registered office account) answer from the database alone:
+ * an empty panel offers only "Other" in the Purpose dropdown. Offices without
+ * a panel (the Registrar's document counter, the Cashier) keep answering from
+ * their curated list.
  */
 class AppointmentPurposeServicesTest extends TestCase
 {
@@ -91,11 +94,11 @@ class AppointmentPurposeServicesTest extends TestCase
         }
     }
 
-    public function test_an_office_without_services_of_its_own_falls_back_to_its_curated_list(): void
+    public function test_an_office_without_a_services_panel_still_falls_back_to_its_curated_list(): void
     {
         // No rows exist for the Registrar, yet the dropdown must still offer
-        // its standard documents — an empty Purpose field would dead-end the
-        // booking.
+        // its standard documents — it has no panel to add services from, so
+        // an empty Purpose field would dead-end the booking.
         $purposes = $this->servicesFor('Registrar');
 
         $this->assertContains('Transcript of Records', $purposes);
@@ -107,6 +110,79 @@ class AppointmentPurposeServicesTest extends TestCase
         // The Cashier runs a payment counter rather than a service panel, so
         // it answers from its curated list as well.
         $this->assertContains('Payment of School Fees', $this->servicesFor('Cashier'));
+    }
+
+    /**
+     * A panel office with nothing in it offers only "Other": the curated
+     * baseline is retired the moment the office owns a panel, so students are
+     * never shown presets the office did not create.
+     */
+    public function test_a_panel_office_with_no_services_offers_only_other(): void
+    {
+        $this->assertSame([], $this->servicesFor('SSC'));
+
+        $html = $this->actingAs($this->makeStudent())
+            ->get(route('student.appointments.create', ['office' => 'SSC']))
+            ->assertOk()
+            ->assertSee(AppointmentPurposes::OTHER)
+            ->getContent();
+
+        // Not one of the retired SSC presets may come back.
+        foreach ([
+            'Student Affairs & Welfare Concern',
+            'Scholarship & Financial Assistance',
+            'Student Organizations & Activities',
+            'Counseling & Psychological Support',
+            'Student Discipline & Clearance',
+            'Grievance / Complaint Assistance',
+        ] as $retired) {
+            $this->assertStringNotContainsString($retired, $html);
+        }
+    }
+
+    /**
+     * A Registrar office account does not turn the Registrar into a panel
+     * office: until it adds rows of its own, students keep the curated
+     * document list rather than an empty Purpose dropdown.
+     */
+    public function test_a_registrar_office_account_keeps_the_curated_document_list(): void
+    {
+        User::factory()->create([
+            'role' => 'office',
+            'office' => 'Registrar',
+            'approval_status' => User::APPROVAL_APPROVED,
+            'is_active' => true,
+        ]);
+
+        $this->assertContains('Transcript of Records', $this->servicesFor('Registrar'));
+
+        // ...and the moment that account adds a service, the row wins.
+        ConsultationService::create(['office' => 'Registrar', 'name' => 'Enrollment Verification', 'is_active' => true]);
+
+        $this->assertSame(['Enrollment Verification'], $this->servicesFor('Registrar'));
+    }
+
+    /**
+     * The same rule covers a self-registered office account: its rows come
+     * from the shared workspace panel, and no rows means only "Other".
+     */
+    public function test_a_self_registered_office_with_no_services_offers_only_other(): void
+    {
+        User::factory()->create([
+            'role' => 'office',
+            'office' => 'Clinic',
+            'approval_status' => User::APPROVAL_APPROVED,
+            'is_active' => true,
+        ]);
+
+        $this->assertSame([], AppointmentPurposes::activeServices('Clinic'));
+
+        ConsultationService::create(['office' => 'Clinic', 'name' => 'Medical Consultation', 'is_active' => true]);
+
+        $this->assertSame(
+            ['Medical Consultation'],
+            array_column(AppointmentPurposes::activeServices('Clinic'), 'name'),
+        );
     }
 
     public function test_the_booking_form_renders_the_same_list_the_endpoint_answers(): void

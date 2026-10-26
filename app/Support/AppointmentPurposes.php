@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\Office;
 use App\Models\ConsultationService;
 use App\Models\LibraryService;
+use App\Models\User;
 
 /**
  * Curated appointment purposes offered in the booking form's dynamic Purpose
@@ -98,6 +99,53 @@ class AppointmentPurposes
     }
 
     /**
+     * Offices that manage their own consultation services from a panel.
+     *
+     * For these offices the panel is the single source of truth for the
+     * booking form's Purpose dropdown: no rows means no presets, so the
+     * dropdown offers "Other" alone — the curated baseline below is never
+     * resurrected for them. A self-registered office account manages its
+     * rows from the shared 'workspace' panel, so it counts as well.
+     *
+     * Offices without a panel (the Registrar's document counter, the Cashier)
+     * keep answering from the curated list.
+     */
+    public static function managesServices(?string $office): bool
+    {
+        if ($office === null || $office === '') {
+            return false;
+        }
+
+        $panelOffices = [
+            Office::Cici->value,
+            Office::CBMSD->value,
+            Office::Coag->value,
+            Office::Coed->value,
+            Office::SSC->value,
+            Office::Accounting->value,
+            Office::Library->value,
+        ];
+
+        if (in_array($office, $panelOffices, true)) {
+            return true;
+        }
+
+        // The remaining built-in offices (the Registrar, the Cashier) keep
+        // their curated list even when an office account exists for the name —
+        // a Registrar account's rows, when it adds any, still win above.
+        if (in_array($office, array_column(Office::cases(), 'value'), true)) {
+            return false;
+        }
+
+        return User::query()
+            ->where('role', User::ROLE_OFFICE)
+            ->where('office', $office)
+            ->where('approval_status', User::APPROVAL_APPROVED)
+            ->where('is_active', true)
+            ->exists();
+    }
+
+    /**
      * The office's active consultation services, as {id, name} pairs — the
      * live source the booking form's Purpose dropdown is built from.
      *
@@ -105,18 +153,20 @@ class AppointmentPurposes
      * its panel adds, renames, deactivates or deletes changes this list on
      * the next request, with no hardcoded edit and no deploy — deactivating
      * the last one leaves only "Other" rather than resurrecting the built-in
-     * baseline. An office that has never had a row (the Registrar, the SSC)
-     * falls back to the curated list above, so its dropdown never comes up
-     * empty.
+     * baseline. A panel office that has never had a row answers with an empty
+     * list for the same reason: an empty panel means the purpose dropdown
+     * offers only "Other". Offices without a panel (the Registrar, the
+     * Cashier) fall back to the curated list above, so their dropdown never
+     * comes up empty.
      *
      * @return list<array{id: int|null, name: string}>
      */
     public static function activeServices(?string $office): array
     {
         if ($office !== null && $office !== '') {
-            $exists = ConsultationService::query()->forOffice($office)->exists();
+            $hasRows = ConsultationService::query()->forOffice($office)->exists();
 
-            if ($exists) {
+            if ($hasRows || self::managesServices($office)) {
                 return ConsultationService::query()
                     ->forOffice($office)
                     ->active()
