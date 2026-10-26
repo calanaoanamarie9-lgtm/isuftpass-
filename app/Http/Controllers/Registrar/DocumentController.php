@@ -66,8 +66,15 @@ class DocumentController extends Controller
 
     public function destroy(Document $document): RedirectResponse
     {
+        // A service that already appears on requests is removed from the
+        // student catalogue, not deleted: the request records still have to
+        // name what was asked for.
         if ($document->requests()->exists()) {
-            return back()->with('error', 'This document is attached to existing requests and cannot be deleted. Deactivate it instead.');
+            $document->update(['is_active' => false]);
+
+            AuditLogger::log('document.archived', 'Removed document service '.$document->name.' from the catalogue; existing requests keep their record.');
+
+            return back()->with('status', 'Document service removed from the student catalogue. Existing requests keep their record.');
         }
 
         $document->delete();

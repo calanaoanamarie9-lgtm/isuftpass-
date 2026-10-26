@@ -45,7 +45,7 @@ class RegistrarDocumentSettingsTest extends TestCase
             ->get('/registrar/documents')
             ->assertOk()
             ->assertSee('Document Fees & Services', false)
-            ->assertSee('Manage document pricing and services');
+            ->assertSee('Manage document types, service fees, and availability.');
     }
 
     public function test_registrar_can_add_and_update_document_fee(): void
@@ -76,16 +76,49 @@ class RegistrarDocumentSettingsTest extends TestCase
         $this->assertEquals('75.00', $document->fresh()->fee);
     }
 
-    public function test_document_used_by_requests_cannot_be_deleted(): void
+    public function test_document_used_by_requests_is_removed_from_the_catalogue_instead_of_deleted(): void
     {
         [, , $document] = $this->makeStudentWithRequest();
 
         $this->actingAs($this->makeRegistrar())
             ->delete("/registrar/documents/{$document->id}")
             ->assertRedirect()
-            ->assertSessionHas('error');
+            ->assertSessionHas('status');
 
+        // The record stays so past requests still name what was asked for,
+        // but students no longer see it in the request form.
         $this->assertNotNull($document->fresh());
+        $this->assertFalse($document->fresh()->is_active);
+    }
+
+    public function test_unused_document_is_deleted_outright(): void
+    {
+        $document = Document::create([
+            'name' => 'Certificate of Good Standing',
+            'description' => 'CGS',
+            'fee' => 40.00,
+        ]);
+
+        $this->actingAs($this->makeRegistrar())
+            ->delete("/registrar/documents/{$document->id}")
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $this->assertNull($document->fresh());
+    }
+
+    public function test_the_services_list_offers_a_remove_button_even_when_the_service_is_in_use(): void
+    {
+        [, , $document] = $this->makeStudentWithRequest();
+
+        $this->actingAs($this->makeRegistrar())
+            ->get('/registrar/documents')
+            ->assertOk()
+            ->assertSee('Remove')
+            ->assertSee('Edit')
+            ->assertSee('form="remove-document-'.$document->id.'"', false)
+            // The usage chip was removed; the row now shows Edit and Remove.
+            ->assertDontSee('Used by');
     }
 
     public function test_cashier_cannot_access_registrar_document_settings(): void
