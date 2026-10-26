@@ -164,6 +164,7 @@ class ConsultationServiceManagementTest extends TestCase
             '/ssc/consultations' => ['SSC', 'ssc'],
             '/accounting/consultations' => ['Accounting', 'accounting'],
             '/library/consultations' => ['Library', 'library'],
+            '/registrar/consultations' => ['Registrar', 'registrar'],
         ];
 
         foreach ($pages as [$office]) {
@@ -278,6 +279,80 @@ class ConsultationServiceManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Reactivate')
             ->assertDontSee('Deactivate');
+    }
+
+    /**
+     * The Registrar keeps its own consultation services too: the rows it adds
+     * here become the presets students pick for Registrar bookings.
+     */
+    public function test_the_registrar_can_manage_its_own_consultation_services(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+
+        $this->actingAs($registrar)
+            ->get('/registrar/consultations')
+            ->assertOk()
+            ->assertSee('Add service');
+
+        $this->actingAs($registrar)
+            ->post('/registrar/consultations', [
+                'name' => 'Enrollment Verification',
+                'description' => 'Confirm enrolment status for outside agencies.',
+                'is_active' => '1',
+            ])
+            ->assertRedirect(route('registrar.consultations'))
+            ->assertSessionHas('status');
+
+        $service = ConsultationService::firstWhere('name', 'Enrollment Verification');
+
+        $this->assertNotNull($service);
+        $this->assertSame('Registrar', $service->office);
+
+        // ...and may edit, deactivate and remove its own row.
+        $this->actingAs($registrar)
+            ->put('/registrar/consultations/'.$service->id, [
+                'name' => 'Enrollment Confirmation',
+                'is_active' => '1',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $this->assertSame('Enrollment Confirmation', $service->fresh()->name);
+        $this->assertTrue($service->fresh()->is_active);
+
+        $this->actingAs($registrar)
+            ->patch('/registrar/consultations/'.$service->id.'/toggle')
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $this->assertFalse($service->fresh()->is_active);
+
+        $this->actingAs($registrar)
+            ->delete('/registrar/consultations/'.$service->id)
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $this->assertNull($service->fresh());
+    }
+
+    public function test_the_registrar_sidebar_links_to_consultation_services(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'registrar']))
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee(route('registrar.consultations'))
+            ->assertSee('Consultation Services');
+    }
+
+    public function test_a_department_cannot_manage_the_registrars_services(): void
+    {
+        $service = ConsultationService::create(['office' => 'Registrar', 'name' => 'Enrollment Verification']);
+
+        $this->actingAs($this->makeStaff('CICI'))
+            ->delete('/registrar/consultations/'.$service->id)
+            ->assertForbidden();
+
+        $this->assertNotNull($service->fresh());
     }
 
     /**

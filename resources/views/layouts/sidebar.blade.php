@@ -205,6 +205,13 @@
                         <span>Appointments</span>
                     </a>
 
+                    <a href="{{ route('registrar.consultations') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+                        <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h5m7-2a8 8 0 11-16 0c0 1.54.435 2.98 1.19 4.2L4 20l3.8-1.19A8 8 0 0020 12z"/></svg>
+                        <span>Consultation Services</span>
+                    </a>
+
                     <a href="{{ route('registrar.availability.index') }}"
                        @click="open = false"
                        class="{{ $navClass }}">

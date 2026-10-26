@@ -46,6 +46,8 @@ class ConsultationServicePolicy
 
     private function isOfficeStaff(User $user): bool
     {
-        return in_array($user->role, ['department', 'ssc', 'accounting', 'library', 'office'], true);
+        // The Registrar manages its own rows too: its account has
+        // office = null, and officeScope() already answers 'Registrar' for it.
+        return in_array($user->role, ['department', 'ssc', 'accounting', 'library', 'registrar', 'office'], true);
     }
 }

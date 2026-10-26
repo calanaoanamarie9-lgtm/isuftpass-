@@ -25,6 +25,7 @@ use App\Http\Controllers\Offices\SscController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Registrar\AppointmentController as RegistrarAppointmentController;
 use App\Http\Controllers\Registrar\AvailabilityController;
+use App\Http\Controllers\Registrar\ConsultationController as RegistrarConsultationController;
 use App\Http\Controllers\Registrar\DocumentController as RegistrarDocumentController;
 use App\Http\Controllers\Registrar\DocumentRequestController as RegistrarDocumentRequestController;
 use App\Http\Controllers\Registrar\QrVerifyController;
@@ -474,6 +475,9 @@ Route::middleware(['auth', 'verified', 'role:registrar,department,admin'])->pref
     Route::put('/documents/{document}', [RegistrarDocumentController::class, 'update'])->name('documents.update');
     Route::delete('/documents/{document}', [RegistrarDocumentController::class, 'destroy'])->name('documents.destroy');
 
+    // Consultation Services (the presets students pick for this office)
+    Route::get('/consultations', [RegistrarConsultationController::class, 'index'])->name('consultations');
+
     // Notifications & Help (shared with the student pages, role-agnostic)
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/{notification}/open', [NotificationController::class, 'open'])->name('notifications.open');
@@ -760,6 +764,7 @@ foreach ([
     'ssc' => 'department,ssc',
     'accounting' => 'department,accounting',
     'library' => 'department,library',
+    'registrar' => 'registrar',
     'workspace' => 'department,office',
 ] as $consultationPrefix => $consultationRoles) {
     Route::middleware(['auth', 'verified', 'role:'.$consultationRoles])
