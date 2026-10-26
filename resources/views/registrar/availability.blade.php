@@ -1279,37 +1279,77 @@
                     }
 
 
-                    const response = await fetch(
-                        this.saveUrl,
-                        {
-                            method: 'POST',
+                    // A save answers with JSON — a 422's field errors, or a
+                    // 500's own message — but an expired session or a proxy
+                    // can answer with plain HTML, and response.json() throws
+                    // on that. That throw is what turned every server error
+                    // into a silent generic failure, with the reason never
+                    // shown. So the request sits in a try/catch and the body
+                    // is read as text first, parsed only when it is JSON.
+                    let response;
 
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN':
-                                    document
-                                        .querySelector(
-                                            'meta[name="csrf-token"]'
-                                        )
-                                        .content
-                            },
+                    let data = {};
 
-                            body: JSON.stringify({
+                    try {
 
-                                date: this.date,
+                        response = await fetch(
+                            this.saveUrl,
+                            {
+                                method: 'POST',
 
-                                type: this.availabilityType,
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-CSRF-TOKEN':
+                                        document
+                                            .querySelector(
+                                                'meta[name="csrf-token"]'
+                                            )
+                                            .content
+                                },
 
-                                slots: this.selectedSlots
+                                body: JSON.stringify({
 
-                            })
+                                    date: this.date,
+
+                                    type: this.availabilityType,
+
+                                    slots: this.selectedSlots
+
+                                })
+                            }
+                        );
+
+                        const raw = await response.text();
+
+                        try {
+                            data = raw ? JSON.parse(raw) : {};
+                        } catch (parseError) {
+                            // Not JSON: a framework error page or a proxy's
+                            // own reply. Keep its words, stripped of markup,
+                            // so its own reason is what gets shown.
+                            data = {
+                                message: raw
+                                    .replace(/<[^>]*>/g, ' ')
+                                    .replace(/\s+/g, ' ')
+                                    .trim()
+                                    .slice(0, 300)
+                            };
                         }
-                    );
 
+                    } catch (error) {
 
-                    const data =
-                        await response.json();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Not Saved',
+                            text: error.message
+                                || 'The request could not reach the server.',
+                            confirmButtonColor: '#1e3a8a'
+                        });
+
+                        return;
+
+                    }
 
 
                     if (!response.ok) {
@@ -1320,7 +1360,8 @@
                                 : (
                                     data.message
                                     ||
-                                    'Something went wrong.'
+                                    'The server refused the save (HTTP '
+                                    + response.status + ').'
                                 );
 
 

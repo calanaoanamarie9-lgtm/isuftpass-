@@ -116,73 +116,103 @@ class AvailabilityController extends Controller
      */
     public function save(Request $request): JsonResponse
     {
-        $office = Office::where('name', $this->officeKey())->firstOrFail();
-        $slots = TimeSlots::forOffice($office->name);
+        try {
+            $office = Office::where('name', $this->officeKey())->firstOrFail();
+            $slots = TimeSlots::forOffice($office->name);
 
-        $data = $request->validate([
-            'date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
-            'type' => ['required', 'in:open,closed,slots'],
-            'slots' => ['nullable', 'array'],
-            'slots.*' => ['string', 'in:'.implode(',', $slots)],
-            'max_capacity' => ['nullable', 'integer', 'min:1', 'max:999'],
-        ]);
+            $data = $request->validate([
+                'date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
+                'type' => ['required', 'in:open,closed,slots'],
+                'slots' => ['nullable', 'array'],
+                'slots.*' => ['string', 'in:'.implode(',', $slots)],
+                'max_capacity' => ['nullable', 'integer', 'min:1', 'max:999'],
+            ]);
 
-        $openSlots = match ($data['type']) {
-            'open' => $slots,
-            'closed' => [],
-            default => array_values(array_intersect($slots, $data['slots'] ?? [])),
-        };
+            $openSlots = match ($data['type']) {
+                'open' => $slots,
+                'closed' => [],
+                default => array_values(array_intersect($slots, $data['slots'] ?? [])),
+            };
 
-        $capacity = ! empty($data['max_capacity']) ? (int) $data['max_capacity'] : null;
+            $capacity = ! empty($data['max_capacity']) ? (int) $data['max_capacity'] : null;
 
-        foreach ($slots as $slot) {
-            $existing = SlotAvailability::query()
+            foreach ($slots as $slot) {
+                $existing = SlotAvailability::query()
+                    ->where('office_id', $office->id)
+                    ->whereDate('date', $data['date'])
+                    ->where('time_slot', $slot)
+                    ->first();
+
+                SlotAvailability::updateOrCreate(
+                    [
+                        'office_id' => $office->id,
+                        'date' => $data['date'],
+                        'time_slot' => $slot,
+                    ],
+                    [
+                        'max_capacity' => $capacity ?: ($existing?->max_capacity ?: $this->defaultCapacity($office)),
+                        'status' => in_array($slot, $openSlots, true)
+                            ? SlotAvailability::STATUS_AVAILABLE
+                            : SlotAvailability::STATUS_BLOCKED,
+                    ]
+                );
+            }
+
+            // Rows left over from an earlier, longer set of office hours would
+            // otherwise count towards this date's totals, so drop them.
+            SlotAvailability::query()
                 ->where('office_id', $office->id)
                 ->whereDate('date', $data['date'])
-                ->where('time_slot', $slot)
-                ->first();
+                ->whereNotIn('time_slot', $slots)
+                ->delete();
 
-            SlotAvailability::updateOrCreate(
-                [
-                    'office_id' => $office->id,
-                    'date' => $data['date'],
-                    'time_slot' => $slot,
-                ],
-                [
-                    'max_capacity' => $capacity ?: ($existing?->max_capacity ?: $office->default_slot_capacity),
-                    'status' => in_array($slot, $openSlots, true)
-                        ? SlotAvailability::STATUS_AVAILABLE
-                        : SlotAvailability::STATUS_BLOCKED,
-                ]
+            AuditLogger::log(
+                'availability.updated',
+                match ($data['type']) {
+                    'open' => 'Opened the entire day for appointments on '.$data['date'].' ('.$office->name.').',
+                    'closed' => 'Closed the entire day for appointments on '.$data['date'].' ('.$office->name.').',
+                    default => 'Set '.count($openSlots).' specific slot(s) open on '.$data['date'].' ('.$office->name.').',
+                }
             );
-        }
 
-        // Rows left over from an earlier, longer set of office hours would
-        // otherwise count towards this date's totals, so drop them.
-        SlotAvailability::query()
-            ->where('office_id', $office->id)
-            ->whereDate('date', $data['date'])
-            ->whereNotIn('time_slot', $slots)
-            ->delete();
+            // The calendar reads one month at a time, so send back the month
+            // that was written — it is the one the grid should be showing.
+            $savedMonth = Carbon::parse($data['date'])->format('Y-m');
 
-        AuditLogger::log(
-            'availability.updated',
-            match ($data['type']) {
-                'open' => 'Opened the entire day for appointments on '.$data['date'].' ('.$office->name.').',
-                'closed' => 'Closed the entire day for appointments on '.$data['date'].' ('.$office->name.').',
-                default => 'Set '.count($openSlots).' specific slot(s) open on '.$data['date'].' ('.$office->name.').',
+            return response()->json([
+                'message' => $office->name.' availability has been updated.',
+                'month' => $savedMonth,
+                'schedule' => $this->buildSchedule($savedMonth),
+            ]);
+        } catch (\Exception $e) {
+            // If this is a validation exception from $request->validate(),
+            // re-throw so Laravel returns the standard 422 response.
+            if ($e instanceof \Illuminate\Validation\ValidationException) {
+                throw $e;
             }
-        );
+            // Unexpected error — return JSON so the frontend can show the exact message
+            return response()->json([
+                'message' => 'Failed to save availability: '.$e->getMessage(),
+                'success' => false,
+            ], 500);
+        }
+    }
 
-        // The calendar reads one month at a time, so send back the month
-        // that was written — it is the one the grid should be showing.
-        $savedMonth = Carbon::parse($data['date'])->format('Y-m');
-
-        return response()->json([
-            'message' => $office->name.' availability has been updated.',
-            'month' => $savedMonth,
-            'schedule' => $this->buildSchedule($savedMonth),
-        ]);
+    /**
+     * A capacity the rule table will actually accept.
+     *
+     * `offices.default_slot_capacity` is nullable and every office in the
+     * deployed database has it empty, so "the office's own default" can be
+     * null — while `slot_availabilities.max_capacity` is NOT NULL. Writing
+     * that null is what turned Save Availability into a 500:
+     * SQLSTATE[23502] null value in column "max_capacity" violates
+     * not-null constraint. The legacy per-office limits hold the same
+     * numbers the booking check already falls back on, so a rule saved
+     * without a capacity reads exactly as the office did before it was set.
+     */
+    private function defaultCapacity(Office $office): int
+    {
+        return (int) ($office->default_slot_capacity ?: (Appointment::SLOT_LIMITS[$office->name] ?? 6));
     }
 
     /**
@@ -360,7 +390,7 @@ class AvailabilityController extends Controller
             $blocked = $rules->contains(
                 fn (SlotAvailability $rule) => $rule->status === SlotAvailability::STATUS_BLOCKED
             );
-            $capacity = $rules->first()?->max_capacity ?: $office->default_slot_capacity;
+            $capacity = $rules->first()?->max_capacity ?: $this->defaultCapacity($office);
 
             foreach ($slots as $slot) {
                 if (in_array($slot, $held, true)) {
