@@ -45,7 +45,7 @@ class RegistrarDocumentSettingsTest extends TestCase
             ->get('/registrar/documents')
             ->assertOk()
             ->assertSee('Document Fees & Services', false)
-            ->assertSee('Manage document types, service fees, and availability.');
+            ->assertSee('Manage document pricing and services for student requests.');
     }
 
     public function test_registrar_can_add_and_update_document_fee(): void
@@ -116,9 +116,9 @@ class RegistrarDocumentSettingsTest extends TestCase
             ->assertOk()
             ->assertSee('Remove')
             ->assertSee('Edit')
-            ->assertSee('form="remove-document-'.$document->id.'"', false)
-            // The usage chip was removed; the row now shows Edit and Remove.
-            ->assertDontSee('Used by');
+            ->assertSee('form="delete-document-'.$document->id.'"', false)
+            // The usage chip was removed; the row now shows Remove and Edit.
+            ->assertDontSee('Used 1×');
     }
 
     public function test_cashier_cannot_access_registrar_document_settings(): void
