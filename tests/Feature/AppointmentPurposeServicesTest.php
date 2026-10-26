@@ -93,30 +93,6 @@ class AppointmentPurposeServicesTest extends TestCase
             $this->assertSame([$office.' Marker'], $this->servicesFor($office));
         }
     }
-
-    public function test_an_office_without_a_services_panel_still_falls_back_to_its_curated_list(): void
-    {
-        // No rows exist for the Registrar, yet the dropdown must still offer
-        // its standard documents — it has no panel to add services from, so
-        // an empty Purpose field would dead-end the booking.
-        $purposes = $this->servicesFor('Registrar');
-
-        $this->assertContains('Transcript of Records', $purposes);
-        $this->assertContains('Good Moral Certificate', $purposes);
-
-        // The fallback answers for the office asked and for that office only.
-        $this->assertNotContains('Transcript of Records', $this->servicesFor('SSC'));
-
-        // The Cashier runs a payment counter rather than a service panel, so
-        // it answers from its curated list as well.
-        $this->assertContains('Payment of School Fees', $this->servicesFor('Cashier'));
-    }
-
-    /**
-     * A panel office with nothing in it offers only "Other": the curated
-     * baseline is retired the moment the office owns a panel, so students are
-     * never shown presets the office did not create.
-     */
     public function test_a_panel_office_with_no_services_offers_only_other(): void
     {
         $this->assertSame([], $this->servicesFor('SSC'));
@@ -141,25 +117,45 @@ class AppointmentPurposeServicesTest extends TestCase
     }
 
     /**
-     * A Registrar office account does not turn the Registrar into a panel
-     * office: until it adds rows of its own, students keep the curated
-     * document list rather than an empty Purpose dropdown.
+     * A Registrar office account now manages its own consultation services from a panel.
+     * Before adding any services, the dropdown offers only "Other" (no curated baseline).
+     * Once services are added, those services become the live source for the Purpose dropdown.
      */
-    public function test_a_registrar_office_account_keeps_the_curated_document_list(): void
+    public function test_a_registrar_office_account_manages_its_own_services(): void
     {
-        User::factory()->create([
-            'role' => 'office',
-            'office' => 'Registrar',
-            'approval_status' => User::APPROVAL_APPROVED,
-            'is_active' => true,
-        ]);
+        // With no services, the dropdown offers only "Other" — the panel is the single source of truth.
+        $html = $this->actingAs($this->makeStudent())
+            ->get(route('student.appointments.create', ['office' => 'Registrar']))
+            ->assertOk()
+            ->assertSee(AppointmentPurposes::OTHER)
+            ->getContent();
 
-        $this->assertContains('Transcript of Records', $this->servicesFor('Registrar'));
+        // Not one of the curated document presets may come back.
+        foreach ([
+            'Transcript of Records',
+            'Diploma',
+            'Certificate of Grades',
+            'Good Moral Certificate',
+            'Form 137 / SF10',
+            'Honorable Dismissal',
+            'Authentication / CAV',
+            'Certificate of Enrollment',
+            'Certificate of Registration',
+            'Transfer Credentials',
+        ] as $curated) {
+            $this->assertStringNotContainsString($curated, $html);
+        }
 
-        // ...and the moment that account adds a service, the row wins.
+        // After adding a service, those services become the live source.
         ConsultationService::create(['office' => 'Registrar', 'name' => 'Enrollment Verification', 'is_active' => true]);
 
         $this->assertSame(['Enrollment Verification'], $this->servicesFor('Registrar'));
+
+        // Deactivating it removes it from the dropdown.
+        $service = ConsultationService::where('office', 'Registrar')->first();
+        $service->update(['is_active' => false]);
+
+        $this->assertSame([], $this->servicesFor('Registrar'));
     }
 
     /**
@@ -214,13 +210,37 @@ class AppointmentPurposeServicesTest extends TestCase
      */
     public function test_a_purpose_option_submits_its_own_name(): void
     {
+        // With no services, the dropdown offers only "Other" for the Registrar panel office.
         $html = $this->actingAs($this->makeStudent())
             ->get(route('student.appointments.create', ['office' => 'Registrar']))
             ->assertOk()
-            ->assertSee('Transcript of Records')
+            ->assertSee(AppointmentPurposes::OTHER)
+            ->assertDontSee('Transcript of Records')
             ->getContent();
 
-        $this->assertStringContainsString('value="Transcript of Records"', $html);
+        // After adding a service, that service becomes the live source.
+        ConsultationService::create(['office' => 'Registrar', 'name' => 'Enrollment Verification', 'is_active' => true]);
+
+        $html = $this->actingAs($this->makeStudent())
+            ->get(route('student.appointments.create', ['office' => 'Registrar']))
+            ->assertOk()
+            ->assertSee('Enrollment Verification')
+            ->getContent();
+
+        $this->assertStringContainsString('value="Enrollment Verification"', $html);
+        $this->assertStringContainsString('value="'.AppointmentPurposes::OTHER.'"', $html);
+
+        // Deactivating it removes it from the dropdown.
+        $service = ConsultationService::where('office', 'Registrar')->first();
+        $service->update(['is_active' => false]);
+
+        $html = $this->actingAs($this->makeStudent())
+            ->get(route('student.appointments.create', ['office' => 'Registrar']))
+            ->assertOk()
+            ->assertSee(AppointmentPurposes::OTHER)
+            ->assertDontSee('Enrollment Verification')
+            ->getContent();
+
         $this->assertStringContainsString('value="'.AppointmentPurposes::OTHER.'"', $html);
     }
 

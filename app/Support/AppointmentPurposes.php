@@ -116,6 +116,12 @@ class AppointmentPurposes
             return false;
         }
 
+        // Registrar now manages its own services from its panel:
+        // 0 services -> only Other; has services -> those services.
+        if ($office === Office::Registrar->value) {
+            return true;
+        }
+
         $panelOffices = [
             Office::Cici->value,
             Office::CBMSD->value,

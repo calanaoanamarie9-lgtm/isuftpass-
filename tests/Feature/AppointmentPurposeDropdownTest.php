@@ -25,12 +25,14 @@ class AppointmentPurposeDropdownTest extends TestCase
 
     public function test_the_booking_form_offers_the_registrar_purpose_list_and_other(): void
     {
+        // With no services, the Registrar panel office offers only "Other".
         $this->actingAs($this->makeStudent())
             ->get(route('student.appointments.create', ['office' => 'Registrar']))
             ->assertOk()
-            ->assertSee('Transcript of Records')
-            ->assertSee('Good Moral Certificate')
-            ->assertSee(AppointmentPurposes::OTHER);
+            ->assertSee(AppointmentPurposes::OTHER)
+            ->assertDontSee('Transcript of Records')
+            ->assertDontSee('Good Moral Certificate')
+            ->getContent();
     }
 
     public function test_a_preset_purpose_is_saved_exactly_as_chosen(): void
