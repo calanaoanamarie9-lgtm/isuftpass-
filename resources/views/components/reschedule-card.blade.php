@@ -348,7 +348,6 @@
                         endpoint="{{ $monthUrl }}"
                         :selected="''"
                         :min-month="now()->format('Y-m')"
-                        block-full
                         emit />
 
                 </template>

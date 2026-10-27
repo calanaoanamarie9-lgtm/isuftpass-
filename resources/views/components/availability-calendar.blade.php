@@ -9,7 +9,6 @@
     'emit' => false,
     'baseUrl' => '',
     'watchOffice' => '',
-    'blockFull' => false,
 ])
 
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
@@ -22,7 +21,6 @@
         allowPast: {{ $allowPast ? 'true' : 'false' }},
         navigate: {{ $navigate ? 'true' : 'false' }},
         emit: {{ $emit ? 'true' : 'false' }},
-        blockFull: {{ $blockFull ? 'true' : 'false' }},
         baseUrl: {{ \Illuminate\Support\Js::from($baseUrl) }},
         days: {},
         loading: true,
@@ -76,15 +74,11 @@
             const date = button.dataset.date;
             const info = this.days[date];
             if (!info || (info.past && !this.allowPast)) return;
-            // A day the office closed is not a choice: the office has already
-            // answered for it, so the click stops here rather than filling in
-            // a date the office would refuse.
-            if (this.isClosed(date)) return;
-            // A day with nothing open cannot be chosen when the caller says
-            // so: the reschedule modal must not offer a day it would then
-            // refuse. The booking form leaves them clickable, so a student
-            // can still see what a full day looks like before picking another.
-            if (this.blockFull && !info.available) return;
+            // A day with nothing open is closed: the office shut it, or every
+            // hour of it is already taken. Either way there is nothing to
+            // pick, so the click stops here instead of filling in a date the
+            // office would refuse.
+            if (this.isUnavailable(date)) return;
             if (this.emit) {
                 this.selectedDate = date;
                 this.$dispatch('date-selected', { date: date });
@@ -100,20 +94,14 @@
             const SELECTED   = 'bg-blue-600 text-white font-bold shadow-md scale-105 transition-all';
             const TODAY      = 'bg-green-500 text-white font-bold ring-2 ring-blue-500 ring-offset-1';
             const OPEN       = 'bg-emerald-500 hover:bg-emerald-600 text-white font-semibold';
-            const FULL       = this.blockFull
-                ? 'bg-red-500 text-white cursor-not-allowed font-semibold'
-                : 'bg-red-500 text-white cursor-pointer hover:bg-red-600 font-semibold';
-            const FULL_TODAY = this.blockFull
-                ? 'bg-red-500 text-white cursor-not-allowed font-bold ring-2 ring-blue-500 ring-offset-1'
-                : 'bg-red-500 text-white cursor-pointer hover:bg-red-600 font-bold ring-2 ring-blue-500 ring-offset-1';
+            // Closed is the one state a day is in when it is not open: the
+            // office shut it, or every hour of it is taken. Red says so, and
+            // it takes no click - there is nothing behind it to choose.
+            const CLOSED       = 'bg-red-500 text-white cursor-not-allowed font-semibold';
+            const CLOSED_TODAY = 'bg-red-500 text-white cursor-not-allowed font-bold ring-2 ring-blue-500 ring-offset-1';
             const PAST       = 'bg-gray-100 text-gray-500 cursor-pointer hover:bg-gray-200';
             const GRAY       = 'bg-gray-100 text-gray-400 cursor-not-allowed';
             const EMPTY      = 'bg-gray-50 text-gray-400 cursor-not-allowed';
-            // A day the office closed is not a busy day: it is the office's
-            // own answer, so it is drawn grey rather than red. Red promises
-            // the day is worth another look; there is nothing here to look at.
-            const CLOSED       = 'bg-gray-200 text-gray-500 font-semibold cursor-not-allowed';
-            const CLOSED_TODAY = 'bg-gray-200 text-gray-500 font-bold cursor-not-allowed ring-2 ring-blue-500 ring-offset-1';
 
             const info = this.days[date];
             const picked = date === this.selectedDate;
@@ -123,7 +111,7 @@
             // grid. It outranks every other state, because it is the day the
             // student chose - even if the month has filled up around it.
             if (picked) {
-                const live = info && (! info.past || this.allowPast) && ! this.isClosed(date);
+                const live = info && (! info.past || this.allowPast) && ! this.isUnavailable(date);
                 return SELECTED + (live ? ' cursor-pointer' : ' cursor-not-allowed');
             }
 
@@ -133,29 +121,23 @@
             if (info.past && ! this.allowPast) return GRAY;
             if (info.past) return PAST;
 
-            // A closed day answers to nobody, so it is drawn as closed
-            // wherever it sits in the grid.
-            if (this.isClosed(date)) return today ? CLOSED_TODAY : CLOSED;
-
             // Today keeps a blue ring so the current day is never lost among
-            // the others. On an open day it is the current-day colour; a day
-            // that is already full keeps the ring and stays red, since red
-            // is what the legend promises.
-            if (today) return info.available ? TODAY : FULL_TODAY;
+            // the others, open or closed.
+            if (today) return info.available ? TODAY : CLOSED_TODAY;
 
-            return info.available ? OPEN : FULL;
+            return info.available ? OPEN : CLOSED;
         },
-        // The office closed this day: every hour of it is blocked, so there
-        // is nothing to pick and nothing to wait for. A day that is merely
-        // fully booked is not this - it has hours, and they are taken.
-        isClosed(date) {
+        // Nothing is open on this day: the office closed it, or every hour of
+        // it is already taken. The calendar answers both the same way,
+        // because both leave the student with nothing to pick.
+        isUnavailable(date) {
             const info = this.days[date];
-            return !! info && info.status === 'blocked';
-        },
-        // Whether this month uses the closed colour at all, so the legend
-        // never names a state the grid cannot show.
-        get anyClosed() {
-            return Object.values(this.days).some(day => day && day.status === 'blocked');
+
+            if (! info) return false;
+            // A past day the caller allows is still a day to choose.
+            if (info.past && this.allowPast) return false;
+
+            return ! info.available;
         },
         todayStr() {
             const t = new Date();
@@ -172,7 +154,7 @@
                 const date = this.month + '-' + String(d).padStart(2, '0');
                 // A closed day is not a button to press: it is drawn, and
                 // nothing about it answers a click.
-                const closed = this.isClosed(date) ? ' disabled aria-disabled=&quot;true&quot;' : '';
+                const closed = this.isUnavailable(date) ? ' disabled aria-disabled=&quot;true&quot;' : '';
                 html += '<button type=&quot;button&quot; data-no-confirm data-date=&quot;' + date + '&quot;' + closed + ' class=&quot;aspect-square w-full flex items-center justify-center rounded-lg text-sm transition ' + this.cellClass(date) + '&quot;>' + d + '</button>';
             }
             return html;
@@ -217,8 +199,7 @@
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-blue-600 shadow-md inline-block"></span> Selected</span>
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-green-500 ring-2 ring-blue-500 ring-offset-1 inline-block"></span> Today</span>
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-500 inline-block"></span> Available</span>
-        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-red-500 inline-block"></span> Fully booked</span>
-        <span x-show="anyClosed" x-cloak class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-gray-200 border border-gray-300 inline-block"></span> Closed</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-red-500 inline-block"></span> Closed</span>
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-gray-100 border border-gray-200 inline-block"></span> Past</span>
     </div>
 </div>

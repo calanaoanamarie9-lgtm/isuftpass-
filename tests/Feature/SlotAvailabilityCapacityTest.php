@@ -402,7 +402,12 @@ class SlotAvailabilityCapacityTest extends TestCase
             ->get(route('student.appointments.create'))
             ->assertOk()
             ->assertSee('Preferred Date')
-            ->assertSee('Fully booked')
+            // One state answers for an unusable day: closed, in red, and not
+            // a thing to press. There is no separate "fully booked" day to
+            // look at any more.
+            ->assertDontSee('Fully booked')
+            ->assertSee('Closed</span>', false)
+            ->assertSee('isUnavailable(date)', false)
             ->assertSee('x-data="{', false)
             ->assertSee('data-no-confirm x-on:click="shiftMonth', false)
             ->assertSee('data-no-confirm data-date=', false)
@@ -426,7 +431,10 @@ class SlotAvailabilityCapacityTest extends TestCase
             ->get(route('registrar.appointments.reschedule', $booking))
             ->assertOk()
             ->assertSee('New Date')
-            ->assertSee('Fully booked')
+            // The calendar on this page names its unusable days closed too;
+            // the time-slot cards below it keep their own "fully booked"
+            // wording, which is about a seat and not about a day.
+            ->assertSee('Closed</span>', false)
             ->assertSee('data-no-confirm data-date=', false);
     }
 
@@ -456,7 +464,7 @@ class SlotAvailabilityCapacityTest extends TestCase
         $this->actingAs($this->makeStudent())
             ->get(route('student.appointments.create'))
             ->assertOk()
-            ->assertSee('isClosed(date)', false)
+            ->assertSee('isUnavailable(date)', false)
             ->assertSee('aria-disabled', false)
             ->assertSee('Closed</span>', false);
     }
