@@ -8,6 +8,7 @@ use App\Models\Office;
 use App\Models\SlotAvailability;
 use App\Models\User;
 use App\Support\SlotAvailabilityService;
+use App\Support\TimeSlots;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
@@ -427,5 +428,103 @@ class SlotAvailabilityCapacityTest extends TestCase
             ->assertSee('New Date')
             ->assertSee('Fully booked')
             ->assertSee('data-no-confirm data-date=', false);
+    }
+
+    /**
+     * A day the office closed is not a day to offer: it is the office's own
+     * answer, so the month says so under its own name - 'blocked', not
+     * 'full' - and the grid reads that name to refuse the click.
+     */
+    public function test_a_day_the_office_closed_is_not_offered_as_a_choice(): void
+    {
+        $date = now()->addDays(3)->toDateString();
+        $month = substr($date, 0, 7);
+
+        $this->closeEveryHourOf($date);
+
+        $body = $this->actingAs($this->makeStudent())
+            ->get(route('student.appointments.availability').'?office=Registrar&month='.$month)
+            ->assertOk()
+            ->json();
+
+        $this->assertSame('blocked', $body[$date]['status']);
+        $this->assertFalse($body[$date]['available']);
+        $this->assertSame(0, $body[$date]['open']);
+
+        // And the grid refuses it: nothing to press, and a legend that
+        // names the state the month is actually using.
+        $this->actingAs($this->makeStudent())
+            ->get(route('student.appointments.create'))
+            ->assertOk()
+            ->assertSee('isClosed(date)', false)
+            ->assertSee('aria-disabled', false)
+            ->assertSee('Closed</span>', false);
+    }
+
+    /**
+     * A day is closed only when the office shut every one of its hours. One
+     * hour left open and taken to its limit is a full day, not a closed one:
+     * the two read differently on the calendar because they mean differently.
+     */
+    public function test_a_day_is_closed_only_when_every_hour_of_it_is_blocked(): void
+    {
+        $date = now()->addDays(4)->toDateString();
+        $month = substr($date, 0, 7);
+        $office = $this->registrarOffice();
+        $slots = TimeSlots::forOffice('Registrar');
+        $lastHour = array_pop($slots);
+
+        foreach ($slots as $slot) {
+            SlotAvailability::create([
+                'office_id' => $office->id,
+                'date' => $date,
+                'time_slot' => $slot,
+                'max_capacity' => 2,
+                'status' => SlotAvailability::STATUS_BLOCKED,
+            ]);
+        }
+
+        // The one hour still open is booked to its last seat.
+        SlotAvailability::create([
+            'office_id' => $office->id,
+            'date' => $date,
+            'time_slot' => $lastHour,
+            'max_capacity' => 1,
+            'status' => SlotAvailability::STATUS_AVAILABLE,
+        ]);
+
+        $this->makeStudent()->appointments()->create([
+            'office' => 'Registrar',
+            'purpose' => 'Enrollment',
+            'date' => $date,
+            'time_slot' => $lastHour,
+            'status' => AppointmentStatus::CONFIRMED->value,
+        ]);
+
+        $body = $this->actingAs($this->makeStudent())
+            ->get(route('student.appointments.availability').'?office=Registrar&month='.$month)
+            ->assertOk()
+            ->json();
+
+        $this->assertSame('full', $body[$date]['status']);
+        $this->assertFalse($body[$date]['available']);
+    }
+
+    /**
+     * Close every hour of one day for the Registrar.
+     */
+    private function closeEveryHourOf(string $date): void
+    {
+        $office = $this->registrarOffice();
+
+        foreach (TimeSlots::forOffice('Registrar') as $slot) {
+            SlotAvailability::create([
+                'office_id' => $office->id,
+                'date' => $date,
+                'time_slot' => $slot,
+                'max_capacity' => 2,
+                'status' => SlotAvailability::STATUS_BLOCKED,
+            ]);
+        }
     }
 }

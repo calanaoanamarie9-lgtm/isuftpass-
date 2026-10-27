@@ -223,14 +223,15 @@ class SlotAvailabilityService
             }
 
             $open = 0;
-            $blocked = false;
+            $blocked = 0;
+            $slots = TimeSlots::forOffice($office);
 
-            foreach (TimeSlots::forOffice($office) as $slot) {
+            foreach ($slots as $slot) {
                 $rule = ($rules->get($dateStr) ?? collect())->firstWhere('time_slot', $slot)
                     ?? ($rules->get('__default__') ?? collect())->firstWhere('time_slot', $slot);
 
                 if ($rule && $rule->status === SlotAvailability::STATUS_BLOCKED) {
-                    $blocked = true;
+                    $blocked++;
                     continue;
                 }
 
@@ -246,7 +247,13 @@ class SlotAvailabilityService
                 'past' => false,
                 'available' => $open > 0,
                 'open' => $open,
-                'status' => $blocked && $open === 0 ? 'blocked' : ($open === 0 ? 'full' : 'open'),
+                // A day is closed only when the office shut every one of
+                // its hours: that is the day the calendar must not offer.
+                // A day that is merely full still has hours - they are all
+                // taken, which is a different answer and a different colour.
+                'status' => $blocked > 0 && $blocked === count($slots)
+                    ? 'blocked'
+                    : ($open === 0 ? 'full' : 'open'),
             ];
         }
 
