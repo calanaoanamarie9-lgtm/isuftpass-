@@ -7,6 +7,7 @@ use App\Enums\Office;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ApproveScheduleRequest;
 use App\Mail\AppointmentApproved;
+use App\Mail\AppointmentCancelled;
 use App\Mail\AppointmentRescheduled;
 use App\Models\Appointment;
 use App\Notifications\AppointmentApprovedNotification;
@@ -421,15 +422,28 @@ class AppointmentController extends Controller
             'This appointment can no longer be cancelled.'
         );
 
+        $data = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $reason = trim($data['reason'] ?? '') ?: null;
+
+        $notes = $appointment->notes;
+        if ($reason) {
+            $notes = $notes ? $notes."\nCancellation Reason: ".$reason : 'Cancellation Reason: '.$reason;
+        }
+
         $appointment->update([
             'status' => AppointmentStatus::CANCELLED->value,
             'cancelled_at' => now(),
+            'notes' => $notes,
         ]);
 
-        $appointment->user->notify(new AppointmentCancelledNotification($appointment));
+        $appointment->user->notify(new AppointmentCancelledNotification($appointment, $reason));
+        SafeMailer::send($appointment->user, new AppointmentCancelled($appointment, $reason));
 
-        AuditLogger::log('appointment.cancelled', 'Cancelled appointment '.$appointment->reference_code.'.');
+        AuditLogger::log('appointment.cancelled', 'Cancelled appointment '.$appointment->reference_code.($reason ? '. Reason: '.$reason : ''));
 
-        return back()->with('status', 'Appointment cancelled. The student has been notified.');
+        return back()->with('status', 'Appointment cancelled. The student has been notified by email and in the system.');
     }
 }

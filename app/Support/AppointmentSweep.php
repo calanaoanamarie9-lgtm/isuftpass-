@@ -3,8 +3,10 @@
 namespace App\Support;
 
 use App\Enums\AppointmentStatus;
+use App\Mail\AppointmentCancelled;
 use App\Models\Appointment;
 use App\Notifications\AppointmentCancelledNotification;
+use App\Support\SafeMailer;
 use Illuminate\Support\Carbon;
 use Throwable;
 
@@ -72,12 +74,18 @@ class AppointmentSweep
             return false;
         }
 
+        $reason = 'Scheduled time passed without check-in (grace period expired).';
+
         $appointment->update([
             'status' => AppointmentStatus::CANCELLED->value,
             'cancelled_at' => now(),
+            'notes' => $appointment->notes ? $appointment->notes."\nCancellation Reason: ".$reason : 'Cancellation Reason: '.$reason,
         ]);
 
-        $appointment->user?->notify(new AppointmentCancelledNotification($appointment));
+        $appointment->user?->notify(new AppointmentCancelledNotification($appointment, $reason));
+        if ($appointment->user) {
+            SafeMailer::send($appointment->user, new AppointmentCancelled($appointment, $reason));
+        }
 
         AuditLogger::log(
             'appointment.auto-cancelled',

@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Cashier;
 
 use App\Enums\DocumentRequestStatus;
 use App\Http\Controllers\Controller;
+use App\Mail\DocumentRequestStatusUpdate;
 use App\Models\DocumentRequest;
 use App\Notifications\DocumentRequestStatusNotification;
 use App\Support\AuditLogger;
 use App\Support\RegistrarNotifier;
+use App\Support\SafeMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -86,6 +88,15 @@ class PaymentController extends Controller
             'Payment confirmed',
             'Your payment has been confirmed (OR No. '.$documentRequest->or_number.'). The Registrar\'s Office will start processing your credential.',
         ));
+
+        SafeMailer::send(
+            $documentRequest->user,
+            new DocumentRequestStatusUpdate(
+                $documentRequest,
+                'Payment Confirmed',
+                'Your payment of ₱'.number_format($documentRequest->totalFee(), 2).' (OR No. '.$documentRequest->or_number.') has been recorded and confirmed by the Cashier\'s Office. The Registrar\'s Office will now proceed with processing your requested document.'
+            )
+        );
 
         // The registrar must know the instant the OR is recorded — it is the
         // signal that the request is paid and ready for them to start

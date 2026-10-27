@@ -6,6 +6,7 @@ use App\Enums\AppointmentStatus;
 use App\Enums\Office;
 use App\Http\Controllers\Controller;
 use App\Mail\AppointmentBooked;
+use App\Mail\AppointmentCancelled;
 use App\Models\Appointment;
 use App\Models\Feedback;
 use App\Models\SlotAvailability;
@@ -271,10 +272,14 @@ class AppointmentController extends Controller
         $appointment->user->notify(new AppointmentBookedNotification($appointment));
 
         // Send office notification so the desk sees the new booking on their queue.
+        // Alert both the targeted office/department staff and the Registrar.
         $recipients = User::query()
-            ->where('role', User::ROLE_REGISTRAR)
             ->where('is_active', true)
             ->where('approval_status', User::APPROVAL_APPROVED)
+            ->where(function ($query) use ($appointment) {
+                $query->where('office', $appointment->office)
+                    ->orWhere('role', User::ROLE_REGISTRAR);
+            })
             ->get();
         if ($recipients->isNotEmpty()) {
             Notification::send($recipients, new AppointmentOfficeNotification($appointment));
@@ -347,6 +352,7 @@ class AppointmentController extends Controller
         ]);
 
         $appointment->user->notify(new AppointmentCancelledNotification($appointment));
+        SafeMailer::send($appointment->user, new AppointmentCancelled($appointment));
 
         return back()->with('status', 'Appointment cancelled.');
     }
