@@ -761,11 +761,12 @@
                                 last:border-0
                                 hover:bg-blue-50/20
                                 transition"
-                         x-data="{}">
+                         x-data="{ editing: false }">
 
 
                         <form method="POST"
                               action="{{ route('registrar.documents.update', $document) }}"
+                              x-ref="documentForm"
                               data-confirm="Save the changes made to this document and its fee?"
                               data-confirm-title="Save document changes?"
                               data-confirm-ok="Yes, save"
@@ -776,10 +777,14 @@
                             @method('PUT')
 
 
-                            <div class="grid grid-cols-1
-                                        lg:grid-cols-[1fr_170px_auto]
-                                        gap-5
-                                        items-center">
+                            {{-- =====================================================
+                                 VIEW MODE — what the registrar sees until Edit is pressed
+                                ====================================================== --}}
+                            <div x-show="!editing"
+                                 class="grid grid-cols-1
+                                            lg:grid-cols-[1fr_170px_auto]
+                                            gap-5
+                                            items-center">
 
 
                                 {{-- DOCUMENT INFO --}}
@@ -811,6 +816,205 @@
 
                                     <div class="flex-1 min-w-0">
 
+                                        <p class="text-sm
+                                                  font-bold
+                                                  text-[#102d5b]">
+
+                                            {{ $document->name }}
+
+                                        </p>
+
+                                        <p class="mt-1
+                                                  text-xs
+                                                  text-gray-500">
+
+                                            {{ $document->description ?: 'No description provided.' }}
+
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+
+                                {{-- FEE --}}
+                                <div>
+
+                                    <span class="block text-[10px]
+                                                  font-bold
+                                                  uppercase
+                                                  tracking-wider
+                                                  text-gray-400
+                                                  mb-2">
+
+                                        Service Fee
+
+                                    </span>
+
+                                    <p class="text-sm
+                                              font-bold
+                                              text-gray-800">
+
+                                        ₱{{ number_format((float) $document->fee, 2) }}
+
+                                    </p>
+
+                                </div>
+
+
+                                {{-- CONTROLS --}}
+                                <div class="flex flex-wrap
+                                            lg:flex-nowrap
+                                            items-center
+                                            gap-2">
+
+
+                                    {{-- AUDIENCE --}}
+                                    <span class="inline-flex
+                                                 items-center
+                                                 h-11
+                                                 px-3
+                                                 rounded-xl
+                                                 border border-gray-200
+                                                 bg-gray-50
+                                                 text-xs
+                                                 font-semibold
+                                                 text-gray-600
+                                                 whitespace-nowrap">
+
+                                        {{ \App\Models\Document::audiences()[$document->audience] ?? $document->audience }}
+
+                                    </span>
+
+
+                                    {{-- STATUS --}}
+                                    <span class="inline-flex
+                                                 items-center
+                                                 gap-2
+                                                 px-3 py-2.5
+                                                 rounded-xl
+                                                 bg-gray-50
+                                                 border border-gray-200
+                                                 whitespace-nowrap">
+
+                                        <span class="w-2 h-2
+                                                     rounded-full
+                                                     {{ $document->is_active ? 'bg-green-500' : 'bg-gray-400' }}"></span>
+
+                                        <span class="text-xs
+                                                     font-semibold
+                                                     text-gray-600">
+
+                                            {{ $document->is_active ? 'Active' : 'Hidden' }}
+
+                                        </span>
+
+                                    </span>
+
+
+                                    {{-- REMOVE --}}
+                                    <button type="submit"
+                                            form="delete-document-{{ $document->id }}"
+                                            class="px-4 py-2.5
+                                                   rounded-xl
+                                                   bg-red-50
+                                                   text-red-600
+                                                   border border-red-100
+                                                   hover:bg-red-100
+                                                   text-xs
+                                                   font-bold
+                                                   transition">
+
+                                        Remove
+
+                                    </button>
+
+
+                                    {{-- EDIT — flips this row into its edit card, brings it
+                                         into view and puts the cursor in the title. Alpine
+                                         reveals the card on its own next flush, so the
+                                         focus waits a beat rather than racing it. --}}
+                                    <button type="button"
+                                            data-no-confirm
+                                            @click="editing = true; setTimeout(() => { $refs.editCard.scrollIntoView({ block: 'center', behavior: 'smooth' }); $refs.documentName.focus({ preventScroll: true }); }, 60)"
+                                            class="px-4 py-2.5
+                                                   rounded-xl
+                                                   bg-gray-50
+                                                   text-gray-600
+                                                   border border-gray-200
+                                                   hover:bg-gray-100
+                                                   text-xs
+                                                   font-bold
+                                                   transition">
+
+                                        Edit
+
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- =====================================================
+                                 EDIT MODE — the same service becomes an editable card
+                                ====================================================== --}}
+                            <div x-show="editing"
+                                 x-cloak
+                                 x-ref="editCard"
+                                 class="mt-4
+                                        rounded-xl
+                                        border border-blue-200
+                                        bg-blue-50/60
+                                        p-4
+                                        shadow-sm">
+
+                                <div class="grid grid-cols-1
+                                            lg:grid-cols-[1fr_170px_auto]
+                                            gap-5
+                                            items-center">
+
+
+                                {{-- DOCUMENT INFO --}}
+                                <div class="flex items-start gap-4 min-w-0">
+
+                                    {{-- ICON --}}
+                                    <div class="w-11 h-11
+                                                rounded-xl
+                                                bg-blue-50
+                                                text-blue-700
+                                                flex items-center
+                                                justify-center
+                                                shrink-0">
+
+                                        <svg class="w-5 h-5"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             viewBox="0 0 24 24">
+
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  stroke-width="1.8"
+                                                  d="M9 14h6m-6-4h6m2 11H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 6.707V19a2 2 0 01-2 2z"/>
+
+                                        </svg>
+
+                                    </div>
+
+
+                                    <div class="flex-1 min-w-0">
+
+                                        <label class="block text-xs
+                                                          font-bold
+                                                          uppercase
+                                                          tracking-wide
+                                                          text-gray-500
+                                                          mb-2">
+
+                                            Service Title
+
+                                        </label>
+
                                         <input type="text"
                                                name="name"
                                                value="{{ $document->name }}"
@@ -826,6 +1030,18 @@
                                                       text-sm
                                                       font-bold
                                                       text-[#102d5b]">
+
+                                        <label class="block text-xs
+                                                          font-bold
+                                                          uppercase
+                                                          tracking-wide
+                                                          text-gray-500
+                                                          mb-2
+                                                          mt-3">
+
+                                            Description
+
+                                        </label>
 
                                         <input type="text"
                                                name="description"
@@ -998,9 +1214,10 @@
 
                                     </button>
 
+                                    {{-- CANCEL — back to view mode, undoing unsaved typing --}}
                                     <button type="button"
                                             data-no-confirm
-                                            @click="$refs.documentName.focus(); $refs.documentName.scrollIntoView({ block: 'center', behavior: 'smooth' })"
+                                            @click="editing = false; $refs.documentForm.reset()"
                                             class="px-4 py-2.5
                                                    rounded-xl
                                                    bg-gray-50
@@ -1011,11 +1228,13 @@
                                                    font-bold
                                                    transition">
 
-                                        Edit
+                                        Cancel
 
                                     </button>
 
                                 </div>
+
+                            </div>
 
                             </div>
 
