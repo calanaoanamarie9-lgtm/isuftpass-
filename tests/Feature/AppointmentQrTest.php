@@ -161,7 +161,10 @@ class AppointmentQrTest extends TestCase
         // The whole card must be included, not just the bare QR code.
         $this->assertStringContainsString('ISUFSTPASS', $svg);
         $this->assertStringContainsString('DIGITAL STUDENT ID', $svg);
-        $this->assertStringContainsString($student->name, $svg);
+        // The card escapes the text it prints (ENT_QUOTES), so a generated
+        // name carrying an apostrophe - Faker hands one out now and then -
+        // arrives as &#039;. Compare against the escaped name, not the raw one.
+        $this->assertStringContainsString(e($student->name), $svg);
         $this->assertStringContainsString('ISUFST-2024-0001', $svg);
         $this->assertStringContainsString('BS Information Technology', $svg);
         $this->assertStringContainsString('3rd Year', $svg);

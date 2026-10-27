@@ -17,7 +17,7 @@ class ProfilePageTest extends TestCase
         $response = $this->actingAs($user)->get('/profile');
 
         $response->assertOk();
-        $response->assertSee('Profile Information');
+        $response->assertSee('Account Information');
     }
 
     public function test_profile_page_renders_for_staff(): void
@@ -27,7 +27,7 @@ class ProfilePageTest extends TestCase
         $response = $this->actingAs($user)->get('/profile');
 
         $response->assertOk();
-        $response->assertSee('Profile Information');
+        $response->assertSee('Account Information');
     }
 
     public function test_appointment_booking_page_asks_for_a_day_not_an_hour(): void

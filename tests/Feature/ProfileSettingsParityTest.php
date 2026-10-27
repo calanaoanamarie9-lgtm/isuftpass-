@@ -27,7 +27,7 @@ class ProfileSettingsParityTest extends TestCase
             ->assertOk()
             ->assertSee('Account & Password Settings', false)
             ->assertSee('Profile Picture')
-            ->assertSee('Profile Information')
+            ->assertSee('Account Information')
             ->assertSee('Security')
             ->assertSee('Danger Zone');
     }
