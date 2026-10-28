@@ -127,9 +127,8 @@ class OnboardingJourneyTest extends TestCase
     {
         $user = $this->walkJourney(
             [
-                'first_name' => 'Gina',
-                'middle_name' => 'M',
-                'last_name' => 'Guest',
+                // A guest gives one Full Name: nothing is issued in it.
+                'full_name' => 'Gina Guest',
                 'email' => 'gina.journey@example.com',
                 'user_type' => 'other',
                 'registration_type' => 'guest',
@@ -157,9 +156,8 @@ class OnboardingJourneyTest extends TestCase
     {
         $user = $this->walkJourney(
             [
-                'first_name' => 'Pia',
-                'middle_name' => 'M',
-                'last_name' => 'Parent',
+                // A parent gives one Full Name too.
+                'full_name' => 'Pia Parent',
                 'email' => 'pia.journey@example.com',
                 'user_type' => 'other',
                 'registration_type' => 'parent',

@@ -380,13 +380,14 @@
                         class="space-y-5"
                         @if ($userType === 'other')
 
-                            {{-- The Full Name block below follows the Registration
-                                 Type select: parents and guests sign up without a
-                                 name, alumni do not. The "" keeps the placeholder
-                                 chosen until the visitor picks one - binding null
-                                 would land on the first offered type instead. --}}
+                            {{-- The name fields below follow the Registration Type
+                                 select: parents and guests give one Full Name,
+                                 alumni the three-part one. The "" keeps the
+                                 placeholder chosen until the visitor picks a type
+                                 - binding null would land on the first offered
+                                 type instead. --}}
                             x-data="{ registrationType: @js(old('registration_type', '')),
-                                      get nameless() {
+                                      get fullNameOnly() {
                                           return ['parent', 'guest'].includes(this.registrationType);
                                       } }"
                         @endif
@@ -655,18 +656,57 @@
 
 
                         @php
-                            // Parents and guests never have a document issued in
-                            // their name, so their sign-up asks for no name at all
-                            // - the display name falls back to the email address.
-                            // Only the "Other" form can tell them apart, and only
-                            // once the Registration Type select is used, so the
-                            // block below follows that choice: hidden and
-                            // unsubmitted for them, unchanged for everyone else.
+                            // The sign-up collects a name in one of two shapes.
+                            // Parents and guests book appointments only and no
+                            // document is ever issued in their name, so one Full
+                            // Name is all their account needs; alumni, students
+                            // and staff keep the three-part name the print-outs
+                            // and document requests are written with. Only the
+                            // "Other" form can tell the two apart, and only once
+                            // the Registration Type select is used, so each shape
+                            // hides and stops submitting when the other one is
+                            // chosen.
                             $nameFollowsType = $userType === 'other';
                         @endphp
 
+                        @if ($nameFollowsType)
+
+                            <!-- Full Name (Parent / Guardian and Guest) -->
+                            <div x-show="fullNameOnly" x-cloak>
+
+                                <label
+                                    for="full_name"
+                                    class="block text-sm font-semibold text-gray-800 mb-2"
+                                >
+                                    Full Name <span class="text-red-500">*</span>
+                                </label>
+
+                                <input
+                                    id="full_name"
+                                    name="full_name"
+                                    type="text"
+                                    value="{{ old('full_name') }}"
+                                    :required="fullNameOnly"
+                                    :disabled="! fullNameOnly"
+                                    placeholder="Your full name"
+                                    class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
+                                >
+
+                                @if ($errors->get('full_name'))
+
+                                    <p class="mt-2 text-sm text-red-600">
+                                        {{ $errors->first('full_name') }}
+                                    </p>
+
+                                @endif
+
+                            </div>
+
+                        @endif
+
+
                         <!-- Name -->
-                        <div @if ($nameFollowsType) x-show="! nameless" x-cloak @endif>
+                        <div @if ($nameFollowsType) x-show="! fullNameOnly" x-cloak @endif>
 
                             <label
                                 class="block text-sm font-semibold text-gray-800 mb-2"
@@ -692,8 +732,8 @@
                                         type="text"
                                         value="{{ old('last_name') }}"
                                         @if ($nameFollowsType)
-                                            :required="! nameless"
-                                            :disabled="nameless"
+                                            :required="! fullNameOnly"
+                                            :disabled="fullNameOnly"
                                         @else
                                             required
                                         @endif
@@ -720,8 +760,8 @@
                                         type="text"
                                         value="{{ old('first_name') }}"
                                         @if ($nameFollowsType)
-                                            :required="! nameless"
-                                            :disabled="nameless"
+                                            :required="! fullNameOnly"
+                                            :disabled="fullNameOnly"
                                         @else
                                             required
                                         @endif
@@ -747,8 +787,8 @@
                                         type="text"
                                         value="{{ old('middle_name') }}"
                                         @if ($nameFollowsType)
-                                            :required="! nameless"
-                                            :disabled="nameless"
+                                            :required="! fullNameOnly"
+                                            :disabled="fullNameOnly"
                                         @else
                                             required
                                         @endif

@@ -1,7 +1,8 @@
 @php
-    // Parents and guests signed up without a name, so these fields are offered
-    // but not demanded from them - a required field they have nothing to put
-    // in would block every save on this card.
+    // Parents and guests gave one Full Name at sign-up and nothing is ever
+    // issued in their name, so the three-part split is offered to them rather
+    // than demanded - a required field they have nothing to put in would
+    // block every save on this card, and their display name is already set.
     $requiresName = auth()->user()->hasStructuredName();
 @endphp
 

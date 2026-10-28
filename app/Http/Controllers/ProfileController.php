@@ -57,9 +57,10 @@ class ProfileController extends Controller
         $data = $request->post();
         $data['avatar'] = $request->hasFile('avatar') ? $request->file('avatar') : null;
 
-        // Parents and guests sign up without a structured name: their card
-        // offers the three parts without demanding them, so an empty one is a
-        // valid answer rather than a bounced save.
+        // Parents and guests sign up with one Full Name instead of the three
+        // parts: their card offers the parts without demanding them, so an
+        // empty one is a valid answer rather than a bounced save that would
+        // leave them unable to change anything else on the card.
         $nameRule = $user->hasStructuredName() ? 'required' : 'nullable';
 
         $rules = [

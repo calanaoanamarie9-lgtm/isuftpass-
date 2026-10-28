@@ -9,9 +9,10 @@ use Tests\TestCase;
 
 /**
  * Parents and guests book appointments and nothing else: they have no
- * document-request standing, so no page may offer them one, and - following
- * from the same rule - their sign-up never asks for a name, because no
- * document is ever issued under it.
+ * document-request standing, so no page may offer them one. Their sign-up
+ * follows from the same rule - no document is ever issued in their name, so
+ * it asks for one Full Name rather than the three-part name the print-outs
+ * are written with.
  *
  * Students and alumni keep both request types and the structured name.
  */
@@ -35,14 +36,15 @@ class ParentGuestScopeTest extends TestCase
     }
 
     /* -----------------------------------------------------------------
-     | Sign-up: no name for the accounts that never need one
+     | Sign-up: one Full Name for the accounts that never need the parts
      | ----------------------------------------------------------------- */
 
-    public function test_a_parent_can_register_without_a_name(): void
+    public function test_a_parent_registers_with_one_full_name(): void
     {
         Notification::fake();
 
         $this->post('/register', [
+            'full_name' => 'Ana Marie Calanao',
             'email' => 'parent.signup@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -52,10 +54,11 @@ class ParentGuestScopeTest extends TestCase
 
         $this->assertAuthenticated();
 
-        // The email stands in for the display name, which is never null.
+        // The typed name is the display name; the three parts stay empty, so
+        // nothing is ever written in a shape this account did not give.
         $this->assertDatabaseHas('users', [
             'email' => 'parent.signup@example.com',
-            'name' => 'parent.signup@example.com',
+            'name' => 'Ana Marie Calanao',
             'registration_type' => 'parent',
             'last_name' => null,
             'first_name' => null,
@@ -63,11 +66,12 @@ class ParentGuestScopeTest extends TestCase
         ]);
     }
 
-    public function test_a_guest_can_register_without_a_name(): void
+    public function test_a_guest_registers_with_one_full_name(): void
     {
         Notification::fake();
 
         $this->post('/register', [
+            'full_name' => 'Juan Dela Cruz',
             'email' => 'guest.signup@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -77,9 +81,26 @@ class ParentGuestScopeTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'email' => 'guest.signup@example.com',
-            'name' => 'guest.signup@example.com',
+            'name' => 'Juan Dela Cruz',
             'registration_type' => 'guest',
+            'first_name' => null,
         ]);
+    }
+
+    public function test_a_parent_or_guest_signup_needs_that_full_name(): void
+    {
+        foreach (['parent', 'guest'] as $type) {
+            $this->post('/register', [
+                'email' => $type.'.noname@example.com',
+                'password' => 'password',
+                'password_confirmation' => 'password',
+                'user_type' => 'other',
+                'registration_type' => $type,
+            ])->assertSessionHasErrors(['full_name']);
+
+            $this->assertGuest();
+            $this->assertDatabaseMissing('users', ['email' => $type.'.noname@example.com']);
+        }
     }
 
     public function test_an_alumni_signup_still_needs_a_name(): void
@@ -118,26 +139,35 @@ class ParentGuestScopeTest extends TestCase
         ]);
     }
 
-    public function test_the_other_signup_form_follows_the_registration_type(): void
+    public function test_the_other_signup_form_swaps_between_the_two_name_shapes(): void
     {
         $response = $this->get('/register/form?type=other')->assertOk();
 
         $html = $response->getContent();
 
-        // One bound block: hidden, unrequired and unsubmitted once Parent or
-        // Guest is picked, so the three inputs cannot block the submit.
-        $this->assertStringContainsString('x-show="! nameless"', $html);
-        $this->assertSame(3, substr_count($html, ':required="! nameless"'));
-        $this->assertSame(3, substr_count($html, ':disabled="nameless"'));
-        $this->assertStringContainsString("get nameless()", $html);
+        // Both shapes are rendered and exactly one of them is live: the single
+        // Full Name for Parent and Guest, the three parts for everyone else.
+        // The shape that is out is hidden, unrequired and disabled, so it can
+        // never block the submit or be posted.
+        $this->assertStringContainsString("get fullNameOnly()", $html);
+        $this->assertStringContainsString('name="full_name"', $html);
+        $this->assertStringContainsString('x-show="fullNameOnly"', $html);
+        $this->assertStringContainsString('x-show="! fullNameOnly"', $html);
+        $this->assertStringContainsString(':required="fullNameOnly"', $html);
+        $this->assertStringContainsString(':disabled="! fullNameOnly"', $html);
+        $this->assertSame(3, substr_count($html, ':required="! fullNameOnly"'));
+        $this->assertSame(3, substr_count($html, ':disabled="fullNameOnly"'));
     }
 
-    public function test_the_student_signup_form_still_demands_a_name(): void
+    public function test_the_student_signup_form_still_demands_the_three_parts(): void
     {
         $response = $this->get('/register/form?type=student')->assertOk();
 
+        $response->assertSee('name="last_name"', false);
         $response->assertSee('name="first_name"', false);
-        $response->assertDontSee('nameless', false);
+        $response->assertSee('name="middle_name"', false);
+        $response->assertDontSee('name="full_name"', false);
+        $response->assertDontSee('fullNameOnly', false);
     }
 
     /* -----------------------------------------------------------------
@@ -261,10 +291,33 @@ class ParentGuestScopeTest extends TestCase
      | The profile card has to stay saveable without a name
      | ----------------------------------------------------------------- */
 
-    public function test_a_nameless_parent_can_still_save_the_profile_card(): void
+    public function test_a_parent_with_one_full_name_can_still_save_the_profile_card(): void
     {
         $parent = $this->publicUser('parent', [
-            'name' => 'nameless.parent@example.com',
+            'name' => 'Ana Marie Calanao',
+            'last_name' => null,
+            'first_name' => null,
+            'middle_name' => null,
+        ]);
+
+        // Blank parts are a valid answer: the full name they registered with
+        // is already on the record and must survive the save.
+        $this->actingAs($parent)
+            ->patch(route('profile.update'), [
+                'last_name' => '',
+                'first_name' => '',
+                'middle_name' => '',
+                'email' => 'ana.parent@example.com',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('Ana Marie Calanao', $parent->fresh()->name);
+    }
+
+    public function test_a_parent_who_fills_the_parts_in_gets_the_composed_name(): void
+    {
+        $parent = $this->publicUser('parent', [
+            'name' => 'Ana Marie Calanao',
             'last_name' => null,
             'first_name' => null,
             'middle_name' => null,
@@ -272,13 +325,14 @@ class ParentGuestScopeTest extends TestCase
 
         $this->actingAs($parent)
             ->patch(route('profile.update'), [
-                'last_name' => '',
-                'first_name' => '',
-                'middle_name' => '',
-                'email' => 'nameless.parent@example.com',
+                'last_name' => 'Calanao',
+                'first_name' => 'Ana',
+                'middle_name' => 'Marie',
+                'email' => 'ana.parent@example.com',
             ])
             ->assertSessionHasNoErrors();
 
-        $this->assertSame('nameless.parent@example.com', $parent->fresh()->name);
+        $this->assertSame('Ana Marie Calanao', $parent->fresh()->name);
+        $this->assertSame('Calanao, Ana Marie', $parent->fresh()->formattedName());
     }
 }

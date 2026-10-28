@@ -28,10 +28,12 @@ class CompleteProfileTest extends TestCase
 
     private function registerOther(string $registrationType, string $email = 'john@example.com'): User
     {
-        $this->post('/register', [
-            'first_name' => 'John',
-            'middle_name' => 'M',
-            'last_name' => 'Other',
+        // Parents and guests give one Full Name; alumni keep the three parts.
+        $name = in_array($registrationType, ['parent', 'guest'], true)
+            ? ['full_name' => 'John Other']
+            : ['first_name' => 'John', 'middle_name' => 'M', 'last_name' => 'Other'];
+
+        $this->post('/register', $name + [
             'email' => $email,
             'password' => 'password',
             'password_confirmation' => 'password',
