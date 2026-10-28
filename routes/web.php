@@ -55,6 +55,17 @@ use Illuminate\Support\Facades\Route;
 Route::get('/cron/reminders', [CronController::class, 'reminders']);
 Route::get('/cron/auto-cancel', [CronController::class, 'autoCancel']);
 
+/*
+|--------------------------------------------------------------------------
+| Sidebar badge poll (every signed-in role)
+|--------------------------------------------------------------------------
+| The sidebar refreshes its unread count from here every 30 seconds.
+| The count always comes from the session user, so it is filtered to
+| that account's office/department — no role guard beyond auth.
+*/
+Route::middleware(['auth'])->get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])
+    ->name('notifications.unreadCount');
+
 Route::get('/', function () {
     $settings = [
         'name' => 'Iloilo State University of Fisheries Science and Technology',
@@ -551,6 +562,12 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
         ->name('consultations.toggle');
 
     Route::get('/help', [HelpController::class, 'index'])->name('help.index');
+
+    // Notifications (shared controller, role-agnostic)
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{notification}/open', [NotificationController::class, 'open'])->name('notifications.open');
+    Route::put('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::put('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
 });
 
 Route::middleware(['auth', 'verified', 'role:cashier'])->prefix('cashier')->name('cashier.')->group(function () {
@@ -633,6 +650,17 @@ $workspaceRoutes = function (): void {
     // Approve (confirm) a pending / for-reschedule appointment of this office.
     Route::post('/appointments/{appointment}/confirm', [RegistrarAppointmentController::class, 'confirm'])
         ->name('appointments.confirm');
+
+    // Notifications (shared controller, role-agnostic) — the office's own
+    // alerts, filtered to the signed-in account by the controller.
+    Route::get('/notifications', [NotificationController::class, 'index'])
+        ->name('notifications.index');
+    Route::get('/notifications/{notification}/open', [NotificationController::class, 'open'])
+        ->name('notifications.open');
+    Route::put('/notifications/read-all', [NotificationController::class, 'markAllRead'])
+        ->name('notifications.readAll');
+    Route::put('/notifications/{notification}/read', [NotificationController::class, 'markRead'])
+        ->name('notifications.read');
 };
 
 Route::middleware(['auth', 'verified', 'role:department'])->prefix('cici')->name('cici.')->group(function () use ($workspaceRoutes) {
@@ -751,6 +779,12 @@ Route::middleware(['auth', 'verified', 'role:guard'])->prefix('guard')->name('gu
     Route::post('/visitors', [GateController::class, 'storeVisitor'])->name('visitors.store');
     Route::get('/visitors/{visitor}', [GateController::class, 'showVisitor'])->name('visitors.show');
     Route::post('/visitors/{visitor}/revoke', [GateController::class, 'revokeVisitor'])->name('visitors.revoke');
+
+    // Notifications (shared controller, role-agnostic)
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{notification}/open', [NotificationController::class, 'open'])->name('notifications.open');
+    Route::put('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::put('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
 });
 
 // Consultation services — every office / department manages only its own rows.

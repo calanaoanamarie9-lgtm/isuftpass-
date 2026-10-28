@@ -1,8 +1,36 @@
 @php
+    /*
+    |--------------------------------------------------------------------------
+    | Which route prefix this account's portal uses
+    |--------------------------------------------------------------------------
+    | The page is shared by every role, but the forms on it post to
+    | route names, so the prefix must match the sidebar entry that led
+    | here: students (and alumni/parent/guest), cashiers, registrars,
+    | admins, guards, the standalone ssc/accounting/library roles, and
+    | the department / office workspaces.
+    */
+    $user = Auth::user();
+    $role = $user->roleRule();
+
     $notifRoute = match (true) {
-        Auth::user()->isStudent() => 'student.notifications.',
-        Auth::user()->isCashier() => 'cashier.notifications.',
-        default => 'registrar.notifications.',
+        $user->isStudent() => 'student.notifications.',
+        $user->isCashier() => 'cashier.notifications.',
+        $user->isRegistrar() => 'registrar.notifications.',
+        $role === 'admin' => 'admin.notifications.',
+        $role === 'guard' => 'guard.notifications.',
+        $role === 'ssc' => 'ssc.notifications.',
+        $role === 'accounting' => 'accounting.notifications.',
+        $role === 'library' => 'library.notifications.',
+        // Department / office workspaces reuse the sidebar's own prefix
+        // choice, so the link here and the link there agree.
+        default => match (true) {
+            $role === 'office' => 'workspace',
+            strtoupper($user->office ?? '') === 'CBMSD' => 'cbmsd',
+            strtoupper($user->office ?? '') === 'COAG' => 'coag',
+            strtoupper($user->office ?? '') === 'COED' => 'coed',
+            strtoupper($user->office ?? '') === 'CICI' => 'cici',
+            default => 'workspace',
+        } . '.notifications.',
     };
 @endphp
 

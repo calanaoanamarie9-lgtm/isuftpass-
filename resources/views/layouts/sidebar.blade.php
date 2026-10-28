@@ -171,6 +171,33 @@
                 </div>
             </div>
 
+            <div>
+                <p class="{{ $sectionClass }}">Account &amp; Support</p>
+
+                <div class="space-y-1">
+
+                    <a href="{{ route('admin.notifications.index') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+
+                        <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+
+                        <span class="flex-1">
+                            Notifications
+                        </span>
+
+                        <span data-notif-badge
+                              @if (Auth::user()->unreadNotifications->count() <= 0) hidden @endif
+                              class="min-w-[20px] h-5 px-1.5 rounded-full
+                                     bg-red-500 text-white text-[10px]
+                                     font-bold flex items-center justify-center">
+                            <span data-notif-count>{{ Auth::user()->unreadNotifications->count() }}</span>
+                        </span>
+                    </a>
+
+                </div>
+            </div>
+
         @endif
 
 
@@ -252,13 +279,13 @@
                             Notifications
                         </span>
 
-                        @if (Auth::user()->unreadNotifications->count() > 0)
-                            <span class="min-w-[20px] h-5 px-1.5 rounded-full
-                                         bg-red-500 text-white text-[10px]
-                                         font-bold flex items-center justify-center">
-                                {{ Auth::user()->unreadNotifications->count() }}
-                            </span>
-                        @endif
+                        <span data-notif-badge
+                              @if (Auth::user()->unreadNotifications->count() <= 0) hidden @endif
+                              class="min-w-[20px] h-5 px-1.5 rounded-full
+                                     bg-red-500 text-white text-[10px]
+                                     font-bold flex items-center justify-center">
+                            <span data-notif-count>{{ Auth::user()->unreadNotifications->count() }}</span>
+                        </span>
 
                     </a>
 
@@ -327,6 +354,34 @@
             </div>
 
 
+            <div>
+                <p class="{{ $sectionClass }}">Account &amp; Support</p>
+
+                <div class="space-y-1">
+
+                    <a href="{{ route('ssc.notifications.index') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+
+                        <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+
+                        <span class="flex-1">
+                            Notifications
+                        </span>
+
+                        <span data-notif-badge
+                              @if (Auth::user()->unreadNotifications->count() <= 0) hidden @endif
+                              class="min-w-[20px] h-5 px-1.5 rounded-full
+                                     bg-red-500 text-white text-[10px]
+                                     font-bold flex items-center justify-center">
+                            <span data-notif-count>{{ Auth::user()->unreadNotifications->count() }}</span>
+                        </span>
+                    </a>
+
+                </div>
+            </div>
+
+
         @endif
 
 
@@ -383,6 +438,34 @@
                        class="{{ $navClass }}">
                         <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <span>Availability</span>
+                    </a>
+
+                </div>
+            </div>
+
+
+            <div>
+                <p class="{{ $sectionClass }}">Account &amp; Support</p>
+
+                <div class="space-y-1">
+
+                    <a href="{{ route('accounting.notifications.index') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+
+                        <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+
+                        <span class="flex-1">
+                            Notifications
+                        </span>
+
+                        <span data-notif-badge
+                              @if (Auth::user()->unreadNotifications->count() <= 0) hidden @endif
+                              class="min-w-[20px] h-5 px-1.5 rounded-full
+                                     bg-red-500 text-white text-[10px]
+                                     font-bold flex items-center justify-center">
+                            <span data-notif-count>{{ Auth::user()->unreadNotifications->count() }}</span>
+                        </span>
                     </a>
 
                 </div>
@@ -451,6 +534,34 @@
             </div>
 
 
+            <div>
+                <p class="{{ $sectionClass }}">Account &amp; Support</p>
+
+                <div class="space-y-1">
+
+                    <a href="{{ route('library.notifications.index') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+
+                        <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+
+                        <span class="flex-1">
+                            Notifications
+                        </span>
+
+                        <span data-notif-badge
+                              @if (Auth::user()->unreadNotifications->count() <= 0) hidden @endif
+                              class="min-w-[20px] h-5 px-1.5 rounded-full
+                                     bg-red-500 text-white text-[10px]
+                                     font-bold flex items-center justify-center">
+                            <span data-notif-count>{{ Auth::user()->unreadNotifications->count() }}</span>
+                        </span>
+                    </a>
+
+                </div>
+            </div>
+
+
         @endif
 
 
@@ -507,6 +618,34 @@
                        class="{{ $navClass }}">
                         <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <span>Availability</span>
+                    </a>
+
+                </div>
+            </div>
+
+
+            <div>
+                <p class="{{ $sectionClass }}">Account &amp; Support</p>
+
+                <div class="space-y-1">
+
+                    <a href="{{ route($dept . '.notifications.index') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+
+                        <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+
+                        <span class="flex-1">
+                            Notifications
+                        </span>
+
+                        <span data-notif-badge
+                              @if (Auth::user()->unreadNotifications->count() <= 0) hidden @endif
+                              class="min-w-[20px] h-5 px-1.5 rounded-full
+                                     bg-red-500 text-white text-[10px]
+                                     font-bold flex items-center justify-center">
+                            <span data-notif-count>{{ Auth::user()->unreadNotifications->count() }}</span>
+                        </span>
                     </a>
 
                 </div>
@@ -573,13 +712,13 @@
                             Notifications
                         </span>
 
-                        @if (Auth::user()->unreadNotifications->count() > 0)
-                            <span class="min-w-[20px] h-5 px-1.5 rounded-full
-                                         bg-red-500 text-white text-[10px]
-                                         font-bold flex items-center justify-center">
-                                {{ Auth::user()->unreadNotifications->count() }}
-                            </span>
-                        @endif
+                        <span data-notif-badge
+                              @if (Auth::user()->unreadNotifications->count() <= 0) hidden @endif
+                              class="min-w-[20px] h-5 px-1.5 rounded-full
+                                     bg-red-500 text-white text-[10px]
+                                     font-bold flex items-center justify-center">
+                            <span data-notif-count>{{ Auth::user()->unreadNotifications->count() }}</span>
+                        </span>
 
                     </a>
 
@@ -622,6 +761,25 @@
                 <p class="{{ $sectionClass }}">Account</p>
 
                 <div class="space-y-1">
+
+                    <a href="{{ route('guard.notifications.index') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+
+                        <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+
+                        <span class="flex-1">
+                            Notifications
+                        </span>
+
+                        <span data-notif-badge
+                              @if (Auth::user()->unreadNotifications->count() <= 0) hidden @endif
+                              class="min-w-[20px] h-5 px-1.5 rounded-full
+                                     bg-red-500 text-white text-[10px]
+                                     font-bold flex items-center justify-center">
+                            <span data-notif-count>{{ Auth::user()->unreadNotifications->count() }}</span>
+                        </span>
+                    </a>
 
                 </div>
             </div>
@@ -694,13 +852,13 @@
                             Notifications
                         </span>
 
-                        @if (Auth::user()->unreadNotifications->count() > 0)
-                            <span class="min-w-[20px] h-5 px-1.5 rounded-full
-                                         bg-red-500 text-white text-[10px]
-                                         font-bold flex items-center justify-center">
-                                {{ Auth::user()->unreadNotifications->count() }}
-                            </span>
-                        @endif
+                        <span data-notif-badge
+                              @if (Auth::user()->unreadNotifications->count() <= 0) hidden @endif
+                              class="min-w-[20px] h-5 px-1.5 rounded-full
+                                     bg-red-500 text-white text-[10px]
+                                     font-bold flex items-center justify-center">
+                            <span data-notif-count>{{ Auth::user()->unreadNotifications->count() }}</span>
+                        </span>
 
                     </a>
 
@@ -775,13 +933,13 @@
                             Notifications
                         </span>
 
-                        @if (Auth::user()->unreadNotifications->count() > 0)
-                            <span class="min-w-[20px] h-5 px-1.5 rounded-full
-                                         bg-red-500 text-white text-[10px]
-                                         font-bold flex items-center justify-center">
-                                {{ Auth::user()->unreadNotifications->count() }}
-                            </span>
-                        @endif
+                        <span data-notif-badge
+                              @if (Auth::user()->unreadNotifications->count() <= 0) hidden @endif
+                              class="min-w-[20px] h-5 px-1.5 rounded-full
+                                     bg-red-500 text-white text-[10px]
+                                     font-bold flex items-center justify-center">
+                            <span data-notif-count>{{ Auth::user()->unreadNotifications->count() }}</span>
+                        </span>
 
                     </a>
 
@@ -856,13 +1014,13 @@
                             Notifications
                         </span>
 
-                        @if (Auth::user()->unreadNotifications->count() > 0)
-                            <span class="min-w-[20px] h-5 px-1.5 rounded-full
-                                         bg-red-500 text-white text-[10px]
-                                         font-bold flex items-center justify-center">
-                                {{ Auth::user()->unreadNotifications->count() }}
-                            </span>
-                        @endif
+                        <span data-notif-badge
+                              @if (Auth::user()->unreadNotifications->count() <= 0) hidden @endif
+                              class="min-w-[20px] h-5 px-1.5 rounded-full
+                                     bg-red-500 text-white text-[10px]
+                                     font-bold flex items-center justify-center">
+                            <span data-notif-count>{{ Auth::user()->unreadNotifications->count() }}</span>
+                        </span>
 
                     </a>
 
@@ -951,13 +1109,13 @@
                             Notifications
                         </span>
 
-                        @if (Auth::user()->unreadNotifications->count() > 0)
-                            <span class="min-w-[20px] h-5 px-1.5 rounded-full
-                                         bg-red-500 text-white text-[10px]
-                                         font-bold flex items-center justify-center">
-                                {{ Auth::user()->unreadNotifications->count() }}
-                            </span>
-                        @endif
+                        <span data-notif-badge
+                              @if (Auth::user()->unreadNotifications->count() <= 0) hidden @endif
+                              class="min-w-[20px] h-5 px-1.5 rounded-full
+                                     bg-red-500 text-white text-[10px]
+                                     font-bold flex items-center justify-center">
+                            <span data-notif-count>{{ Auth::user()->unreadNotifications->count() }}</span>
+                        </span>
 
                     </a>
 
@@ -1119,5 +1277,65 @@
         if (best) {
             best.classList.add('sb-active');
         }
+    })();
+</script>
+
+{{-- ==========================================================
+     LIVE UNREAD BADGE
+     ----------------------------------------------------------
+     The sidebar badge is rendered server-side on page load, so a
+     new appointment or document request would not show up until
+     the staff member navigates. Poll the shared unread-count
+     endpoint every 30 seconds and repaint the badge in place.
+
+     The endpoint answers with the session user's own count, so
+     the badge stays filtered to this account's office/department.
+ ========================================================== --}}
+<script>
+    (function () {
+        var url = @json(route('notifications.unreadCount'));
+
+        function repaint(count) {
+            document.querySelectorAll('[data-notif-badge]').forEach(function (badge) {
+                var slot = badge.querySelector('[data-notif-count]');
+                if (slot) {
+                    slot.textContent = String(count);
+                }
+
+                if (count > 0) {
+                    badge.removeAttribute('hidden');
+                } else {
+                    badge.setAttribute('hidden', '');
+                }
+            });
+        }
+
+        function poll() {
+            fetch(url, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('unread-count ' + response.status);
+                    }
+
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (typeof data.count === 'number') {
+                        repaint(data.count);
+                    }
+                })
+                .catch(function () {
+                    // A failed poll (expired session, offline) must never
+                    // disturb the page — the next tick simply tries again.
+                });
+        }
+
+        setInterval(poll, 30000);
     })();
 </script>

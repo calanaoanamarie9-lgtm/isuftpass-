@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Enums\Office;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Auth;
@@ -24,6 +25,21 @@ class NotificationController extends Controller
 
         return view('student.notifications.index', [
             'notifications' => $notifications,
+        ]);
+    }
+
+    /**
+     * JSON endpoint: the signed-in staff member's own unread count.
+     *
+     * The sidebar polls this every 30 seconds so the badge stays current
+     * without a page reload. The count is read straight off the session
+     * user, so it is inherently filtered to that account — a Library
+     * staffer can never see a Registrar-only alert, and vice versa.
+     */
+    public function unreadCount(): JsonResponse
+    {
+        return response()->json([
+            'count' => Auth::user()->unreadNotifications()->count(),
         ]);
     }
 
