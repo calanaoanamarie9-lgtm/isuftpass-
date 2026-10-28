@@ -45,7 +45,7 @@ class NotificationEnhancementTest extends TestCase
         $request->documents()->attach($document->id);
 
         $this->actingAs($cashier)
-            ->post(route('cashier.payments.store', $request), [
+            ->post(route('cashier.payments.record', $request), [
                 'or_number' => 'OR-998877',
             ])
             ->assertRedirect(route('cashier.payments.receipt', $request));
