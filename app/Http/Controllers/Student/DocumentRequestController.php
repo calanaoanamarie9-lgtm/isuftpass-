@@ -39,9 +39,16 @@ class DocumentRequestController extends Controller
      */
     public function index(Request $request): View
     {
+        $user = Auth::user();
+
+        // Parents and guests have no document-request standing, so the list
+        // stays shut to them the way its create form already is — the sidebar
+        // never links them here, and this answers a typed URL the same way.
+        abort_unless($user->canRequestDocuments(), 403);
+
         $tab = $request->query('tab') === 'archived' ? 'archived' : 'active';
 
-        $requests = Auth::user()->documentRequests()
+        $requests = $user->documentRequests()
             ->with('documents')
             ->when($tab === 'active', fn ($q) => $q->active()->latest())
             ->when($tab === 'archived', fn ($q) => $q->archived()->latest())

@@ -53,12 +53,13 @@ class DocumentRequestController extends Controller
 
         // Applicant classification filter. "Student" is every account that
         // signed up as a student (registration_type is left null for them);
-        // alumni / parent / guest were typed into registration_type at signup.
+        // alumni were typed into registration_type at signup. Parents and
+        // guests are not offered here: they have no document-request standing,
+        // so filtering by them could only ever empty the list. Their requests
+        // stay visible under "All User Types".
         $userTypes = [
             'student' => 'Student',
             'alumni' => 'Alumni',
-            'parent' => 'Parent',
-            'guest' => 'Guest',
         ];
 
         $userType = $request->query('user_type');

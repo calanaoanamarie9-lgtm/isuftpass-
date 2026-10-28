@@ -57,13 +57,18 @@ class ProfileController extends Controller
         $data = $request->post();
         $data['avatar'] = $request->hasFile('avatar') ? $request->file('avatar') : null;
 
+        // Parents and guests sign up without a structured name: their card
+        // offers the three parts without demanding them, so an empty one is a
+        // valid answer rather than a bounced save.
+        $nameRule = $user->hasStructuredName() ? 'required' : 'nullable';
+
         $rules = [
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'remove_avatar' => ['nullable', 'boolean'],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'last_name' => ['sometimes', 'required', 'string', 'max:100'],
-            'first_name' => ['sometimes', 'required', 'string', 'max:100'],
-            'middle_name' => ['sometimes', 'required', 'string', 'max:100'],
+            'last_name' => ['sometimes', $nameRule, 'string', 'max:100'],
+            'first_name' => ['sometimes', $nameRule, 'string', 'max:100'],
+            'middle_name' => ['sometimes', $nameRule, 'string', 'max:100'],
             'email' => [
                 'sometimes',
                 'required',

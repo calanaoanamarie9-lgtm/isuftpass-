@@ -298,6 +298,20 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Whether this account signs up with a Last / First / Middle name.
+     *
+     * Parents and guests book appointments only: no record is ever issued in
+     * their name, so their sign-up never asks for one and the display `name`
+     * falls back to the email address. Students, alumni and every staff role
+     * keep the structured name — a document request or a printed form is
+     * issued under it.
+     */
+    public function hasStructuredName(): bool
+    {
+        return ! in_array($this->effectiveRole(), ['parent', 'guest'], true);
+    }
+
+    /**
      * Document audiences this account may request.
      *
      * @return list<string>

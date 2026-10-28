@@ -378,6 +378,18 @@
                         method="POST"
                         action="{{ route('register') }}"
                         class="space-y-5"
+                        @if ($userType === 'other')
+
+                            {{-- The Full Name block below follows the Registration
+                                 Type select: parents and guests sign up without a
+                                 name, alumni do not. The "" keeps the placeholder
+                                 chosen until the visitor picks one - binding null
+                                 would land on the first offered type instead. --}}
+                            x-data="{ registrationType: @js(old('registration_type', '')),
+                                      get nameless() {
+                                          return ['parent', 'guest'].includes(this.registrationType);
+                                      } }"
+                        @endif
                     >
 
                         @csrf
@@ -604,6 +616,7 @@
                                     <select
                                         id="registration_type"
                                         name="registration_type"
+                                        x-model="registrationType"
                                         required
                                         class="block w-full pl-12 pr-10 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none appearance-none"
                                     >
@@ -641,8 +654,19 @@
                         @endif
 
 
+                        @php
+                            // Parents and guests never have a document issued in
+                            // their name, so their sign-up asks for no name at all
+                            // - the display name falls back to the email address.
+                            // Only the "Other" form can tell them apart, and only
+                            // once the Registration Type select is used, so the
+                            // block below follows that choice: hidden and
+                            // unsubmitted for them, unchanged for everyone else.
+                            $nameFollowsType = $userType === 'other';
+                        @endphp
+
                         <!-- Name -->
-                        <div>
+                        <div @if ($nameFollowsType) x-show="! nameless" x-cloak @endif>
 
                             <label
                                 class="block text-sm font-semibold text-gray-800 mb-2"
@@ -667,7 +691,12 @@
                                         name="last_name"
                                         type="text"
                                         value="{{ old('last_name') }}"
-                                        required
+                                        @if ($nameFollowsType)
+                                            :required="! nameless"
+                                            :disabled="nameless"
+                                        @else
+                                            required
+                                        @endif
                                         autofocus
                                         placeholder="Last name"
                                         class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
@@ -690,7 +719,12 @@
                                         name="first_name"
                                         type="text"
                                         value="{{ old('first_name') }}"
-                                        required
+                                        @if ($nameFollowsType)
+                                            :required="! nameless"
+                                            :disabled="nameless"
+                                        @else
+                                            required
+                                        @endif
                                         placeholder="First name"
                                         class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
                                     >
@@ -712,7 +746,12 @@
                                         name="middle_name"
                                         type="text"
                                         value="{{ old('middle_name') }}"
-                                        required
+                                        @if ($nameFollowsType)
+                                            :required="! nameless"
+                                            :disabled="nameless"
+                                        @else
+                                            required
+                                        @endif
                                         placeholder="Middle name"
                                         class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
                                     >

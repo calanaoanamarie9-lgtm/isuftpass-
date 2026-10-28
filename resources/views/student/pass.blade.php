@@ -31,7 +31,11 @@
                             </h1>
 
                             <p class="text-xs sm:text-sm text-blue-100">
-                                Your digital verification pass. Present your QR code to authorized staff for document verification.
+                                @if (auth()->user()->canRequestDocuments())
+                                    Your digital verification pass. Present your QR code to authorized staff for document verification.
+                                @else
+                                    Your entry pass. Present your QR code at the gate and at the office you are visiting.
+                                @endif
                             </p>
                         </div>
 
@@ -82,8 +86,13 @@
                         </p>
 
                         <p class="text-xs text-blue-700 mt-0.5">
-                            Your QR code is uniquely generated for your document request.
-                            Present it to authorized school personnel when claiming or verifying your documents.
+                            @if (auth()->user()->canRequestDocuments())
+                                Your QR code is uniquely generated for your document request.
+                                Present it to authorized school personnel when claiming or verifying your documents.
+                            @else
+                                Your QR code is uniquely generated for your appointment.
+                                Present it at the gate and at the office you are visiting.
+                            @endif
                         </p>
                     </div>
 
@@ -91,6 +100,10 @@
 
             </div>
 
+
+            {{-- Parents and guests never file a document request, so the
+                 claim passes below are not theirs to see. --}}
+            @if (auth()->user()->canRequestDocuments())
 
             {{-- ================= QR CARDS ================= --}}
             <div class="mt-6">
@@ -362,6 +375,8 @@
                 </div>
 
             </div>
+
+            @endif
 
 
             {{-- ================= APPOINTMENT QR CARDS ================= --}}

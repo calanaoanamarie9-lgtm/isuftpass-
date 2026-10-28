@@ -47,10 +47,19 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Parents and guests book appointments only, so nothing is ever issued
+        // under their name: their sign-up carries no Last / First / Middle
+        // name and the display `name` falls back to the email address. The
+        // choice only shows up once they pick a registration type, which is
+        // why it has to be read here rather than from the form's account type
+        // - all three of alumni, guest and parent arrive as user_type=other.
+        $nameless = $request->user_type === 'other'
+            && in_array($request->registration_type, ['parent', 'guest'], true);
+
         $rules = [
-            'last_name' => ['required', 'string', 'max:100'],
-            'first_name' => ['required', 'string', 'max:100'],
-            'middle_name' => ['required', 'string', 'max:100'],
+            'last_name' => [$nameless ? 'nullable' : 'required', 'string', 'max:100'],
+            'first_name' => [$nameless ? 'nullable' : 'required', 'string', 'max:100'],
+            'middle_name' => [$nameless ? 'nullable' : 'required', 'string', 'max:100'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'user_type' => ['required', 'string', 'in:student,office,other'],
@@ -71,12 +80,19 @@ class RegisteredUserController extends Controller
 
         $request->validate($rules);
 
-        $user = User::create([
-            // The three parts are stored as-is; the User model composes the
-            // display `name` ("First Middle Last") from them on save.
-            'last_name' => $request->last_name,
-            'first_name' => $request->first_name,
-            'middle_name' => $request->middle_name,
+        // The three parts are stored as-is; the User model composes the
+        // display `name` ("First Middle Last") from them on save. Accounts
+        // with no parts keep the name they are created with instead, and
+        // `name` is never null in the table, so the email stands in.
+        $nameAttributes = $nameless
+            ? ['name' => $request->email]
+            : [
+                'last_name' => $request->last_name,
+                'first_name' => $request->first_name,
+                'middle_name' => $request->middle_name,
+            ];
+
+        $user = User::create($nameAttributes + [
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'registration_type' => $request->user_type === 'other' ? $request->registration_type : null,

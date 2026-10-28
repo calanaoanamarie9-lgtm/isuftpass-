@@ -141,8 +141,19 @@
                                   text-sm sm:text-base
                                   text-blue-100">
 
-                            Submit academic document requests or schedule
-                            an appointment with an ISUFST office.
+                            {{-- Parents and guests have no document-request
+                                 standing, so the banner asks for the one
+                                 service their account can actually submit. --}}
+                            @if (auth()->user()->canRequestDocuments())
+
+                                Submit academic document requests or schedule
+                                an appointment with an ISUFST office.
+
+                            @else
+
+                                Schedule an appointment with an ISUFST office.
+
+                            @endif
 
                         </p>
 
