@@ -6,8 +6,8 @@
     /verify/appointment/{token}, and the registrar's verification station.
 
     It lives here so those three can never drift apart: same blue banner,
-    same status badge, same office, same reference / date / time slot /
-    purpose / date booked. Whatever a surface adds around the card — the
+    same status badge, same office, same reference / appointment date /
+    purpose. Whatever a surface adds around the card — the
     scan verdict, the student's download buttons, staff tool links — goes
     in that surface's own view, never inside this one.
 --}}
@@ -159,7 +159,7 @@
                     </div>
 
 
-                    {{-- Date --}}
+                    {{-- Appointment Date --}}
                     <div>
                         <p class="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
                             Appointment Date
@@ -167,18 +167,6 @@
 
                         <p class="mt-1 text-sm font-black text-gray-900">
                             {{ $appointment->date->format('F j, Y') }}
-                        </p>
-                    </div>
-
-
-                    {{-- Time --}}
-                    <div>
-                        <p class="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
-                            Time Slot
-                        </p>
-
-                        <p class="mt-1 text-sm font-black text-gray-900">
-                            {{ $appointment->timeToCome() }}
                         </p>
                     </div>
 
@@ -191,18 +179,6 @@
 
                         <p class="mt-1 text-sm font-black text-gray-900">
                             {{ $appointment->purpose }}
-                        </p>
-                    </div>
-
-
-                    {{-- Date Booked --}}
-                    <div>
-                        <p class="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
-                            Date Booked
-                        </p>
-
-                        <p class="mt-1 text-sm font-black text-gray-900">
-                            {{ $appointment->created_at->format('F j, Y') }}
                         </p>
                     </div>
 
@@ -418,7 +394,7 @@
 
                         <li class="flex gap-2">
                             <span class="text-blue-700 font-bold">•</span>
-                            <span>Arrive during your scheduled date and time slot.</span>
+                            <span>Arrive on your scheduled appointment date.</span>
                         </li>
 
                         <li class="flex gap-2">

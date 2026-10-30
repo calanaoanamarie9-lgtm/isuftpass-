@@ -16,7 +16,7 @@ use Tests\TestCase;
  * last verification line) out of each rendered page and compare them as
  * strings: student page vs scanned page, student page vs the registrar's
  * station. If any of the three ever forks its own copy of the card — a
- * different reference, date, time slot, purpose or status than the student
+ * different reference, date, purpose or status than the student
  * was handed — the extraction no longer matches and this suite fails.
  */
 class AppointmentPassParityTest extends TestCase
@@ -118,13 +118,16 @@ class AppointmentPassParityTest extends TestCase
             ->assertSee($appointment->office)
             ->assertSee('Reference Number')
             ->assertSee($appointment->reference_code)
+            // One date on the pass: the scheduled visit date, under the
+            // "Appointment Date" label. When the booking was made and the
+            // time slot are deliberately not printed.
             ->assertSee('Appointment Date')
             ->assertSee($appointment->date->format('F j, Y'))
-            ->assertSee('Time Slot')
-            ->assertSee($appointment->timeToCome())
+            ->assertDontSee('Date Booked')
+            ->assertDontSee('Time Slot')
+            ->assertDontSee($appointment->timeToCome())
             ->assertSee('Concern / Purpose')
             ->assertSee($appointment->purpose)
-            ->assertSee('Date Booked')
             ->assertSee($appointment->statusLabel());
     }
 
