@@ -183,11 +183,13 @@ class CompleteProfileTest extends TestCase
             ->assertSee('Alumni Details')
             ->assertSee('Year Graduated')
             ->assertSee('Address')
-            ->assertSee('Select College');
+            ->assertSee('Select College')
+            // A graduate has already left: the alumni form no longer asks
+            // for a student ID, only the student one does.
+            ->assertDontSee('name="student_id"', false);
 
         $this->post('/complete-profile', [
             'contact_number' => '09171234567',
-            'student_id' => '2019-54321',
             'address' => 'Barotac Nuevo, Iloilo',
             'course' => 'College of Agriculture',
             'year_graduated' => '2024',
@@ -196,7 +198,6 @@ class CompleteProfileTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'john@example.com',
             'contact_number' => '09171234567',
-            'student_id' => '2019-54321',
             'address' => 'Barotac Nuevo, Iloilo',
             'course' => 'College of Agriculture',
             'year_graduated' => '2024',

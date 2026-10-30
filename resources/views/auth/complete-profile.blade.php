@@ -522,36 +522,6 @@
                                 Alumni Details
                             </p>
 
-                            <!-- Student ID -->
-                            <div>
-
-                                <label
-                                    for="student_id"
-                                    class="block text-sm font-semibold text-gray-800 mb-2"
-                                >
-                                    Student ID <span class="text-gray-400 font-normal">(optional)</span>
-                                </label>
-
-                                <input
-                                    id="student_id"
-                                    name="student_id"
-                                    type="text"
-                                    value="{{ old('student_id', $profile->student_id) }}"
-                                    autocomplete="off"
-                                    placeholder="e.g. 2019-54321"
-                                    class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
-                                >
-
-                                @if ($errors->get('student_id'))
-
-                                    <p class="mt-2 text-sm text-red-600">
-                                        {{ $errors->first('student_id') }}
-                                    </p>
-
-                                @endif
-
-                            </div>
-
 
                             <!-- Address -->
                             <div>

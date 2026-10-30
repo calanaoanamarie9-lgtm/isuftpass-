@@ -85,11 +85,10 @@ class CompleteProfileController extends Controller
 
             $rules = match ($type) {
                 'alumni' => $common + [
-                    'student_id' => ['nullable', 'string', 'max:30'],
                     // The alumni step now mirrors the student one: the same
                     // required college list and the same required address, so
                     // a graduate's record carries the same shape as an enrolled
-                    // student's.
+                    // student's. No student ID - a graduate has already left.
                     'address' => ['required', 'string', 'max:255'],
                     'course' => ['required', 'string', Rule::in(StudentProfile::COLLEGES)],
                     'year_graduated' => ['required', 'string', 'max:4'],
@@ -114,9 +113,6 @@ class CompleteProfileController extends Controller
             ]);
 
             if ($type === 'alumni') {
-                if ($request->has('student_id')) {
-                    $updateData['student_id'] = $request->student_id;
-                }
                 if ($request->has('address')) {
                     $updateData['address'] = $request->address;
                 }
