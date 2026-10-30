@@ -19,40 +19,26 @@ class AlumniController extends Controller
     {
         $user = Auth::user();
 
-        $recentActivity = collect()
-            ->merge(
-                $user->appointments()->latest()->limit(3)->get()->map(fn (Appointment $a) => [
-                    'type' => 'appointment',
-                    'title' => 'Visit with '.$a->office,
-                    'date' => $a->created_at,
-                    'badge' => match ($a->status) {
-                        'confirmed' => ['label' => 'Confirmed', 'class' => 'bg-green-50 text-green-700'],
-                        'completed' => ['label' => 'Completed', 'class' => 'bg-blue-50 text-blue-700'],
-                        'cancelled' => ['label' => 'Cancelled', 'class' => 'bg-red-50 text-red-600'],
-                        default => ['label' => 'Pending', 'class' => 'bg-yellow-50 text-yellow-700'],
-                    },
-                ])
-            )
-            ->merge(
-                $user->documentRequests()->latest()->limit(3)->get()->map(fn (DocumentRequest $d) => [
-                    'type' => 'document',
-                    'title' => $d->documentsSummary(),
-                    'date' => $d->created_at,
-                    'badge' => ['label' => ucwords(str_replace('_', ' ', $d->status)), 'class' => 'bg-blue-50 text-blue-700'],
-                ])
-            )
-            ->filter(fn ($activity) => $activity['date'])
-            ->sortByDesc('date')
-            ->take(5)
-            ->values();
+        $recentActivity = $user->appointments()->latest()->limit(5)->get()
+            ->map(fn (Appointment $a) => [
+                'type' => 'appointment',
+                'title' => 'Appointment with '.$a->office,
+                'date' => $a->created_at,
+                'badge' => match ($a->status) {
+                    'confirmed' => ['label' => 'Confirmed', 'class' => 'bg-green-50 text-green-700'],
+                    'completed' => ['label' => 'Completed', 'class' => 'bg-blue-50 text-blue-700'],
+                    'cancelled' => ['label' => 'Cancelled', 'class' => 'bg-red-50 text-red-600'],
+                    default => ['label' => 'Pending', 'class' => 'bg-yellow-50 text-yellow-700'],
+                },
+            ]);
 
         return view('alumni.dashboard', [
-            'activeDocumentRequests' => $user->documentRequests()->active()->count(),
             'upcomingAppointments' => $user->appointments()->upcoming()->count(),
-            'completedTransactions' => $user->documentRequests()
-                ->whereIn('status', ['completed'])
-                ->count() + $user->appointments()->where('status', AppointmentStatus::COMPLETED->value)->count(),
-            'hasPass' => (bool) ($user->studentProfile?->pass_token),
+            'completedAppointments' => $user->appointments()->where('status', AppointmentStatus::COMPLETED->value)->count(),
+            'totalAppointments' => $user->appointments()->count(),
+            'completedTransactions' => $user->appointments()->where('status', AppointmentStatus::COMPLETED->value)->count(),
+            'activeDocumentRequests' => $user->documentRequests()->active()->count(),
+            'hasPass' => $user->appointments()->upcoming()->exists() || (bool) $user->studentProfile?->pass_token,
             'recentActivity' => $recentActivity,
             'bannerEnabled' => Setting::get('banner_enabled') === 'true',
             'bannerText' => Setting::get('banner_text'),
