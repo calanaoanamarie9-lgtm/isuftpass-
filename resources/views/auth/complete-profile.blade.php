@@ -553,6 +553,38 @@
                             </div>
 
 
+                            <!-- Address -->
+                            <div>
+
+                                <label
+                                    for="address"
+                                    class="block text-sm font-semibold text-gray-800 mb-2"
+                                >
+                                    Address
+                                </label>
+
+                                <input
+                                    id="address"
+                                    name="address"
+                                    type="text"
+                                    value="{{ old('address', $profile->address) }}"
+                                    required
+                                    autocomplete="street-address"
+                                    placeholder="e.g. Barotac Nuevo, Iloilo"
+                                    class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
+                                >
+
+                                @if ($errors->get('address'))
+
+                                    <p class="mt-2 text-sm text-red-600">
+                                        {{ $errors->first('address') }}
+                                    </p>
+
+                                @endif
+
+                            </div>
+
+
                             <!-- Course -->
                             <div>
 
@@ -560,18 +592,38 @@
                                     for="course"
                                     class="block text-sm font-semibold text-gray-800 mb-2"
                                 >
-                                    Course <span class="text-gray-400 font-normal">(optional)</span>
+                                    Course
                                 </label>
 
-                                <input
-                                    id="course"
-                                    name="course"
-                                    type="text"
-                                    value="{{ old('course', $profile->course) }}"
-                                    autocomplete="off"
-                                    placeholder="e.g. Bachelor of Science in Information Systems"
-                                    class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
-                                >
+                                <div class="relative">
+
+                                    <select
+                                        id="course"
+                                        name="course"
+                                        autocomplete="off"
+                                        required
+                                        class="block w-full px-4 pr-10 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none appearance-none"
+                                    >
+                                        <option value="" {{ old('course', $profile->course) ? '' : 'selected' }}>
+                                            Select College
+                                        </option>
+
+                                        @foreach (\App\Models\StudentProfile::COLLEGES as $college)
+
+                                            <option value="{{ $college }}" {{ old('course', $profile->course) === $college ? 'selected' : '' }}>
+                                                {{ $college }}
+                                            </option>
+
+                                        @endforeach
+                                    </select>
+
+                                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </div>
+
+                                </div>
 
                                 @if ($errors->get('course'))
 

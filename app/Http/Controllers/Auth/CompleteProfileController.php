@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\StudentProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -85,7 +86,12 @@ class CompleteProfileController extends Controller
             $rules = match ($type) {
                 'alumni' => $common + [
                     'student_id' => ['nullable', 'string', 'max:30'],
-                    'course' => ['nullable', 'string', 'max:100'],
+                    // The alumni step now mirrors the student one: the same
+                    // required college list and the same required address, so
+                    // a graduate's record carries the same shape as an enrolled
+                    // student's.
+                    'address' => ['required', 'string', 'max:255'],
+                    'course' => ['required', 'string', Rule::in(StudentProfile::COLLEGES)],
                     'year_graduated' => ['required', 'string', 'max:4'],
                 ],
                 'guest' => $common + [
@@ -110,6 +116,9 @@ class CompleteProfileController extends Controller
             if ($type === 'alumni') {
                 if ($request->has('student_id')) {
                     $updateData['student_id'] = $request->student_id;
+                }
+                if ($request->has('address')) {
+                    $updateData['address'] = $request->address;
                 }
                 if ($request->has('course')) {
                     $updateData['course'] = $request->course;

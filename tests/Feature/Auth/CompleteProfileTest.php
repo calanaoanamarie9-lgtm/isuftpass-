@@ -153,13 +153,13 @@ class CompleteProfileTest extends TestCase
     }
 
     /**
-     * The other three registration types must keep their own forms, which
-     * submit none of these fields - proof that scoping the rule to students
-     * did not accidentally make them required for everyone.
+     * Guests and parents must keep their own forms, which submit none of
+     * these fields - proof that scoping the rule to students (and now
+     * alumni) did not accidentally make them required for everyone.
      */
     public function test_address_course_and_year_level_stay_optional_for_other_types(): void
     {
-        foreach (['alumni' => ['year_graduated' => '2024'], 'guest' => ['purpose' => 'inquiry'], 'parent' => ['relationship_to_student' => 'mother', 'student_full_name' => 'Jane Student']] as $type => $extra) {
+        foreach (['guest' => ['purpose' => 'inquiry'], 'parent' => ['relationship_to_student' => 'mother', 'student_full_name' => 'Jane Student']] as $type => $extra) {
             // /register sits behind `guest`: signing out first is what makes
             // each pass of the loop register the type it names.
             $this->post('/logout');
@@ -181,12 +181,15 @@ class CompleteProfileTest extends TestCase
         $this->get('/complete-profile')
             ->assertOk()
             ->assertSee('Alumni Details')
-            ->assertSee('Year Graduated');
+            ->assertSee('Year Graduated')
+            ->assertSee('Address')
+            ->assertSee('Select College');
 
         $this->post('/complete-profile', [
             'contact_number' => '09171234567',
             'student_id' => '2019-54321',
-            'course' => 'BSA',
+            'address' => 'Barotac Nuevo, Iloilo',
+            'course' => 'College of Agriculture',
             'year_graduated' => '2024',
         ])->assertRedirect(route('dashboard', absolute: false));
 
@@ -194,9 +197,32 @@ class CompleteProfileTest extends TestCase
             'email' => 'john@example.com',
             'contact_number' => '09171234567',
             'student_id' => '2019-54321',
-            'course' => 'BSA',
+            'address' => 'Barotac Nuevo, Iloilo',
+            'course' => 'College of Agriculture',
             'year_graduated' => '2024',
         ]);
+    }
+
+    /**
+     * The alumni step now mirrors the student one: address and course are
+     * required, and course must be one of the university's colleges - the
+     * same dropdown the student form uses, not a free-text box.
+     */
+    public function test_alumni_requires_address_and_a_valid_college(): void
+    {
+        $this->registerOther('alumni');
+
+        $this->post('/complete-profile', [
+            'contact_number' => '09171234567',
+            'year_graduated' => '2024',
+        ])->assertSessionHasErrors(['address', 'course']);
+
+        $this->post('/complete-profile', [
+            'contact_number' => '09171234567',
+            'address' => 'Iloilo City',
+            'course' => 'BSA',
+            'year_graduated' => '2024',
+        ])->assertSessionHasErrors('course');
     }
 
     public function test_alumni_requires_year_graduated(): void
@@ -307,7 +333,7 @@ class CompleteProfileTest extends TestCase
     public function test_avatar_posts_are_ignored_for_every_other_registration_type(): void
     {
         $cases = [
-            'alumni' => ['year_graduated' => '2024'],
+            'alumni' => ['address' => 'Iloilo City', 'course' => 'College of Agriculture', 'year_graduated' => '2024'],
             'guest' => ['purpose' => 'inquiry'],
             'parent' => ['relationship_to_student' => 'mother', 'student_full_name' => 'Jane Student'],
         ];
