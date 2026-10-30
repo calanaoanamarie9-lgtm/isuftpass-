@@ -92,8 +92,7 @@ class CompleteProfileController extends Controller
                     'course' => ['required', 'string', Rule::in(StudentProfile::COLLEGES)],
                 ],
                 'guest' => $common + [
-                    'organization' => ['nullable', 'string', 'max:100'],
-                    'address' => ['nullable', 'string', 'max:255'],
+                    'address' => ['required', 'string', 'max:255'],
                     'purpose' => ['required', 'string', Rule::in(array_keys(self::GUEST_PURPOSES))],
                 ],
                 'parent' => $common + [
@@ -118,9 +117,6 @@ class CompleteProfileController extends Controller
                     $updateData['course'] = $request->course;
                 }
             } elseif ($type === 'guest') {
-                if ($request->has('organization')) {
-                    $updateData['organization'] = $request->organization;
-                }
                 if ($request->has('address')) {
                     $updateData['address'] = $request->address;
                 }

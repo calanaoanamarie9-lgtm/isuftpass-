@@ -153,13 +153,14 @@ class CompleteProfileTest extends TestCase
     }
 
     /**
-     * Guests and parents must keep their own forms, which submit none of
-     * these fields - proof that scoping the rule to students (and now
-     * alumni) did not accidentally make them required for everyone.
+     * Course and year level stay student-only: the guest and parent forms
+     * never submit them, so the rules scoped to students did not leak.
+     * Address used to live here too, but it is now required for guests
+     * like it is for students, so it no longer belongs in this list.
      */
-    public function test_address_course_and_year_level_stay_optional_for_other_types(): void
+    public function test_course_and_year_level_stay_optional_for_other_types(): void
     {
-        foreach (['guest' => ['purpose' => 'inquiry'], 'parent' => ['relationship_to_student' => 'mother', 'student_full_name' => 'Jane Student']] as $type => $extra) {
+        foreach (['guest' => ['address' => 'Iloilo City', 'purpose' => 'inquiry'], 'parent' => ['relationship_to_student' => 'mother', 'student_full_name' => 'Jane Student']] as $type => $extra) {
             // /register sits behind `guest`: signing out first is what makes
             // each pass of the loop register the type it names.
             $this->post('/logout');
@@ -247,11 +248,13 @@ class CompleteProfileTest extends TestCase
         $this->get('/complete-profile')
             ->assertOk()
             ->assertSee('Visitor Information')
-            ->assertSee('Purpose for Using ISUFSTPASS');
+            ->assertSee('Purpose for Using ISUFSTPASS')
+            // The visitor form asks only for an address and a purpose - the
+            // old organization field is gone.
+            ->assertDontSee('name="organization"', false);
 
         $this->post('/complete-profile', [
             'contact_number' => '09171234567',
-            'organization' => 'DICT Region VI',
             'address' => 'Iloilo City',
             'purpose' => 'inquiry',
         ])->assertRedirect(route('dashboard', absolute: false));
@@ -259,10 +262,23 @@ class CompleteProfileTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'john@example.com',
             'contact_number' => '09171234567',
-            'organization' => 'DICT Region VI',
             'address' => 'Iloilo City',
             'purpose' => 'inquiry',
         ]);
+    }
+
+    /**
+     * The visitor form no longer marks address optional, so the server must
+     * demand it: a save with only a contact number and a purpose is refused.
+     */
+    public function test_guest_requires_an_address(): void
+    {
+        $this->registerOther('guest');
+
+        $this->post('/complete-profile', [
+            'contact_number' => '09171234567',
+            'purpose' => 'inquiry',
+        ])->assertSessionHasErrors('address');
     }
 
     public function test_parent_can_complete_personal_details(): void
@@ -340,7 +356,7 @@ class CompleteProfileTest extends TestCase
     {
         $cases = [
             'alumni' => ['address' => 'Iloilo City', 'course' => 'College of Agriculture'],
-            'guest' => ['purpose' => 'inquiry'],
+            'guest' => ['address' => 'Iloilo City', 'purpose' => 'inquiry'],
             'parent' => ['relationship_to_student' => 'mother', 'student_full_name' => 'Jane Student'],
         ];
 

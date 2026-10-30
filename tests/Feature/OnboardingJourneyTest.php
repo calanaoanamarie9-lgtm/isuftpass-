@@ -134,6 +134,7 @@ class OnboardingJourneyTest extends TestCase
             ],
             [
                 'contact_number' => '09171234567',
+                'address' => 'Iloilo City',
                 'purpose' => 'visit',
             ],
             'guest.dashboard',

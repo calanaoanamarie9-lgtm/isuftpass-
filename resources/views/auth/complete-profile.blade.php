@@ -117,10 +117,27 @@
                         </div>
 
                         <!-- Step 2 -->
+                        <div class="flex items-center gap-4 opacity-60">
+
+                            <div class="w-9 h-9 rounded-full bg-white/10 border border-white/30 backdrop-blur-sm flex items-center justify-center text-xs font-bold">
+                                2
+                            </div>
+
+                            <div>
+                                <p class="text-sm font-semibold">
+                                    Verify Email
+                                </p>
+
+                                <p class="text-xs text-blue-200">
+                                    Confirm your account
+                                </p>
+                            </div>
+
+                        <!-- Step 3 -->
                         <div class="flex items-center gap-4">
 
                             <div class="w-9 h-9 rounded-full bg-white border border-white/30 flex items-center justify-center text-xs font-bold text-blue-700">
-                                2
+                                3
                             </div>
 
                             <div>
@@ -633,36 +650,6 @@
                                 Visitor Information
                             </p>
 
-                            <!-- Organization -->
-                            <div>
-
-                                <label
-                                    for="organization"
-                                    class="block text-sm font-semibold text-gray-800 mb-2"
-                                >
-                                    Organization <span class="text-gray-400 font-normal">(optional)</span>
-                                </label>
-
-                                <input
-                                    id="organization"
-                                    name="organization"
-                                    type="text"
-                                    value="{{ old('organization', $profile->organization) }}"
-                                    autocomplete="off"
-                                    placeholder="e.g. DICT Region VI"
-                                    class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
-                                >
-
-                                @if ($errors->get('organization'))
-
-                                    <p class="mt-2 text-sm text-red-600">
-                                        {{ $errors->first('organization') }}
-                                    </p>
-
-                                @endif
-
-                            </div>
-
 
                             <!-- Address -->
                             <div>
@@ -671,7 +658,7 @@
                                     for="address"
                                     class="block text-sm font-semibold text-gray-800 mb-2"
                                 >
-                                    Address <span class="text-gray-400 font-normal">(optional)</span>
+                                    Address
                                 </label>
 
                                 <input
@@ -679,6 +666,7 @@
                                     name="address"
                                     type="text"
                                     value="{{ old('address', $profile->address) }}"
+                                    required
                                     autocomplete="street-address"
                                     placeholder="e.g. Barotac Nuevo, Iloilo"
                                     class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
