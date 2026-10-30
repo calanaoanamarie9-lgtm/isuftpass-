@@ -708,20 +708,19 @@
                         <!-- Name -->
                         <div @if ($nameFollowsType) x-show="! fullNameOnly" x-cloak @endif>
 
-                            <label
-                                class="block text-sm font-semibold text-gray-800 mb-2"
-                            >
+                            <p class="text-sm font-bold text-gray-800 mb-3">
                                 Full Name
-                            </label>
+                            </p>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {{-- Stacked vertically: Last, then First, then Middle. --}}
+                            <div class="space-y-4">
 
                                 <!-- Last Name -->
                                 <div>
 
                                     <label
                                         for="last_name"
-                                        class="block text-xs font-semibold text-gray-500 mb-1"
+                                        class="block text-sm font-semibold text-gray-800 mb-2"
                                     >
                                         Last Name <span class="text-red-500">*</span>
                                     </label>
@@ -738,9 +737,17 @@
                                             required
                                         @endif
                                         autofocus
-                                        placeholder="Last name"
-                                        class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
+                                        placeholder="e.g. Dela Cruz"
+                                        class="block w-full px-4 py-3.5 rounded-2xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
                                     >
+
+                                    @if ($errors->get('last_name'))
+
+                                        <p class="mt-2 text-sm text-red-600">
+                                            {{ $errors->first('last_name') }}
+                                        </p>
+
+                                    @endif
 
                                 </div>
 
@@ -749,7 +756,7 @@
 
                                     <label
                                         for="first_name"
-                                        class="block text-xs font-semibold text-gray-500 mb-1"
+                                        class="block text-sm font-semibold text-gray-800 mb-2"
                                     >
                                         First Name <span class="text-red-500">*</span>
                                     </label>
@@ -765,9 +772,17 @@
                                         @else
                                             required
                                         @endif
-                                        placeholder="First name"
-                                        class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
+                                        placeholder="e.g. Juan Miguel"
+                                        class="block w-full px-4 py-3.5 rounded-2xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
                                     >
+
+                                    @if ($errors->get('first_name'))
+
+                                        <p class="mt-2 text-sm text-red-600">
+                                            {{ $errors->first('first_name') }}
+                                        </p>
+
+                                    @endif
 
                                 </div>
 
@@ -776,7 +791,7 @@
 
                                     <label
                                         for="middle_name"
-                                        class="block text-xs font-semibold text-gray-500 mb-1"
+                                        class="block text-sm font-semibold text-gray-800 mb-2"
                                     >
                                         Middle Name <span class="text-red-500">*</span>
                                     </label>
@@ -792,21 +807,21 @@
                                         @else
                                             required
                                         @endif
-                                        placeholder="Middle name"
-                                        class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
+                                        placeholder="e.g. Santos (mother's surname)"
+                                        class="block w-full px-4 py-3.5 rounded-2xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
                                     >
+
+                                    @if ($errors->get('middle_name'))
+
+                                        <p class="mt-2 text-sm text-red-600">
+                                            {{ $errors->first('middle_name') }}
+                                        </p>
+
+                                    @endif
 
                                 </div>
 
                             </div>
-
-                            @if ($errors->has('last_name') || $errors->has('first_name') || $errors->has('middle_name'))
-
-                                <p class="mt-2 text-sm text-red-600">
-                                    {{ $errors->first('last_name') ?: ($errors->first('first_name') ?: $errors->first('middle_name')) }}
-                                </p>
-
-                            @endif
 
                         </div>
 
