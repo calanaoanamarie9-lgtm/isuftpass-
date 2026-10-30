@@ -456,7 +456,7 @@
 
 
                         {{-- SECTION: REQUESTER DETAILS (role specific) --}}
-                        @if (in_array($requesterType, ['parent', 'guest'], true))
+                        @if ($requesterType === 'parent')
 
                             <div>
 
@@ -467,7 +467,7 @@
 
                                         <span id="requester-step"
                                               class="text-sm font-black text-blue-700">
-                                            4
+                                            3
                                         </span>
 
                                     </div>
@@ -475,13 +475,11 @@
                                     <div>
 
                                         <h3 class="text-sm font-black text-gray-900">
-                                            {{ $requesterType === 'parent' ? "Child's Details" : 'Visitor Identification' }}
+                                            Child's Details
                                         </h3>
 
                                         <p class="text-xs text-gray-400">
-                                            {{ $requesterType === 'parent'
-                                                ? "We need your child's Student ID to match the consultation."
-                                                : 'A valid ID is required for campus entry.' }}
+                                            We need your child's Student ID to match the consultation.
                                         </p>
 
                                     </div>
@@ -489,7 +487,7 @@
                                 </div>
 
 
-                                @if ($requesterType === 'parent' && blank($requester->student_id))
+                                @if (blank($requester->student_id))
 
                                     <div>
 
@@ -519,48 +517,11 @@
 
                                     </div>
 
-                                @elseif ($requesterType === 'parent')
+                                @else
 
                                     <p class="text-sm text-gray-600">
                                         Child's Student ID on file:
                                         <span class="font-bold text-gray-900">{{ $requester->student_id }}</span>
-                                    </p>
-
-                                @elseif (blank($requester->valid_id))
-
-                                    <div>
-
-                                        <label for="valid_id"
-                                               class="block text-sm font-bold text-gray-700 mb-2">
-
-                                            Valid ID (type &amp; number)
-                                            <span class="text-red-500">*</span>
-
-                                        </label>
-
-                                        <input type="text"
-                                               id="valid_id"
-                                               name="valid_id"
-                                               required
-                                               value="{{ old('valid_id') }}"
-                                               placeholder="e.g. Driver's License N01-23-456789"
-                                               class="w-full rounded-xl border-gray-300
-                                                      bg-white text-sm text-gray-800
-                                                      shadow-sm
-                                                      focus:border-blue-600
-                                                      focus:ring-blue-600">
-
-                                        @error('valid_id')
-                                            <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>
-                                        @enderror
-
-                                    </div>
-
-                                @else
-
-                                    <p class="text-sm text-gray-600">
-                                        Valid ID on file:
-                                        <span class="font-bold text-gray-900">{{ $requester->valid_id }}</span>
                                     </p>
 
                                 @endif
@@ -583,7 +544,7 @@
 
                                     <span id="notes-step"
                                           class="text-sm font-black text-blue-700">
-                                        4
+                                        {{ $requesterType === 'parent' ? 4 : 3 }}
                                     </span>
 
                                 </div>
@@ -858,9 +819,8 @@
 
         // The student asks for a day; the office answers with the hour, so
         // there is no time to choose here. The requester's details (a
-        // parent's child, a guest's ID) sit between the date and the notes
-        // for those account types, so the notes step shifts down by one for
-        // them.
+        // parent's child) sit between the date and the notes for that account
+        // type, so the notes step shifts down by one for them.
         function applyStepNumbers() {
 
             if (! notesStep) {

@@ -318,12 +318,13 @@ class RolePermissionTest extends TestCase
             ->assertSee('name="student_id"', false);
     }
 
-    public function test_guest_booking_page_asks_for_a_valid_id(): void
+    public function test_guest_booking_page_does_not_ask_for_a_valid_id(): void
     {
         $this->actingAs($this->user('student', 'guest'))
             ->get('/student/appointments/create')
             ->assertOk()
-            ->assertSee('name="valid_id"', false);
+            ->assertDontSee('Visitor Identification')
+            ->assertDontSee('name="valid_id"', false);
     }
 
     public function test_parent_booking_requires_child_student_id(): void
@@ -363,7 +364,7 @@ class RolePermissionTest extends TestCase
         $this->assertSame('2024-00123', $parent->refresh()->student_id);
     }
 
-    public function test_guest_booking_requires_a_valid_id_and_saves_it(): void
+    public function test_guest_booking_does_not_require_a_valid_id(): void
     {
         Mail::fake();
         Notification::fake();
@@ -377,21 +378,9 @@ class RolePermissionTest extends TestCase
                 'date' => now()->addDays(3)->toDateString(),
                 'time_slot' => '09:00 AM - 10:00 AM',
             ])
-            ->assertSessionHasErrors('valid_id');
-
-        $this->assertDatabaseCount('appointments', 0);
-
-        $this->actingAs($guest)
-            ->post('/student/appointments', [
-                'office' => 'CICI',
-                'purpose' => 'General Inquiry',
-                'date' => now()->addDays(3)->toDateString(),
-                'time_slot' => '09:00 AM - 10:00 AM',
-                'valid_id' => "Driver's License N01-23-456789",
-            ])
             ->assertRedirect(route('student.appointments.index'));
 
-        $this->assertSame("Driver's License N01-23-456789", $guest->refresh()->valid_id);
+        $this->assertDatabaseCount('appointments', 1);
     }
 
     public function test_guest_can_book_the_registrar(): void

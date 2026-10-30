@@ -37,7 +37,7 @@
             <div class="mt-8 grid sm:grid-cols-2 gap-4">
                 <a href="{{ route('student.appointments.create') ?? '#' }}"
                    class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-blue-300 hover:shadow-md transition">
-                    <p class="font-bold text-gray-900">Book a Visit</p>
+                    <p class="font-bold text-gray-900">Book Appointment</p>
                     <p class="text-xs text-gray-500 mt-0.5">Schedule an office appointment</p>
                 </a>
                 <a href="{{ route('student.appointments.index') }}"

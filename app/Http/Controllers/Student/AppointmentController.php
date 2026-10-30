@@ -235,8 +235,8 @@ class AppointmentController extends Controller
         $data['purpose'] = $this->resolvePurpose($data);
         unset($data['purpose_other']);
 
-        // The child's Student ID (parent) / valid ID (guest) belong on the
-        // account, not the appointment row.
+        // The child's Student ID (parent) belongs on the account, not the
+        // appointment row.
         $extras = array_intersect_key($data, array_flip(['student_id', 'valid_id']));
         $data = array_diff_key($data, $extras);
         $this->persistRequesterDetails($user, $extras);
@@ -548,8 +548,8 @@ class AppointmentController extends Controller
 
     /**
      * Extra booking rules a public account type must satisfy: a parent must
-     * give the child's Student ID, a guest a valid ID. Only demanded when the
-     * account does not already hold the value.
+     * give the child's Student ID. Only demanded when the account does not
+     * already hold the value.
      *
      * @return array<string, array<int, string>>
      */
@@ -559,10 +559,6 @@ class AppointmentController extends Controller
 
         if ($user->classification() === 'parent' && blank($user->student_id)) {
             $rules['student_id'] = ['required', 'string', 'max:50'];
-        }
-
-        if ($user->classification() === 'guest' && blank($user->valid_id)) {
-            $rules['valid_id'] = ['required', 'string', 'max:255'];
         }
 
         return $rules;

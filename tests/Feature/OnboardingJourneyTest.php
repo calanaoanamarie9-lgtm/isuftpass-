@@ -148,7 +148,7 @@ class OnboardingJourneyTest extends TestCase
         // so roleRule() is what surfaces registration_type instead.
         $this->get('/dashboard')
             ->assertOk()
-            ->assertSee('Book a Visit')
+            ->assertSee('Book Appointment')
             ->assertDontSee('New Request');
     }
 
