@@ -228,23 +228,6 @@
                             </p>
                         </div>
 
-                        <div>
-                            <p class="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
-                                Purpose
-                            </p>
-                            <p class="mt-1 text-sm font-black text-gray-900">
-                                {{ $purposeLabel }}
-                            </p>
-                        </div>
-
-                        <div>
-                            <p class="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
-                                Copies
-                            </p>
-                            <p class="mt-1 text-sm font-black text-gray-900">
-                                {{ $totalCopies }} {{ $totalCopies == 1 ? 'copy' : 'copies' }}
-                            </p>
-                        </div>
 
                         <div>
                             <p class="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
@@ -255,14 +238,6 @@
                             </p>
                         </div>
 
-                        <div>
-                            <p class="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
-                                Total Fee
-                            </p>
-                            <p class="mt-1 text-sm font-black text-[#1558ad]">
-                                ₱{{ number_format($totalFee, 2) }}
-                            </p>
-                        </div>
 
                     </div>
 
