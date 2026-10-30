@@ -181,18 +181,18 @@ class CompleteProfileTest extends TestCase
         $this->get('/complete-profile')
             ->assertOk()
             ->assertSee('Alumni Details')
-            ->assertSee('Year Graduated')
             ->assertSee('Address')
             ->assertSee('Select College')
-            // A graduate has already left: the alumni form no longer asks
-            // for a student ID, only the student one does.
-            ->assertDontSee('name="student_id"', false);
+            // A graduate has already left: the alumni form asks for neither
+            // a student ID nor a graduation year - only students and parents
+            // still have a use for those.
+            ->assertDontSee('name="student_id"', false)
+            ->assertDontSee('name="year_graduated"', false);
 
         $this->post('/complete-profile', [
             'contact_number' => '09171234567',
             'address' => 'Barotac Nuevo, Iloilo',
             'course' => 'College of Agriculture',
-            'year_graduated' => '2024',
         ])->assertRedirect(route('dashboard', absolute: false));
 
         $this->assertDatabaseHas('users', [
@@ -200,14 +200,13 @@ class CompleteProfileTest extends TestCase
             'contact_number' => '09171234567',
             'address' => 'Barotac Nuevo, Iloilo',
             'course' => 'College of Agriculture',
-            'year_graduated' => '2024',
         ]);
     }
 
     /**
-     * The alumni step now mirrors the student one: address and course are
-     * required, and course must be one of the university's colleges - the
-     * same dropdown the student form uses, not a free-text box.
+     * The alumni step asks for what a graduate still has: a home address
+     * and the college they finished, both required, with course drawn from
+     * the same dropdown the student form uses - not a free-text box.
      */
     public function test_alumni_requires_address_and_a_valid_college(): void
     {
@@ -215,24 +214,30 @@ class CompleteProfileTest extends TestCase
 
         $this->post('/complete-profile', [
             'contact_number' => '09171234567',
-            'year_graduated' => '2024',
         ])->assertSessionHasErrors(['address', 'course']);
 
         $this->post('/complete-profile', [
             'contact_number' => '09171234567',
             'address' => 'Iloilo City',
             'course' => 'BSA',
-            'year_graduated' => '2024',
         ])->assertSessionHasErrors('course');
     }
 
-    public function test_alumni_requires_year_graduated(): void
+    /**
+     * The alumni form no longer shows a graduation year, so the server must
+     * not demand one: a save with only address and course has to go through.
+     */
+    public function test_alumni_are_not_asked_for_a_graduation_year(): void
     {
         $this->registerOther('alumni');
 
         $this->post('/complete-profile', [
             'contact_number' => '09171234567',
-        ])->assertSessionHasErrors('year_graduated');
+            'address' => 'Iloilo City',
+            'course' => 'College of Agriculture',
+        ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('dashboard', absolute: false));
     }
 
     public function test_guest_can_complete_personal_details(): void
@@ -334,7 +339,7 @@ class CompleteProfileTest extends TestCase
     public function test_avatar_posts_are_ignored_for_every_other_registration_type(): void
     {
         $cases = [
-            'alumni' => ['address' => 'Iloilo City', 'course' => 'College of Agriculture', 'year_graduated' => '2024'],
+            'alumni' => ['address' => 'Iloilo City', 'course' => 'College of Agriculture'],
             'guest' => ['purpose' => 'inquiry'],
             'parent' => ['relationship_to_student' => 'mother', 'student_full_name' => 'Jane Student'],
         ];

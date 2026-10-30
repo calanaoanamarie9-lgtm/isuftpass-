@@ -172,17 +172,33 @@
                     <!-- Top Navigation -->
                     <div class="flex items-center justify-between mb-8">
 
-                        <!-- Logo -->
-                        <div class="flex items-center gap-2">
+                               <!-- Back to Home -->
+                    <div class="mt-7 flex justify-center">
 
-                            <x-brand-logo size="sm" />
+                        <a
+                            href="{{ url('/') }}"
+                            class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 transition-colors"
+                        >
 
-                            <span class="font-bold text-gray-800">
-                                ISUFSTPASS
-                            </span>
+                            <svg
+                                class="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                                />
+                            </svg>
 
-                        </div>
+                            Back to Home
 
+                        </a>
+
+                    </div>
 
                         <!-- Logout -->
                         <form method="POST" action="{{ route('logout') }}">
@@ -606,37 +622,6 @@
                             </div>
 
 
-                            <!-- Year Graduated -->
-                            <div>
-
-                                <label
-                                    for="year_graduated"
-                                    class="block text-sm font-semibold text-gray-800 mb-2"
-                                >
-                                    Year Graduated
-                                </label>
-
-                                <input
-                                    id="year_graduated"
-                                    name="year_graduated"
-                                    type="text"
-                                    value="{{ old('year_graduated', $profile->year_graduated) }}"
-                                    required
-                                    maxlength="4"
-                                    autocomplete="off"
-                                    placeholder="e.g. 2024"
-                                    class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
-                                >
-
-                                @if ($errors->get('year_graduated'))
-
-                                    <p class="mt-2 text-sm text-red-600">
-                                        {{ $errors->first('year_graduated') }}
-                                    </p>
-
-                                @endif
-
-                            </div>
 
                         @endif
 
@@ -976,36 +961,7 @@
                     </form>
 
 
-                    <!-- Back to Home -->
-                    <div class="mt-7 flex justify-center">
-
-                        <a
-                            href="{{ url('/') }}"
-                            class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 transition-colors"
-                        >
-
-                            <svg
-                                class="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                                />
-                            </svg>
-
-                            Back to Home
-
-                        </a>
-
-                    </div>
-
-
-                    <!-- Footer -->
+                 <!-- Footer -->
                     <div class="mt-7 pt-5 border-t border-gray-100 text-center">
 
                         <p class="text-xs text-gray-400">

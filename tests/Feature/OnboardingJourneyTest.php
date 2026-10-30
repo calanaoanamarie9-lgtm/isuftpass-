@@ -112,9 +112,8 @@ class OnboardingJourneyTest extends TestCase
             ],
             [
                 'contact_number' => '09171234567',
-                'student_id' => '2019-54321',
-                'course' => 'BSA',
-                'year_graduated' => '2024',
+                'address' => 'Barotac Nuevo, Iloilo',
+                'course' => 'College of Agriculture',
             ],
             'alumni.dashboard',
             'Welcome, Anna M Alumni!',
