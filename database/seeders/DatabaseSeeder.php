@@ -18,7 +18,6 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             UsersSeeder::class,
             DocumentsSeeder::class,
-            AnnouncementsSeeder::class,
             CiciDepartmentSeeder::class,
             CbmsdDepartmentSeeder::class,
             CoagDepartmentSeeder::class,

@@ -3,7 +3,6 @@
 use App\Enums\AppointmentStatus;
 use App\Enums\DocumentRequestStatus;
 use App\Enums\Office;
-use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Admin\ConfigController;
 use App\Http\Controllers\Admin\DepartmentController;
@@ -30,7 +29,6 @@ use App\Http\Controllers\Registrar\DocumentController as RegistrarDocumentContro
 use App\Http\Controllers\Registrar\DocumentRequestController as RegistrarDocumentRequestController;
 use App\Http\Controllers\Registrar\QrVerifyController;
 use App\Http\Controllers\Registrar\StudentLookupController;
-use App\Http\Controllers\Student\AnnouncementController;
 use App\Http\Controllers\Student\AppointmentController;
 use App\Http\Controllers\Student\ConsultationCatalogController;
 use App\Http\Controllers\Student\DocumentRequestController;
@@ -417,10 +415,6 @@ Route::middleware(['auth', 'verified', 'role:student'])->prefix('student')->name
     // 4. Digital Pass & Gate Access
     Route::get('/pass', [PassController::class, 'show'])->name('pass.show');
 
-    // 5. Announcements
-    Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
-    Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
-
     // 6. Feedback & Ratings
     Route::get('/feedback/create', [FeedbackController::class, 'create'])->name('feedback.create');
     Route::post('/feedback', [FeedbackController::class, 'store'])->name('feedback.store');
@@ -541,12 +535,6 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     // System Configuration (global settings, academic terms, banners)
     Route::get('/settings', [ConfigController::class, 'index'])->name('settings.index');
     Route::put('/settings', [ConfigController::class, 'update'])->name('settings.update');
-
-    // System Notifications & Broadcasts (announcements)
-    Route::get('/announcements', [AdminAnnouncementController::class, 'index'])->name('announcements.index');
-    Route::post('/announcements', [AdminAnnouncementController::class, 'store'])->name('announcements.store');
-    Route::put('/announcements/{announcement}/toggle', [AdminAnnouncementController::class, 'toggle'])->name('announcements.toggle');
-    Route::delete('/announcements/{announcement}', [AdminAnnouncementController::class, 'destroy'])->name('announcements.destroy');
 
     // Master Logs & Audits
     Route::get('/audits', [AdminAuditLogController::class, 'index'])->name('audits.index');

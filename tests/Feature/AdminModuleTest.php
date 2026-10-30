@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Announcement;
 use App\Models\Appointment;
 use App\Models\AuditLog;
 use App\Models\ConsultationService;
@@ -307,36 +306,6 @@ class AdminModuleTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'settings.updated']);
     }
 
-    public function test_admin_can_publish_and_unpublish_broadcast(): void
-    {
-        $admin = $this->makeAdmin();
-
-        $this->actingAs($admin)
-            ->post('/admin/announcements', [
-                'title' => 'Enrollment Schedule',
-                'office' => 'Registrar',
-                'body' => 'Enrollment opens next week.',
-            ])
-            ->assertRedirect()
-            ->assertSessionHas('status');
-
-        $announcement = Announcement::where('title', 'Enrollment Schedule')->first();
-        $this->assertTrue($announcement->is_published);
-
-        $this->actingAs($admin)
-            ->put("/admin/announcements/{$announcement->id}/toggle")
-            ->assertRedirect();
-
-        $this->assertFalse($announcement->fresh()->is_published);
-
-        $this->actingAs($admin)
-            ->get('/admin/announcements')
-            ->assertOk()
-            ->assertSee('System Notifications');
-
-        $this->assertDatabaseHas('audit_logs', ['action' => 'announcement.created']);
-    }
-
     public function test_admin_can_view_audit_logs_with_filters(): void
     {
         $admin = $this->makeAdmin();
@@ -366,7 +335,7 @@ class AdminModuleTest extends TestCase
     {
         $student = User::factory()->create(['role' => 'student']);
 
-        foreach (['/admin/users', '/admin/offices', '/admin/settings', '/admin/announcements', '/admin/audits'] as $url) {
+        foreach (['/admin/users', '/admin/offices', '/admin/settings', '/admin/audits'] as $url) {
             $this->actingAs($student)
                 ->get($url)
                 ->assertForbidden();
@@ -454,7 +423,7 @@ class AdminModuleTest extends TestCase
         $this->assertFalse($service->fresh()->is_active);
     }
 
-    public function test_student_dashboard_shows_announcement_banner(): void
+    public function test_student_dashboard_shows_settings_banner(): void
     {
         Setting::query()->updateOrCreate(['key' => 'banner_enabled'], ['value' => 'true']);
         Setting::query()->updateOrCreate(['key' => 'banner_text'], ['value' => 'Offices closed on Aug 25-26.']);

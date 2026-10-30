@@ -57,7 +57,7 @@ enum Office: string
      * counter rather than an appointment desk: a student settles fees at the
      * counter, and the document-request flow is what sends them there. The
      * Cashier stays in toSelect() — it is still an office a document request,
-     * a visitor's destination or an announcement can name.
+     * a visitor's destination can name.
      */
     public static function bookable(): array
     {

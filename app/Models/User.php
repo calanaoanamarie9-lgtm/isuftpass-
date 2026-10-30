@@ -381,11 +381,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(GateLog::class);
     }
 
-    public function announcements(): HasMany
-    {
-        return $this->hasMany(Announcement::class, 'user_id');
-    }
-
     public function feedbacks(): HasMany
     {
         return $this->hasMany(Feedback::class);
