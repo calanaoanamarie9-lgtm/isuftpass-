@@ -613,7 +613,7 @@
                         <p class="mt-5 text-emerald-100 leading-relaxed">
                             Plan your visit before arriving on campus.
                             Choose the university office, select an available
-                            date and time, and tell us the purpose of your visit.
+                            date, and tell us the purpose of your visit.
                         </p>
 
                         <a href="{{ route('login') }}"
@@ -709,34 +709,6 @@
 
                             </div>
 
-
-                            <div class="mt-5 border-t border-gray-100 pt-5">
-
-                                <p class="text-xs font-semibold text-gray-500 mb-3">
-                                    Available Time
-                                </p>
-
-                                <div class="grid grid-cols-2 gap-2">
-
-                                    <span class="px-3 py-2 text-xs text-center bg-emerald-50 text-emerald-700 rounded-lg font-medium">
-                                        9:00 AM
-                                    </span>
-
-                                    <span class="px-3 py-2 text-xs text-center bg-gray-50 text-gray-400 rounded-lg">
-                                        10:00 AM
-                                    </span>
-
-                                    <span class="px-3 py-2 text-xs text-center bg-emerald-50 text-emerald-700 rounded-lg font-medium">
-                                        1:00 PM
-                                    </span>
-
-                                    <span class="px-3 py-2 text-xs text-center bg-emerald-50 text-emerald-700 rounded-lg font-medium">
-                                        2:00 PM
-                                    </span>
-
-                                </div>
-
-                            </div>
 
                         </div>
 
