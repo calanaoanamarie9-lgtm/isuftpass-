@@ -273,7 +273,7 @@
                                     <p class="text-xs text-white/55 mt-1
                                               max-w-xs">
                                         Start the camera to scan passes
-                                        hands-free — or use the USB scanner below.
+                                        hands-free or use the USB scanner below.
                                     </p>
                                 </div>
 
