@@ -46,6 +46,24 @@ class OfficeNotificationAccessTest extends TestCase
         ];
     }
 
+    /**
+     * Portals whose sidebar must link to their notifications page.
+     *
+     * The guard is excluded: the gate desk's sidebar deliberately has no
+     * Notifications entry (it works from the one dashboard page), so it is
+     * held to the page itself in test_every_staff_portal_can_open_its_
+     * notifications_page instead.
+     *
+     * @return array<string, array{0: string, 1: string}>
+     */
+    public static function sidebarLinkedPortals(): array
+    {
+        return array_filter(
+            self::staffPortals(),
+            static fn (array $portal): bool => $portal[0] !== 'guard',
+        );
+    }
+
     private function makeStaff(string $role, ?string $office = null): User
     {
         return User::factory()->create([
@@ -75,9 +93,10 @@ class OfficeNotificationAccessTest extends TestCase
      * The sidebar must link every staff portal to its own notifications
      * page, so the desk finds the alerts without typing a URL. The
      * sidebar renders on every page, so the portal's own notifications
-     * page is the natural place to assert it.
+     * page is the natural place to assert it. The guard is the one
+     * exception — see sidebarLinkedPortals().
      */
-    #[DataProvider('staffPortals')]
+    #[DataProvider('sidebarLinkedPortals')]
     public function test_the_sidebar_links_every_staff_portal_to_its_notifications_page(string $role, string $routeName): void
     {
         $office = match ($role) {
@@ -93,6 +112,24 @@ class OfficeNotificationAccessTest extends TestCase
             ->assertOk()
             ->assertSee(route($routeName), false)
             ->assertSee('data-notif-badge', false);
+    }
+
+    /**
+     * The gate desk's sidebar deliberately carries no Notifications
+     * entry: the guard works from the one dashboard page, and the badge
+     * markup must stay off it entirely.
+     */
+    public function test_the_guard_sidebar_has_no_notifications_link(): void
+    {
+        $guard = $this->makeStaff('guard', 'Main Gate');
+
+        $this->actingAs($guard)
+            ->get(route('guard.dashboard'))
+            ->assertOk()
+            ->assertDontSee(route('guard.notifications.index'), false)
+            // The layout's polling script always mentions the selector, so
+            // pin the badge element itself rather than the bare attribute.
+            ->assertDontSee('<span data-notif-badge', false);
     }
 
     /**

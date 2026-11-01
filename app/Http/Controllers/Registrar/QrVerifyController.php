@@ -7,6 +7,7 @@ use App\Models\Appointment;
 use App\Models\DocumentRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class QrVerifyController extends Controller
@@ -33,12 +34,7 @@ class QrVerifyController extends Controller
             }
 
             if (! $documentRequest && $appointmentToken) {
-                $appointment = Appointment::query()
-                    ->with(['user.studentProfile'])
-                    ->where(fn ($query) => $query
-                        ->where('qr_token', $appointmentToken)
-                        ->orWhere('reference_code', $appointmentToken))
-                    ->first();
+                $appointment = $this->findAppointment($appointmentToken);
             }
 
             // An identity pass scan shows the student card only - no dump of
@@ -53,12 +49,7 @@ class QrVerifyController extends Controller
 
             // A bare UUID may also belong to an appointment QR.
             if (! $result && ! $documentRequest && ! $appointment && $passToken === $query) {
-                $appointment = Appointment::query()
-                    ->with(['user.studentProfile'])
-                    ->where(fn ($lookup) => $lookup
-                        ->where('qr_token', $passToken)
-                        ->orWhere('reference_code', $passToken))
-                    ->first();
+                $appointment = $this->findAppointment($passToken);
             }
 
             if (! $result && ! $claimToken && ! $appointmentToken && ! $passToken) {
@@ -86,6 +77,25 @@ class QrVerifyController extends Controller
             'query' => $query,
             'showTransactionLists' => $showTransactionLists,
         ]);
+    }
+
+    /**
+     * The booking a scan names: the QR token when the value is a uuid, or
+     * the reference number printed on the pass. qr_token is a uuid column,
+     * so a typed reference must never be compared against it.
+     */
+    private function findAppointment(string $token): ?Appointment
+    {
+        return Appointment::query()
+            ->with(['user.studentProfile'])
+            ->where(function ($query) use ($token) {
+                $query->where('reference_code', $token);
+
+                if (Str::isUuid($token)) {
+                    $query->orWhere('qr_token', $token);
+                }
+            })
+            ->first();
     }
 
     /**

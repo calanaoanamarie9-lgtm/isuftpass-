@@ -127,7 +127,8 @@
                 {{-- =============================================
                     SCANNER
                 ============================================== --}}
-                <section class="lg:col-span-3 bg-white rounded-2xl
+                <section id="gate-scan"
+                         class="lg:col-span-3 bg-white rounded-2xl
                                 border border-gray-100 shadow-sm overflow-hidden">
 
                     {{-- Card header --}}
@@ -466,7 +467,8 @@
                 {{-- =============================================
                     DAILY GATE ACCESS LOGS
                 ============================================== --}}
-                <section class="lg:col-span-2 bg-white rounded-2xl
+                <section id="gate-logs"
+                         class="lg:col-span-2 bg-white rounded-2xl
                                 border border-gray-100 shadow-sm overflow-hidden">
 
                     <div class="px-6 py-5 border-b border-gray-100">
@@ -487,7 +489,8 @@
                         </div>
 
                         {{-- Manual search by name or reference code --}}
-                        <form method="GET"
+                        <form id="gate-search"
+                              method="GET"
                               action="{{ route('guard.dashboard') }}"
                               class="mt-4">
                             <div class="relative">
@@ -579,6 +582,54 @@
                 </section>
 
             </div>
+
+
+            {{-- =============================================
+                SCANNED APPOINTMENT PASS
+                The office's own Appointment Verification Pass,
+                rendered server-side from the one shared card —
+                reference, office, scheduled time, purpose and the
+                status as it stands right now (Confirmed, Completed,
+                or Cancelled because the hour ran out).
+            ============================================== --}}
+            {{-- No x-transition here on purpose: a scan result must appear
+                 the instant it arrives. Alpine cancels a running transition
+                 when the value flips again mid-flight (a camera failure, a
+                 rescan), and a cancelled leave strands the card hidden even
+                 though passHtml is present — the guard would scan a valid
+                 pass and see nothing. Instant show/hide cannot be stranded. --}}
+            <section id="gate-pass"
+                     x-show="result?.passHtml"
+                     x-cloak
+                     class="mt-6">
+
+                <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+
+                    <div class="flex items-center gap-2">
+
+                        <span class="w-2 h-2 rounded-full"
+                              :class="result?.valid
+                                  ? 'bg-emerald-500'
+                                  : 'bg-red-500'"></span>
+
+                        <h2 class="text-sm font-extrabold uppercase
+                                   tracking-widest text-gray-500">
+                            Appointment Verification Pass
+                        </h2>
+
+                    </div>
+
+                    <span class="text-xs font-semibold text-gray-400">
+                        Scanned at {{ $gateName }}
+                    </span>
+
+                </div>
+
+                {{-- Trusted server-rendered HTML: the shared pass card --}}
+                <div x-html="result?.passHtml"></div>
+
+            </section>
+
         </div>
     </div>
 
@@ -742,6 +793,17 @@
                             this.stats = this.result.stats;
                         }
 
+                        // An appointment scan brings the office's pass
+                        // card with it — bring it into view so the guard
+                        // reads the scheduled time and current status
+                        // without hunting for it.
+                        if (this.result.passHtml) {
+                            this.$nextTick(() => {
+                                document.getElementById('gate-pass')
+                                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            });
+                        }
+
                         this.beep(this.result.valid ? 'ok' : 'bad');
 
                         // A cleared field and a focused input are what a USB
@@ -767,13 +829,21 @@
                 async startCamera() {
                     if (this.cameraOn) return;
 
+                    // A camera failure is a scanner fault, never a scan
+                    // result: it must not overwrite the pass already on
+                    // screen (or flip x-show mid-transition and strand the
+                    // card hidden), so it only speaks when nothing was
+                    // scanned yet.
                     if (typeof Html5Qrcode === 'undefined') {
-                        this.result = {
-                            valid: false,
-                            pass: null,
-                            message: 'The camera scanner could not load. Check the connection, or use the USB scanner.',
-                        };
-                        this.beep('bad');
+                        if (!this.result) {
+                            this.result = {
+                                valid: false,
+                                pass: null,
+                                passHtml: null,
+                                message: 'The camera scanner could not load. Check the connection, or use the USB scanner.',
+                            };
+                            this.beep('bad');
+                        }
                         return;
                     }
 
@@ -794,12 +864,16 @@
                     } catch (error) {
                         box.classList.add('hidden');
                         this.scanner = null;
-                        this.result = {
-                            valid: false,
-                            pass: null,
-                            message: 'Camera unavailable: ' + error + '. Use the USB scanner instead.',
-                        };
-                        this.beep('bad');
+
+                        if (!this.result) {
+                            this.result = {
+                                valid: false,
+                                pass: null,
+                                passHtml: null,
+                                message: 'Camera unavailable: ' + error + '. Use the USB scanner instead.',
+                            };
+                            this.beep('bad');
+                        }
                     }
                 },
 

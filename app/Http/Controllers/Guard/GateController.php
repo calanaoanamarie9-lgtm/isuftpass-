@@ -81,6 +81,7 @@ class GateController extends Controller
             return response()->json([
                 'valid' => false,
                 'pass' => $resolution['pass'],
+                'passHtml' => $resolution['passHtml'] ?? null,
                 'outcome' => null,
                 'message' => $resolution['message'],
                 'logs' => GateLogList::today(),
@@ -93,6 +94,7 @@ class GateController extends Controller
         return response()->json([
             'valid' => true,
             'pass' => $resolution['pass'],
+            'passHtml' => $resolution['passHtml'] ?? null,
             'outcome' => $outcome,
             'message' => $outcome['message'],
             'logs' => GateLogList::today(),
@@ -216,8 +218,18 @@ class GateController extends Controller
             return $this->documentPass($document);
         }
 
+        // The same lookup the office desk performs: the QR token, or the
+        // reference number printed on the pass, both resolve the booking.
+        // qr_token is a uuid column, so it is only compared when the scan
+        // actually carries one — a typed reference must never reach it.
         $appointment = Appointment::with('user.studentProfile')
-            ->where('qr_token', $token)
+            ->where(function ($query) use ($token) {
+                $query->where('reference_code', $token);
+
+                if (Str::isUuid($token)) {
+                    $query->orWhere('qr_token', $token);
+                }
+            })
             ->first();
 
         if ($appointment) {
@@ -313,9 +325,13 @@ class GateController extends Controller
 
         $isToday = $appointment->date?->isToday() ?? false;
 
+        // A visit that already ended cannot open the gate again: cancelled
+        // (including auto-cancelled for a missed hour), no-show and
+        // completed are all answers, not invitations.
         $blocked = in_array($appointment->status, [
             AppointmentStatus::CANCELLED->value,
             AppointmentStatus::NO_SHOW->value,
+            AppointmentStatus::COMPLETED->value,
         ], true);
 
         $valid = $isToday && ! $blocked;
@@ -332,7 +348,7 @@ class GateController extends Controller
             default => 'Scheduled '.$appointment->date?->format('M j, Y'),
         };
 
-        return $this->pass(
+        $resolved = $this->pass(
             type: 'appointment',
             name: $appointment->user?->name ?? 'Student',
             personId: $appointment->user?->studentProfile?->student_id ?: $appointment->reference_code,
@@ -354,6 +370,15 @@ class GateController extends Controller
                 default => null,
             },
         );
+
+        // The office's own interface, rendered server-side from the one
+        // shared pass card: reference, office, scheduled time, purpose and
+        // the status as it stands after the sweep above.
+        $resolved['passHtml'] = view('guard.partials.appointment-pass', [
+            'appointment' => $appointment,
+        ])->render();
+
+        return $resolved;
     }
 
     /**
@@ -520,6 +545,7 @@ class GateController extends Controller
         return response()->json([
             'valid' => false,
             'pass' => null,
+            'passHtml' => null,
             'outcome' => null,
             'message' => $message,
             'logs' => GateLogList::today(),

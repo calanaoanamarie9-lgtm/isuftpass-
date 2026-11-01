@@ -15,9 +15,10 @@ use Tests\TestCase;
  * These tests extract the card's banner + body (from the title down to the
  * last verification line) out of each rendered page and compare them as
  * strings: student page vs scanned page, student page vs the registrar's
- * station. If any of the three ever forks its own copy of the card — a
- * different reference, date, purpose or status than the student
- * was handed — the extraction no longer matches and this suite fails.
+ * station, student page vs the guard's scanner. If any surface ever forks
+ * its own copy of the card — a different reference, scheduled date or
+ * time, purpose or status than the student was handed — the extraction no
+ * longer matches and this suite fails.
  */
 class AppointmentPassParityTest extends TestCase
 {
@@ -79,6 +80,79 @@ class AppointmentPassParityTest extends TestCase
         );
     }
 
+    /**
+     * The guard's scanner is a fourth surface resolving the same QR, and it
+     * shows the office's card rather than a hand-built summary: the guard
+     * reads the scheduled time and the status the visit has right now.
+     */
+    public function test_the_guard_scanner_shows_the_same_pass_card_as_the_offices(): void
+    {
+        $owner = $this->student();
+        $appointment = $this->appointment($owner, [
+            'status' => 'confirmed',
+            'start_time' => '09:00',
+            'end_time' => '10:00',
+        ]);
+
+        $studentPage = $this->actingAs($owner)
+            ->get(route('student.appointments.qr', $appointment))
+            ->assertOk()
+            ->getContent();
+
+        $guard = User::factory()->create([
+            'role' => 'guard',
+            'office' => 'Main Gate',
+        ]);
+
+        $scan = $this->actingAs($guard)
+            ->postJson(route('guard.scan'), ['token' => $appointment->qr_token])
+            ->assertOk()
+            ->json();
+
+        $this->assertIsString($scan['passHtml'] ?? null, 'The guard scan must return the pass card.');
+        $this->assertStringContainsString('Confirmed', $scan['passHtml']);
+        $this->assertStringContainsString('Scheduled Time', $scan['passHtml']);
+        $this->assertStringContainsString('9:00 AM – 10:00 AM', $scan['passHtml']);
+
+        $this->assertSame(
+            $this->passCardFrom($studentPage),
+            $this->passCardFrom($scan['passHtml']),
+            'The guard scanner must render the office\'s pass card exactly.'
+        );
+    }
+
+    /**
+     * A booking whose hour ran out is closed out before it is shown, and
+     * the card the guard reads carries the updated status.
+     */
+    public function test_the_guard_scanner_shows_a_late_appointment_as_cancelled(): void
+    {
+        $owner = $this->student();
+
+        $appointment = $this->appointment($owner, [
+            'status' => 'confirmed',
+            'date' => today()->subDay(),
+            'start_time' => '09:00',
+            'end_time' => '10:00',
+        ]);
+
+        $guard = User::factory()->create([
+            'role' => 'guard',
+            'office' => 'Main Gate',
+        ]);
+
+        $scan = $this->actingAs($guard)
+            ->postJson(route('guard.scan'), ['token' => $appointment->qr_token])
+            ->assertOk()
+            ->assertJsonPath('valid', false)
+            ->assertJsonPath('pass.statusLabel', 'Cancelled')
+            ->json();
+
+        $this->assertStringContainsString('Cancelled', $scan['passHtml']);
+        $this->assertStringContainsString('Scheduled Time', $scan['passHtml']);
+        $this->assertSame('cancelled', $appointment->fresh()->status);
+    }
+
     public function test_every_surface_prints_the_same_qr_code(): void
     {
         $owner = $this->student();
@@ -118,14 +192,17 @@ class AppointmentPassParityTest extends TestCase
             ->assertSee($appointment->office)
             ->assertSee('Reference Number')
             ->assertSee($appointment->reference_code)
-            // One date on the pass: the scheduled visit date, under the
-            // "Appointment Date" label. When the booking was made and the
-            // time slot are deliberately not printed.
+            // The pass prints the scheduled visit itself: the date under
+            // "Appointment Date" and the office's assigned window under
+            // "Scheduled Time", so every surface — including the guard —
+            // reads the same arrival time. When the booking was made is
+            // still not printed.
             ->assertSee('Appointment Date')
             ->assertSee($appointment->date->format('F j, Y'))
+            ->assertSee('Scheduled Time')
+            ->assertSee($appointment->scheduledRange())
             ->assertDontSee('Date Booked')
             ->assertDontSee('Time Slot')
-            ->assertDontSee($appointment->timeToCome())
             ->assertSee('Concern / Purpose')
             ->assertSee($appointment->purpose)
             ->assertSee($appointment->statusLabel());

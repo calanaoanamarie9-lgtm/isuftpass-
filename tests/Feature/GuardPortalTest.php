@@ -371,6 +371,23 @@ class GuardPortalTest extends TestCase
         $this->assertNull($fresh->checked_in_at);
     }
 
+    /**
+     * The pass prints its reference number, and a guard typing that number
+     * from the card must resolve the same booking the QR would. qr_token is
+     * a uuid column, so the lookup may not push a reference into it.
+     */
+    public function test_the_printed_reference_number_resolves_at_the_gate(): void
+    {
+        $appointment = $this->appointment($this->student(), now()->toDateString(), 'cancelled');
+
+        $this->actingAs($this->guard())
+            ->postJson('/guard/scan', ['token' => $appointment->reference_code])
+            ->assertOk()
+            ->assertJsonPath('pass.reference', $appointment->reference_code)
+            ->assertJsonPath('valid', false)
+            ->assertJsonStructure(['passHtml']);
+    }
+
     public function test_a_digital_id_qr_is_verified(): void
     {
         $student = $this->student();

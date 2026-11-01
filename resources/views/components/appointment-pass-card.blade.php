@@ -171,6 +171,18 @@
                     </div>
 
 
+                    {{-- Scheduled Time — the office's approved arrival window --}}
+                    <div>
+                        <p class="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
+                            Scheduled Time
+                        </p>
+
+                        <p class="mt-1 text-sm font-black text-gray-900">
+                            {{ $appointment->scheduledRange() }}
+                        </p>
+                    </div>
+
+
                     {{-- Purpose --}}
                     <div>
                         <p class="text-[10px] font-bold tracking-wider text-gray-400 uppercase">

@@ -10,6 +10,7 @@ use App\Support\QrUrl;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 /**
  * Public scan targets encoded inside QR codes.
@@ -106,10 +107,17 @@ class VerifyController extends Controller
      */
     public function appointment(Request $request, string $token)
     {
+        // qr_token is a uuid column: compare it only when the scan carries a
+        // uuid, so a printed reference number still resolves instead of
+        // reaching Postgres as an invalid uuid.
         $appointment = Appointment::query()
-            ->where(fn ($query) => $query
-                ->where('qr_token', $token)
-                ->orWhere('reference_code', $token))
+            ->where(function ($query) use ($token) {
+                $query->where('reference_code', $token);
+
+                if (Str::isUuid($token)) {
+                    $query->orWhere('qr_token', $token);
+                }
+            })
             ->with(['user.studentProfile'])
             ->first();
 
