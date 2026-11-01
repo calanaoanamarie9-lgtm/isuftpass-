@@ -85,60 +85,6 @@
 
 
             {{-- =========================================================
-                THE OTHER SETTINGS PAGES
-            ========================================================== --}}
-            {{-- They are not in the sidebar's seven, so they are offered
-                 here rather than left to be found by URL. --}}
-            <div class="mb-6 grid gap-4 sm:grid-cols-2">
-
-                <a href="{{ route('admin.slots.index') }}"
-                   class="flex items-center gap-3
-                          px-4 py-3.5
-                          bg-white rounded-2xl
-                          border border-gray-200 shadow-sm
-                          hover:shadow-md transition">
-
-                    <div class="w-10 h-10 rounded-xl
-                                bg-blue-50
-                                flex items-center justify-center
-                                shrink-0">
-
-                        <svg class="w-5 h-5 text-blue-700"
-                             fill="none"
-                             stroke="currentColor"
-                             viewBox="0 0 24 24">
-
-                            <path stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                  stroke-width="2"
-                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-
-                        </svg>
-
-                    </div>
-
-                    <div class="min-w-0">
-
-                        <p class="text-sm font-bold text-gray-800">
-
-                            Slot Availability
-
-                        </p>
-
-                        <p class="text-xs text-gray-500">
-
-                            Daily per-slot limits and blocks
-
-                        </p>
-
-                    </div>
-
-                </a>
-
-            </div>
-
-
-            {{-- =========================================================
                 SUCCESS MESSAGE
             ========================================================== --}}
             @if (session('status'))

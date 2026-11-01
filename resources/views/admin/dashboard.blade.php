@@ -34,25 +34,6 @@
 
                         </div>
 
-
-                        <div class="shrink-0">
-
-                            <div class="px-4 py-3 rounded-xl
-                                        bg-white/10 border border-white/10">
-
-                                <p class="text-[11px] uppercase
-                                          tracking-wide text-blue-200">
-                                    Account Role
-                                </p>
-
-                                <p class="mt-1 text-sm font-bold text-white">
-                                    Administrator
-                                </p>
-
-                            </div>
-
-                        </div>
-
                     </div>
 
                 </div>
