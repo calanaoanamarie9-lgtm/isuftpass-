@@ -2,17 +2,26 @@
 
     <style>
         /*
+         * The container is thrown away and rebuilt on every camera start
+         * (html5-qrcode never restarts cleanly on a container it has
+         * already used - see startCamera()), so the viewfinder styling is
+         * keyed to a class instead of the #gate-reader id, and position
+         * carries !important because the library forces an inline
+         * "position: relative" on whatever element it binds to - without
+         * it the container collapses to the height of its hidden canvas
+         * and the camera feed renders at zero height.
+         *
          * The camera feed fills the viewfinder whatever the video's
          * intrinsic size, and the library's own chrome stays out of it.
          */
-        #gate-reader {
-            position: absolute;
-            inset: 0;
+        .gate-reader {
+            position: absolute !important;
+            inset: 0 !important;
             background: #020617;
             z-index: 10;
         }
 
-        #gate-reader video {
+        .gate-reader video {
             width: 100% !important;
             height: 100% !important;
             object-fit: cover !important;
@@ -20,7 +29,9 @@
             inset: 0;
         }
 
-        #gate-reader__dashboard {
+        /* html5-qrcode names its chrome "<container id>__dashboard", and
+           the id changes with every container, so hide it by suffix. */
+        .gate-reader [id$="__dashboard"] {
             display: none !important;
         }
 
@@ -195,7 +206,7 @@
                                      : 'ring-4 ring-red-400/70')
                                  : 'ring-white/10'">
 
-                            <div id="gate-reader" class="hidden"></div>
+                            <div id="gate-reader" class="hidden gate-reader"></div>
 
 
                             {{-- Corner brackets --}}
@@ -592,43 +603,47 @@
                 status as it stands right now (Confirmed, Completed,
                 or Cancelled because the hour ran out).
             ============================================== --}}
-            {{-- No x-transition here on purpose: a scan result must appear
-                 the instant it arrives. Alpine cancels a running transition
-                 when the value flips again mid-flight (a camera failure, a
-                 rescan), and a cancelled leave strands the card hidden even
-                 though passHtml is present — the guard would scan a valid
-                 pass and see nothing. Instant show/hide cannot be stranded. --}}
-            <section id="gate-pass"
-                     x-show="result?.passHtml"
-                     x-cloak
-                     class="mt-6">
+            {{-- No x-show here on purpose: a scan result must appear the
+                 instant it arrives. Shipped Alpine runs x-show's show and
+                 hide through requestAnimationFrame (timers while the tab is
+                 hidden), so a hide queued for a later frame can outlive the
+                 show that follows it — or the show never runs at all while
+                 the window is not painting — and the card stays gone even
+                 though passHtml is present. The guard would scan a valid
+                 pass and see nothing. x-if is structural: it mounts the
+                 card when passHtml exists and tears it down when it does
+                 not, in a microtask, so there is no deferred show/hide
+                 state left to strand. --}}
+            <template x-if="result?.passHtml">
+                <section id="gate-pass" class="mt-6">
 
-                <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
 
-                    <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2">
 
-                        <span class="w-2 h-2 rounded-full"
-                              :class="result?.valid
-                                  ? 'bg-emerald-500'
-                                  : 'bg-red-500'"></span>
+                            <span class="w-2 h-2 rounded-full"
+                                  :class="result?.valid
+                                      ? 'bg-emerald-500'
+                                      : 'bg-red-500'"></span>
 
-                        <h2 class="text-sm font-extrabold uppercase
-                                   tracking-widest text-gray-500">
-                            Appointment Verification Pass
-                        </h2>
+                            <h2 class="text-sm font-extrabold uppercase
+                                       tracking-widest text-gray-500">
+                                Appointment Verification Pass
+                            </h2>
+
+                        </div>
+
+                        <span class="text-xs font-semibold text-gray-400">
+                            Scanned at {{ $gateName }}
+                        </span>
 
                     </div>
 
-                    <span class="text-xs font-semibold text-gray-400">
-                        Scanned at {{ $gateName }}
-                    </span>
+                    {{-- Trusted server-rendered HTML: the shared pass card --}}
+                    <div x-html="result?.passHtml"></div>
 
-                </div>
-
-                {{-- Trusted server-rendered HTML: the shared pass card --}}
-                <div x-html="result?.passHtml"></div>
-
-            </section>
+                </section>
+            </template>
 
         </div>
     </div>
@@ -649,6 +664,9 @@
                 clock: '',
                 today: '',
                 audioCtx: null,
+                // Id of the container the live scanner is reading into. Every
+                // start() mints a new one - see startCamera().
+                readerId: 'gate-reader',
                 search: @js($search),
                 logs: @js($logs),
                 stats: @js(['inside' => $insideCount, 'today' => $todayCount]),
@@ -831,9 +849,8 @@
 
                     // A camera failure is a scanner fault, never a scan
                     // result: it must not overwrite the pass already on
-                    // screen (or flip x-show mid-transition and strand the
-                    // card hidden), so it only speaks when nothing was
-                    // scanned yet.
+                    // screen, so it only speaks when nothing was scanned
+                    // yet.
                     if (typeof Html5Qrcode === 'undefined') {
                         if (!this.result) {
                             this.result = {
@@ -847,12 +864,29 @@
                         return;
                     }
 
-                    const box = document.getElementById('gate-reader');
-                    box.classList.remove('hidden');
+                    // html5-qrcode binds its internals to the id it is given,
+                    // and a second start() on an id it has already stopped
+                    // never settles: the button said "Start camera" and the
+                    // camera stayed dark until the page was reloaded. So each
+                    // attempt gets its own container and id, and the old one
+                    // is thrown away. The gate-reader class comes along so the
+                    // viewfinder styling above follows the new container.
+                    const previous = document.getElementById(this.readerId);
+                    const box = document.createElement('div');
 
-                    this.scanner = new Html5Qrcode('gate-reader');
+                    this.readerId = 'gate-reader-' + Date.now();
+                    box.id = this.readerId;
+                    box.className = 'gate-reader';
+
+                    if (previous) {
+                        previous.replaceWith(box);
+                    } else {
+                        document.getElementById('gate-reader')?.appendChild(box);
+                    }
 
                     try {
+                        this.scanner = new Html5Qrcode(this.readerId);
+
                         await this.scanner.start(
                             { facingMode: 'environment' },
                             { fps: 10, qrbox: { width: 230, height: 230 } },
@@ -882,14 +916,16 @@
 
                     if (!this.scanner) return;
 
+                    // Only stop(): clear() would strip the container the next
+                    // start() has already replaced, and the element is thrown
+                    // away anyway.
                     try {
                         await this.scanner.stop();
-                        this.scanner.clear();
                     } catch (error) {}
 
                     this.scanner = null;
 
-                    const box = document.getElementById('gate-reader');
+                    const box = document.getElementById(this.readerId);
                     if (box) box.classList.add('hidden');
                 },
 
