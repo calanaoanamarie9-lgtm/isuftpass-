@@ -11,6 +11,7 @@ use App\Support\AppointmentSweep;
 use App\Support\CheckInList;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 /**
  * The scan endpoint behind "QR Scanner & Check-in", served to all seven
@@ -45,6 +46,14 @@ class QrCheckInController extends Controller
 
         $office = auth()->user()->officeScope();
         $token = $this->extractToken($data['token']);
+
+        // Both identifiers this desk understands — the appointment's qr_token
+        // and the student's pass_token — are uuid columns, so a typed
+        // reference or a stray keystroke is answered here instead of being
+        // sent to Postgres as an invalid uuid cast.
+        if (! Str::isUuid($token)) {
+            return $this->rejected('This QR does not match any appointment or student pass.');
+        }
 
         // An appointment pass carries /verify/appointment/{qr_token}.
         $appointment = Appointment::query()

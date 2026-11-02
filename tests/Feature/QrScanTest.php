@@ -7,6 +7,7 @@ use App\Models\GateLog;
 use App\Models\User;
 use App\Support\QrUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class QrScanTest extends TestCase
@@ -112,6 +113,30 @@ class QrScanTest extends TestCase
         $this->get(route('verify.pass', ['token' => '99999999-8888-7777-6666-555555555555']))
             ->assertNotFound()
             ->assertSee('Invalid QR Code');
+    }
+
+    /**
+     * A hand-typed or truncated URL carries text, not a uuid. pass_token is a
+     * uuid column, so the page must answer with the ordinary "not registered"
+     * screen rather than letting Postgres raise a cast error.
+     */
+    public function test_a_non_uuid_pass_token_shows_not_found(): void
+    {
+        $queries = [];
+
+        DB::listen(function ($query) use (&$queries) {
+            $queries[] = $query->sql;
+        });
+
+        $this->get(route('verify.pass', ['token' => 'not-a-real-token']))
+            ->assertNotFound()
+            ->assertSee('Invalid QR Code');
+
+        $this->assertSame(
+            [],
+            array_values(array_filter($queries, fn (string $sql) => str_contains($sql, 'pass_token'))),
+            "a non-uuid pass token must never be compared against the uuid column:\n".implode("\n", $queries)
+        );
     }
 
     public function test_staff_scanning_pass_is_redirected_to_registrar_verification(): void

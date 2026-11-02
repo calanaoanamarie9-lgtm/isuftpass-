@@ -236,9 +236,13 @@ class GateController extends Controller
             return $this->appointmentPass($appointment);
         }
 
-        $profile = StudentProfile::with('user')
-            ->where('pass_token', $token)
-            ->first();
+        // pass_token is a uuid column exactly like qr_token, so a typed
+        // reference, a claim link or a stray keystroke must never be compared
+        // against it: Postgres answers with a cast error instead of "no
+        // match", and the guard reads a SQLSTATE on the scanner screen.
+        $profile = Str::isUuid($token)
+            ? StudentProfile::with('user')->where('pass_token', $token)->first()
+            : null;
 
         if ($profile) {
             return $this->studentPass($profile);

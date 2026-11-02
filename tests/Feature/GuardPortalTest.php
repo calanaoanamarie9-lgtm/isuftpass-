@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Visitor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -386,6 +387,41 @@ class GuardPortalTest extends TestCase
             ->assertJsonPath('pass.reference', $appointment->reference_code)
             ->assertJsonPath('valid', false)
             ->assertJsonStructure(['passHtml']);
+    }
+
+    /**
+     * A stray keystroke, a half-typed reference or a pasted sentence reaches
+     * the desk too. pass_token and qr_token are uuid columns, so nothing that
+     * is not a uuid may be compared against them: Postgres answers with a
+     * "invalid input syntax for type uuid" error and the guard reads a
+     * SQLSTATE on the scanner screen instead of "no pass found".
+     */
+    public function test_a_non_uuid_scan_is_refused_without_reaching_a_uuid_column(): void
+    {
+        $queries = [];
+
+        DB::listen(function ($query) use (&$queries) {
+            $queries[] = $query->sql;
+        });
+
+        $this->actingAs($this->guard())
+            ->postJson('/guard/scan', ['token' => 'not-a-real-pass'])
+            ->assertOk()
+            ->assertJsonPath('valid', false)
+            ->assertJsonPath('pass', null)
+            ->assertJsonPath('passHtml', null)
+            ->assertJsonPath('message', 'No pass found for this QR code.');
+
+        $uuidColumns = array_filter(
+            $queries,
+            fn (string $sql) => str_contains($sql, 'pass_token') || str_contains($sql, 'qr_token')
+        );
+
+        $this->assertSame(
+            [],
+            array_values($uuidColumns),
+            "a non-uuid scan must never be compared against a uuid column:\n".implode("\n", $uuidColumns)
+        );
     }
 
     public function test_a_digital_id_qr_is_verified(): void

@@ -28,11 +28,16 @@ class VerifyController extends Controller
 {
     public function pass(Request $request, string $token)
     {
-        $profile = StudentProfile::query()
-            ->where('pass_token', $token)
-            ->whereHas('user', fn ($q) => $q->where('role', 'student'))
-            ->with(['user.studentProfile'])
-            ->first();
+        // pass_token is a uuid column: a hand-typed URL has to be refused
+        // here, before Postgres is asked to compare text with a uuid and
+        // answers with a cast error instead of the "not registered" page.
+        $profile = Str::isUuid($token)
+            ? StudentProfile::query()
+                ->where('pass_token', $token)
+                ->whereHas('user', fn ($q) => $q->where('role', 'student'))
+                ->with(['user.studentProfile'])
+                ->first()
+            : null;
 
         if (! $profile) {
             return response()->view('verify.invalid', [

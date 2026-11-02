@@ -6,6 +6,7 @@ use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -169,10 +170,15 @@ class WorkspaceQrCheckInTest extends TestCase
     public function test_a_students_digital_id_checks_them_into_todays_visit(): void
     {
         $appointment = $this->makeAppointment('Library');
-        $appointment->user->studentProfile()->create(['pass_token' => 'pass-token-library-1']);
+
+        // pass_token is a uuid column on the real schema, so the fixture is a
+        // uuid too: a desk only ever compares a uuid against it (the lookup is
+        // skipped for anything else, or Postgres answers with a cast error).
+        $passToken = (string) Str::uuid();
+        $appointment->user->studentProfile()->create(['pass_token' => $passToken]);
 
         $this->actingAs($this->makeStaff('Library', 'library'))
-            ->postJson('/library/qr/check-in', ['token' => 'pass-token-library-1'])
+            ->postJson('/library/qr/check-in', ['token' => $passToken])
             ->assertOk()
             ->assertJsonPath('valid', true)
             ->assertJsonPath('checkedIn', true)
@@ -184,10 +190,11 @@ class WorkspaceQrCheckInTest extends TestCase
     public function test_a_digital_id_without_a_visit_today_says_so_and_writes_nothing(): void
     {
         $appointment = $this->makeAppointment('SSC', ['date' => now()->addDays(2)->toDateString()]);
-        $appointment->user->studentProfile()->create(['pass_token' => 'pass-token-osas-later']);
+        $passToken = (string) Str::uuid();
+        $appointment->user->studentProfile()->create(['pass_token' => $passToken]);
 
         $this->actingAs($this->makeStaff('SSC', 'ssc'))
-            ->postJson('/ssc/qr/check-in', ['token' => 'pass-token-osas-later'])
+            ->postJson('/ssc/qr/check-in', ['token' => $passToken])
             ->assertOk()
             ->assertJsonPath('valid', false)
             ->assertJsonPath('checkedIn', false)
