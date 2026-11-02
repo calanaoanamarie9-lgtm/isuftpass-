@@ -79,26 +79,89 @@ class GuardPortalTest extends TestCase
     |--------------------------------------------------------------------------
     */
 
-    public function test_the_scanner_is_the_guard_dashboard(): void
+    public function test_the_guard_dashboard_is_an_overview_of_the_day(): void
     {
         $this->actingAs($this->guard())
             ->get('/guard')
             ->assertOk()
-            ->assertSee('Gate Scanner & Check-in')
-            ->assertSee('Daily Gate Access Logs')
+            ->assertSee('Guard Dashboard')
+            ->assertSee('Total Expected Visitors')
+            ->assertSee('Checked-In Today')
+            ->assertSee('Scanner preview')
+            ->assertSee('Main Gate');
+    }
+
+    public function test_the_scan_pass_page_carries_the_camera_desk(): void
+    {
+        $this->actingAs($this->guard())
+            ->get('/guard/scanner')
+            ->assertOk()
+            ->assertSee('Scan Pass / QR Verification')
+            ->assertSee('Scan pass QR')
             ->assertSee('Start camera')
             ->assertSee('Main Gate');
     }
 
-    public function test_the_scanner_page_renders_exactly_one_sidebar(): void
+    public function test_the_logbook_page_lists_todays_verified_visitors(): void
+    {
+        $visitor = $this->visitor(['name' => 'Maria Santos']);
+
+        $this->actingAs($this->guard())
+            ->postJson('/guard/scan', ['token' => $visitor->token])
+            ->assertOk();
+
+        $this->actingAs($this->guard())
+            ->get('/guard/logbook')
+            ->assertOk()
+            ->assertSee('Daily Logbook')
+            ->assertSee('Maria Santos')
+            ->assertSee($visitor->reference_code)
+            ->assertSee('Inside');
+    }
+
+    public function test_the_logbook_feed_returns_todays_sessions(): void
+    {
+        $visitor = $this->visitor(['name' => 'Maria Santos']);
+
+        $this->actingAs($this->guard())
+            ->postJson('/guard/scan', ['token' => $visitor->token]);
+
+        $this->actingAs($this->guard())
+            ->getJson('/guard/logbook/data')
+            ->assertOk()
+            ->assertJsonPath('logs.0.person', 'Maria Santos')
+            ->assertJsonPath('logs.0.inside', true)
+            ->assertJsonPath('stats.today', 1)
+            ->assertJsonPath('stats.inside', 1);
+    }
+
+    public function test_the_guard_sidebar_navigates_the_three_desk_pages(): void
     {
         $response = $this->actingAs($this->guard())->get('/guard')->assertOk();
 
-        $this->assertSame(
-            1,
-            substr_count($response->getContent(), '<aside'),
-            'The guard scanner must render exactly one sidebar.'
-        );
+        $response->assertSee('Digital ID & Access Portal')
+            ->assertSee('Guard Station')
+            ->assertSee('Security / Gate Station')
+            ->assertSee(route('guard.dashboard'), false)
+            ->assertSee(route('guard.scanner'), false)
+            ->assertSee(route('guard.logbook'), false)
+            ->assertSee('Log Out')
+            ->assertDontSee('Manual Search');
+    }
+
+    public function test_each_desk_page_renders_exactly_one_sidebar(): void
+    {
+        $guard = $this->guard();
+
+        foreach (['/guard', '/guard/scanner', '/guard/logbook'] as $path) {
+            $response = $this->actingAs($guard)->get($path)->assertOk();
+
+            $this->assertSame(
+                1,
+                substr_count($response->getContent(), '<aside'),
+                $path.' must render exactly one sidebar.'
+            );
+        }
     }
 
     public function test_a_guard_lands_on_the_scanner_from_the_dashboard(): void
@@ -225,9 +288,9 @@ class GuardPortalTest extends TestCase
         $this->travelTo(Carbon::create(2026, 10, 13, 2, 0, 0, 'UTC'));
 
         $this->actingAs($this->guard())
-            ->get('/guard')
+            ->get('/guard/logbook')
             ->assertOk()
-            ->assertSee($visitor->name);
+            ->assertSee($visitor->name, false);
 
         $this->assertSame(1, GateLog::count());
     }
@@ -459,13 +522,13 @@ class GuardPortalTest extends TestCase
         $this->actingAs($guard)->postJson('/guard/scan', ['token' => $pedro->token]);
 
         $this->actingAs($guard)
-            ->get('/guard?q=Maria')
+            ->get('/guard/logbook?q=Maria')
             ->assertOk()
             ->assertSee('Maria Santos')
             ->assertDontSee('Pedro Penduko');
 
         $this->actingAs($guard)
-            ->get('/guard?q='.$maria->reference_code)
+            ->get('/guard/logbook?q='.$maria->reference_code)
             ->assertOk()
             ->assertSee('Maria Santos')
             ->assertDontSee('Pedro Penduko');

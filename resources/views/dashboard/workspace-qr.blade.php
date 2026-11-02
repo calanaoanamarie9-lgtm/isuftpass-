@@ -78,7 +78,7 @@
 
                     <h1 class="mt-3 text-2xl sm:text-3xl font-extrabold
                                text-gray-900">
-                        QR Scanner &amp; Check-in
+                        QR Pass Verification
                     </h1>
 
                     <p class="text-sm text-gray-500 mt-1">

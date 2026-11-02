@@ -1,132 +1,107 @@
 <x-app-layout>
 
-    <style>
-        /*
-         * The container is thrown away and rebuilt on every camera start
-         * (html5-qrcode never restarts cleanly on a container it has
-         * already used - see startCamera()), so the viewfinder styling is
-         * keyed to a class instead of the #gate-reader id, and position
-         * carries !important because the library forces an inline
-         * "position: relative" on whatever element it binds to - without
-         * it the container collapses to the height of its hidden canvas
-         * and the camera feed renders at zero height.
-         *
-         * The camera feed fills the viewfinder whatever the video's
-         * intrinsic size, and the library's own chrome stays out of it.
-         */
-        .gate-reader {
-            position: absolute !important;
-            inset: 0 !important;
-            background: #020617;
-            z-index: 10;
-        }
+    <div class="py-6 sm:py-8"
+         x-data="gateOverview({
+             inside: {{ $insideCount }},
+             today: {{ $todayCount }},
+             expected: {{ $expectedCount }},
+             logs: @js($logs),
+         })"
+         x-on:gate:scanned.window="absorb($event.detail)">
 
-        .gate-reader video {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
-            position: absolute;
-            inset: 0;
-        }
-
-        /* html5-qrcode names its chrome "<container id>__dashboard", and
-           the id changes with every container, so hide it by suffix. */
-        .gate-reader [id$="__dashboard"] {
-            display: none !important;
-        }
-
-        /* The sweep line that runs across the frame while scanning. */
-        @keyframes gate-sweep {
-            0%   { transform: translateY(0);    opacity: 0; }
-            12%  { opacity: 1; }
-            88%  { opacity: 1; }
-            100% { transform: translateY(1000%); opacity: 0; }
-        }
-    </style>
-
-    <div class="py-8" x-data="gateScanner()" x-on:beforeunload.window="stopCamera()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {{-- =============================================
                 HEADER — post identity + live clock
             ============================================== --}}
-            <div class="mb-7 flex flex-col sm:flex-row sm:items-end
-                        justify-between gap-5">
+            <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-5">
 
                 <div>
-                    <span class="inline-flex items-center gap-2 rounded-full
-                                 bg-slate-900 border border-slate-700 px-3.5 py-1.5
-                                 text-xs font-bold uppercase tracking-widest
-                                 text-amber-300">
+                    <span class="inline-flex items-center gap-2 rounded-full bg-[#12347d]
+                                 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-widest
+                                 text-blue-100 ring-1 ring-white/10">
 
                         <span class="w-2 h-2 rounded-full"
-                              :class="cameraOn
-                                  ? 'bg-emerald-400 animate-pulse'
-                                  : 'bg-slate-500'"></span>
+                              :class="cameraOnline ? 'bg-emerald-400 animate-pulse' : 'bg-blue-300/60'"></span>
 
-                        Campus Security · {{ $gateName }}
+                        Security / Gate Station · {{ $gateName }}
                     </span>
 
-                    <h1 class="mt-3 text-2xl sm:text-3xl font-extrabold
-                               text-gray-900">
-                        Gate Scanner &amp; Check-in
+                    <h1 class="mt-3 text-2xl sm:text-3xl font-extrabold text-gray-900">
+                        Guard Dashboard
                     </h1>
 
                     <p class="text-sm text-gray-500 mt-1">
-                        Scan a Visitor Gate Pass, a Digital Claim Pass, an
-                        appointment pass or a Digital ID to verify it and log
-                        the entry or exit.
+                        Today's gate traffic at {{ $gateName }}. Scan a pass to verify
+                        it and record the entry or exit.
                     </p>
                 </div>
 
+                <div class="flex items-stretch gap-3">
 
-                {{-- Live clock — the desk always knows the time of a scan --}}
-                <div class="shrink-0 rounded-2xl bg-white border border-gray-100
-                            shadow-sm px-5 py-4 text-right min-w-[10.5rem]">
+                    {{-- Live clock — the desk always knows the time of a scan --}}
+                    <div class="shrink-0 rounded-2xl bg-white border border-gray-100
+                                shadow-sm px-5 py-4 text-right min-w-[10.5rem]">
+                        <p class="text-2xl font-extrabold text-gray-900 tabular-nums leading-none"
+                           x-text="clock">—</p>
+                        <p class="text-xs text-gray-500 mt-1.5" x-text="today">Today</p>
+                    </div>
 
-                    <p class="text-2xl font-extrabold text-gray-900
-                              tabular-nums leading-none"
-                       x-text="clock">—</p>
-
-                    <p class="text-xs text-gray-500 mt-1.5" x-text="today">Today</p>
+                    <a href="{{ route('guard.scanner') }}"
+                       class="shrink-0 inline-flex flex-col justify-center gap-1 rounded-2xl
+                              bg-[#12347d] px-5 py-4 text-white shadow-sm
+                              hover:bg-[#0f2b68] transition">
+                        <span class="inline-flex items-center gap-2 text-sm font-bold">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M4 7V5a1 1 0 011-1h2M20 7V5a1 1 0 00-1-1h-2M4 17v2a1 1 0 001 1h2M20 17v2a1 1 0 01-1 1h-2M8 12h8"/>
+                            </svg>
+                            Scan pass
+                        </span>
+                        <span class="text-[11px] text-blue-200">Open the QR scanner</span>
+                    </a>
 
                 </div>
-
             </div>
 
 
             {{-- =============================================
                 STATS
             ============================================== --}}
-            <div class="mb-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div class="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
 
-                <div class="rounded-2xl bg-white border border-gray-100
-                            shadow-sm px-5 py-4">
-                    <p class="text-3xl font-extrabold text-emerald-600
-                              leading-none tabular-nums"
-                       x-text="stats.inside">{{ $insideCount }}</p>
-                    <p class="text-xs text-gray-500 mt-1.5 font-semibold
-                              uppercase tracking-wide">
-                        Inside now
+                <div class="rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-4">
+                    <p class="text-3xl font-extrabold text-blue-700 leading-none tabular-nums"
+                       x-text="stats.expected">{{ $expectedCount }}</p>
+                    <p class="text-[11px] text-gray-500 mt-2 font-bold uppercase tracking-wide">
+                        Total Expected Visitors
                     </p>
                 </div>
 
-                <div class="rounded-2xl bg-white border border-gray-100
-                            shadow-sm px-5 py-4">
-                    <p class="text-3xl font-extrabold text-slate-900
-                              leading-none tabular-nums"
+                <div class="rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-4">
+                    <p class="text-3xl font-extrabold text-slate-900 leading-none tabular-nums"
                        x-text="stats.today">{{ $todayCount }}</p>
-                    <p class="text-xs text-gray-500 mt-1.5 font-semibold
-                              uppercase tracking-wide">
-                        Gate sessions today
+                    <p class="text-[11px] text-gray-500 mt-2 font-bold uppercase tracking-wide">
+                        Checked-In Today
                     </p>
                 </div>
 
-                <div class="col-span-2 sm:col-span-1 rounded-2xl bg-slate-900
-                            shadow-sm px-5 py-4 text-white">
+                <div class="rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-4">
+                    <p class="text-3xl font-extrabold text-emerald-600 leading-none tabular-nums"
+                       x-text="stats.inside">{{ $insideCount }}</p>
+                    <p class="text-[11px] text-gray-500 mt-2 font-bold uppercase tracking-wide">
+                        Inside Campus Now
+                    </p>
+                </div>
+
+                <div class="rounded-2xl bg-[#12347d] shadow-sm px-5 py-4 text-white">
                     <p class="text-sm font-bold leading-none">{{ $gateName }}</p>
-                    <p class="text-xs text-white/60 mt-1.5">
-                        Active post · campus security desk
+                    <p class="text-[11px] text-blue-200 mt-2">
+                        Active post · {{ auth()->user()->name }}
+                    </p>
+                    <p class="mt-2 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        On duty
                     </p>
                 </div>
 
@@ -136,416 +111,69 @@
             <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
 
                 {{-- =============================================
-                    SCANNER
+                    CAMERA / SCANNER PREVIEW
                 ============================================== --}}
-                <section id="gate-scan"
-                         class="lg:col-span-3 bg-white rounded-2xl
-                                border border-gray-100 shadow-sm overflow-hidden">
+                <section class="lg:col-span-3 bg-white rounded-2xl border border-gray-100
+                                shadow-sm overflow-hidden">
 
-                    {{-- Card header --}}
-                    <div class="px-6 py-5 border-b border-gray-100
-                                flex flex-wrap items-center justify-between
-                                gap-3">
-
+                    <div class="px-5 sm:px-6 py-4 border-b border-gray-100
+                                flex items-center justify-between gap-3">
                         <div>
-                            <h2 class="font-bold text-gray-900">Scan pass QR</h2>
+                            <h2 class="font-bold text-gray-900">Scanner preview</h2>
                             <p class="text-xs text-gray-500 mt-0.5">
-                                Hold the pass inside the frame, or use the USB scanner below.
+                                The gate camera, live. Scanning happens on the Scan Pass page.
                             </p>
                         </div>
 
-
-                        <div class="flex items-center gap-2">
-
-                            {{-- Audible feedback so the operator need not look --}}
-                            <button type="button"
-                                    @click="soundOn = !soundOn"
-                                    :aria-pressed="soundOn"
-                                    :title="soundOn ? 'Sound feedback on' : 'Sound feedback off'"
-                                    class="shrink-0 rounded-xl px-3 py-2 text-xs
-                                           font-bold transition
-                                           focus:outline-none focus:ring-2
-                                           focus:ring-blue-500"
-                                    :class="soundOn
-                                        ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100 hover:bg-blue-100'
-                                        : 'bg-gray-50 text-gray-500 ring-1 ring-gray-200 hover:bg-gray-100'">
-                                <span class="inline-flex items-center gap-1.5">
-                                    <svg x-show="soundOn" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z"/></svg>
-                                    <svg x-show="!soundOn" style="display: none" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 9.75 19.5 12m0 0 2.25 2.25M19.5 12l2.25-2.25m-10.5-6 4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z"/></svg>
-                                    <span x-text="soundOn ? 'Sound' : 'Muted'">Sound</span>
-                                </span>
-                            </button>
-
-
-                            <button type="button"
-                                    @click="cameraOn ? stopCamera() : startCamera()"
-                                    class="shrink-0 rounded-xl px-4 py-2 text-xs
-                                           font-bold transition
-                                           focus:outline-none focus:ring-2
-                                           focus:ring-blue-500"
-                                    :class="cameraOn
-                                        ? 'bg-red-50 text-red-700 ring-1 ring-red-200 hover:bg-red-100'
-                                        : 'bg-blue-700 text-white hover:bg-blue-800'">
-                                <span x-text="cameraOn ? 'Stop camera' : 'Start camera'"></span>
-                            </button>
-
-                        </div>
-
+                        <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1
+                                     text-[10px] font-bold uppercase tracking-wider ring-1"
+                              :class="cameraOnline
+                                  ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                                  : 'bg-gray-50 text-gray-500 ring-gray-200'">
+                            <span class="w-1.5 h-1.5 rounded-full"
+                                  :class="cameraOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'"></span>
+                            <span x-text="cameraOnline ? 'Camera live' : 'Camera off'">Camera off</span>
+                        </span>
                     </div>
 
-
-                    <div class="p-6 space-y-5">
-
-                        {{-- VIEWFINDER — always visible; the camera fills it --}}
-                        <div class="relative aspect-[4/3] overflow-hidden
-                                    rounded-2xl bg-slate-950
-                                    ring-1 transition-colors duration-300"
-                             :class="result
-                                 ? (result.valid
-                                     ? 'ring-4 ring-emerald-400/70'
-                                     : 'ring-4 ring-red-400/70')
-                                 : 'ring-white/10'">
-
-                            <div id="gate-reader" class="hidden gate-reader"></div>
-
-
-                            {{-- Corner brackets --}}
-                            <div class="pointer-events-none absolute inset-0 z-10">
-
-                                <span class="absolute left-4 top-4 h-9 w-9
-                                             border-l-[3px] border-t-[3px]
-                                             rounded-tl-lg transition-colors"
-                                      :class="cameraOn
-                                          ? 'border-emerald-400'
-                                          : 'border-white/25'"></span>
-
-                                <span class="absolute right-4 top-4 h-9 w-9
-                                             border-r-[3px] border-t-[3px]
-                                             rounded-tr-lg transition-colors"
-                                      :class="cameraOn
-                                          ? 'border-emerald-400'
-                                          : 'border-white/25'"></span>
-
-                                <span class="absolute left-4 bottom-4 h-9 w-9
-                                             border-l-[3px] border-b-[3px]
-                                             rounded-bl-lg transition-colors"
-                                      :class="cameraOn
-                                          ? 'border-emerald-400'
-                                          : 'border-white/25'"></span>
-
-                                <span class="absolute right-4 bottom-4 h-9 w-9
-                                             border-r-[3px] border-b-[3px]
-                                             rounded-br-lg transition-colors"
-                                      :class="cameraOn
-                                          ? 'border-emerald-400'
-                                          : 'border-white/25'"></span>
-
-                                {{-- Sweep line while the camera is live --}}
-                                <div x-show="cameraOn"
-                                     x-transition.opacity
-                                     class="absolute left-[18%] right-[18%]
-                                            top-[12%] h-[3px] rounded-full
-                                            bg-emerald-400/90
-                                            shadow-[0_0_14px_3px_rgba(52,211,153,0.55)]"
-                                     style="animation: gate-sweep 2.6s ease-in-out infinite;">
-                                </div>
-
-                            </div>
-
-
-                            {{-- Camera-off placeholder --}}
-                            <div x-show="!cameraOn"
-                                 x-transition.opacity
-                                 class="absolute inset-0 z-0 flex flex-col
-                                        items-center justify-center gap-4
-                                        text-center px-6">
-
-                                <div class="w-16 h-16 rounded-2xl bg-white/10
-                                            border border-white/15
-                                            flex items-center justify-center">
-
-                                    <svg class="w-8 h-8 text-white/70"
-                                         fill="none" stroke="currentColor"
-                                         viewBox="0 0 24 24">
-                                        <path stroke-linecap="round"
-                                              stroke-linejoin="round"
-                                              stroke-width="1.8"
-                                              d="M3 9a2 2 0 012-2h.93a2 2 0 001.66-.9l.82-1.2A2 2 0 0110.07 4h3.86a2 2 0 011.66.9l.82 1.2a2 2 0 001.66.9H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z
-                                                 M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    </svg>
-
-                                </div>
-
-
-                                <div>
-                                    <p class="text-sm font-bold text-white">
-                                        Camera is off
-                                    </p>
-
-                                    <p class="text-xs text-white/55 mt-1
-                                              max-w-xs">
-                                        Start the camera to scan passes
-                                        hands-free or use the USB scanner below.
-                                    </p>
-                                </div>
-
-
-                                <button type="button"
-                                        @click="startCamera()"
-                                        class="rounded-xl bg-white px-5 py-2.5
-                                               text-sm font-bold text-slate-900
-                                               hover:bg-slate-100 transition
-                                               shadow-md">
-                                    Start camera
-                                </button>
-
-                            </div>
-
-                        </div>
-
-
-                        {{-- Status line --}}
-                        <div class="flex flex-wrap items-center justify-between
-                                    gap-3">
-
-                            <span class="inline-flex items-center gap-2
-                                         rounded-full px-3 py-1.5 text-xs
-                                         font-bold ring-1"
-                                  :class="cameraOn
-                                      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                                      : 'bg-gray-50 text-gray-500 ring-gray-200'">
-
-                                <span class="w-1.5 h-1.5 rounded-full"
-                                      :class="cameraOn
-                                          ? 'bg-emerald-500 animate-pulse'
-                                          : 'bg-gray-400'"></span>
-
-                                <span x-text="cameraOn
-                                    ? 'Scanning — hold the pass steady'
-                                    : 'Camera off — use the USB scanner below'">
-                                    Camera off — use the USB scanner below
-                                </span>
-                            </span>
-
-                            <span class="text-xs text-gray-400">
-                                Visitor · Claim · Appointment · Digital ID
-                            </span>
-
-                        </div>
-
-
-                        {{-- MANUAL ENTRY (USB scanners, pasted links) --}}
-                        <div class="rounded-2xl border border-gray-100
-                                    bg-slate-50 p-4">
-
-                            <label for="gate-token"
-                                   class="block text-xs font-bold text-gray-500
-                                          uppercase tracking-wide mb-2">
-                                USB scanner or pasted link
-                            </label>
-
-                            <div class="flex flex-col sm:flex-row gap-3">
-
-                                <input type="text"
-                                       id="gate-token"
-                                       x-ref="token"
-                                       x-model="token"
-                                       @keyup.enter="submit()"
-                                       placeholder="Scan or paste the QR link / token"
-                                       autocomplete="off"
-                                       class="flex-1 rounded-xl border
-                                              border-gray-300 bg-white px-4
-                                              py-2.5 text-sm font-mono
-                                              shadow-sm focus:border-blue-500
-                                              focus:ring-blue-500">
-
-                                <button type="button"
-                                        @click="submit()"
-                                        :disabled="!token || loading"
-                                        class="rounded-xl bg-blue-700 px-6
-                                               py-2.5 text-sm font-bold
-                                               text-white hover:bg-blue-800
-                                               transition disabled:opacity-50
-                                               disabled:cursor-not-allowed
-                                               shrink-0">
-                                    <span x-text="loading ? 'Verifying…' : 'Verify pass'">Verify pass</span>
-                                </button>
-
-                            </div>
-
-                        </div>
-
-
-                        {{-- RESULT — the scanned pass, and nothing else --}}
-                        <div x-show="result"
-                             x-transition
-                             class="rounded-2xl border p-5"
-                             :class="panelClass">
-
-                            <div class="flex items-start gap-3">
-
-                                <span class="shrink-0 w-9 h-9 rounded-full
-                                             bg-white/80 flex items-center
-                                             justify-center text-base
-                                             font-black leading-none"
-                                      x-text="!result ? '' : (result.valid ? '✓' : '✕')"></span>
-
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-bold"
-                                       x-text="result?.message"></p>
-
-                                    <p x-show="result?.outcome"
-                                       class="text-xs font-semibold opacity-80 mt-1"
-                                       x-text="result?.outcome
-                                           ? (result.outcome.direction === 'out'
-                                               ? 'Time in ' + (result.outcome.timeIn || '—') + ' · Time out ' + result.outcome.timeOut
-                                               : 'Time in ' + result.outcome.timeIn + ' · still inside')
-                                           : ''"></p>
-                                </div>
-
-                                <span x-show="result?.pass?.statusLabel"
-                                      x-text="result?.pass?.statusLabel"
-                                      class="shrink-0 rounded-full bg-white/70
-                                             px-2.5 py-1 text-[10px] font-bold
-                                             uppercase tracking-wide
-                                             ring-1 ring-current">
-                                </span>
-
-                            </div>
-
-
-                            <template x-if="result?.pass">
-                                <div class="mt-4 flex items-start gap-4">
-
-                                    <div class="shrink-0 w-16 h-16 rounded-2xl
-                                                overflow-hidden bg-white/80
-                                                flex items-center justify-center">
-                                        <template x-if="result.pass.photoUrl">
-                                            <img :src="result.pass.photoUrl"
-                                                 alt="Profile Picture"
-                                                 class="w-full h-full object-cover">
-                                        </template>
-                                        <template x-if="!result.pass.photoUrl">
-                                            <span class="text-2xl font-black"
-                                                  x-text="result.pass.initial"></span>
-                                        </template>
-                                    </div>
-
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-lg font-extrabold leading-tight"
-                                           x-text="result.pass.name"></p>
-
-                                        <p class="text-xs font-semibold opacity-70 mt-0.5"
-                                           x-text="result.pass.label + ' · ' + result.pass.reference"></p>
-                                    </div>
-
-                                </div>
-                            </template>
-
-
-                            <dl x-show="result?.pass"
-                               class="mt-4 grid grid-cols-1 sm:grid-cols-2
-                                      gap-x-6 gap-y-2 text-xs">
-
-                                <div class="flex justify-between gap-3">
-                                    <dt class="font-semibold opacity-70">ID / Reference</dt>
-                                    <dd class="font-bold text-right"
-                                        x-text="result?.pass?.personId"></dd>
-                                </div>
-
-                                <div class="flex justify-between gap-3">
-                                    <dt class="font-semibold opacity-70">Destination</dt>
-                                    <dd class="font-bold text-right"
-                                        x-text="result?.pass?.destination"></dd>
-                                </div>
-
-                                <div class="flex justify-between gap-3 sm:col-span-2
-                                            border-t border-black/10 pt-2">
-                                    <dt class="font-semibold opacity-70">Purpose</dt>
-                                    <dd class="font-bold text-right"
-                                        x-text="result?.pass?.purpose"></dd>
-                                </div>
-
-                            </dl>
-
-                        </div>
-
+                    <div class="p-4 sm:p-5">
+                        <x-gate-scanner compact :gate-name="$gateName" />
                     </div>
-
                 </section>
 
 
                 {{-- =============================================
-                    DAILY GATE ACCESS LOGS
+                    TODAY AT A GLANCE — latest entries
                 ============================================== --}}
-                <section id="gate-logs"
-                         class="lg:col-span-2 bg-white rounded-2xl
-                                border border-gray-100 shadow-sm overflow-hidden">
+                <section class="lg:col-span-2 bg-white rounded-2xl border border-gray-100
+                                shadow-sm overflow-hidden">
 
-                    <div class="px-6 py-5 border-b border-gray-100">
-                        <div class="flex items-center justify-between gap-3">
-                            <div>
-                                <h2 class="font-bold text-gray-900">Daily Gate Access Logs</h2>
-                                <p class="text-xs text-gray-500 mt-0.5">
-                                    Today's scans at {{ $gateName }}
-                                </p>
-                            </div>
-
-                            <span class="shrink-0 rounded-full bg-emerald-50
-                                         px-3 py-1 text-xs font-bold
-                                         text-emerald-700 ring-1 ring-emerald-200"
-                                  x-text="filteredLogs.length + (filteredLogs.length === 1 ? ' entry' : ' entries')">
-                                {{ count($logs) }} {{ Str::plural('entry', count($logs)) }}
-                            </span>
+                    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+                        <div>
+                            <h2 class="font-bold text-gray-900">Latest gate activity</h2>
+                            <p class="text-xs text-gray-500 mt-0.5">Most recent arrivals and exits</p>
                         </div>
 
-                        {{-- Manual search by name or reference code --}}
-                        <form id="gate-search"
-                              method="GET"
-                              action="{{ route('guard.dashboard') }}"
-                              class="mt-4">
-                            <div class="relative">
-                                <span class="absolute inset-y-0 left-0 pl-3
-                                             flex items-center text-gray-400">
-                                    <svg class="w-4 h-4" fill="none"
-                                         stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round"
-                                              stroke-linejoin="round"
-                                              stroke-width="2"
-                                              d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
-                                    </svg>
-                                </span>
-
-                                <input type="search"
-                                       name="q"
-                                       x-model="search"
-                                       value="{{ $search }}"
-                                       placeholder="Search by name or reference code"
-                                       autocomplete="off"
-                                       class="w-full rounded-xl border border-gray-300
-                                              bg-gray-50 pl-9 pr-4 py-2.5 text-sm
-                                              focus:bg-white focus:border-blue-500
-                                              focus:ring-blue-500">
-                            </div>
-                        </form>
+                        <a href="{{ route('guard.logbook') }}"
+                           class="text-[11px] font-bold text-blue-700 hover:text-blue-900">
+                            Full logbook →
+                        </a>
                     </div>
 
+                    <div class="divide-y divide-gray-50 max-h-[27rem] overflow-y-auto">
 
-                    <div class="divide-y divide-gray-50 max-h-[34rem] overflow-y-auto">
-
-                        <template x-for="log in filteredLogs" :key="log.id">
-                            <div class="px-6 py-4">
+                        <template x-for="log in recent" :key="log.id">
+                            <div class="px-5 py-3.5">
                                 <div class="flex items-center justify-between gap-3">
                                     <div class="min-w-0">
                                         <p class="text-sm font-semibold text-gray-900 truncate"
                                            x-text="log.person || '—'"></p>
-                                        <p class="text-xs text-gray-500 truncate"
+                                        <p class="text-[11px] text-gray-500 truncate"
                                            x-text="(log.typeLabel || 'Gate Pass') + ' · ' + (log.reference || '—')"></p>
                                     </div>
 
-                                    <span class="shrink-0 rounded-full px-2.5 py-1
-                                                 text-[10px] font-bold uppercase
-                                                 tracking-wide ring-1"
+                                    <span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold
+                                                 uppercase tracking-wide ring-1"
                                           :class="log.inside
                                               ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
                                               : 'bg-slate-100 text-slate-600 ring-slate-200'"
@@ -553,38 +181,26 @@
                                     </span>
                                 </div>
 
-                                <div class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1
-                                            text-xs text-gray-500">
-                                    <span>In: <span class="font-bold text-gray-700"
-                                                 x-text="log.timeIn || '—'"></span></span>
-                                    <span>Out: <span class="font-bold text-gray-700"
-                                                  x-text="log.timeOut || '—'"></span></span>
-                                    <span class="truncate" x-show="log.destination"
-                                          x-text="'→ ' + log.destination"></span>
+                                <div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1
+                                            text-[11px] text-gray-500">
+                                    <span>In: <span class="font-bold text-gray-700" x-text="log.timeIn || '—'"></span></span>
+                                    <span>Out: <span class="font-bold text-gray-700" x-text="log.timeOut || '—'"></span></span>
                                 </div>
                             </div>
                         </template>
 
-
-                        {{-- Empty state --}}
-                        <div x-show="!filteredLogs.length" class="px-6 py-12 text-center">
-                            <div class="mx-auto w-12 h-12 rounded-2xl bg-slate-100
-                                        flex items-center justify-center mb-3">
-                                <svg class="w-6 h-6 text-slate-400" fill="none"
-                                     stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round"
-                                          stroke-linejoin="round"
-                                          stroke-width="1.8"
+                        <div x-show="!recent.length" class="px-5 py-12 text-center">
+                            <div class="mx-auto w-12 h-12 rounded-2xl bg-slate-100 flex items-center
+                                        justify-center mb-3">
+                                <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
                                           d="M9 17v-6h13M9 17H4a1 1 0 01-1-1V5a1 1 0 011-1h16a1 1 0 011 1v6M9 17l3 3 7-7"/>
                                 </svg>
                             </div>
-
-                            <p class="text-sm font-semibold text-gray-600"
-                               x-text="search ? 'No matching scans today' : 'No gate scans yet today'"></p>
-
+                            <p class="text-sm font-semibold text-gray-600">No gate scans yet today</p>
                             <p class="text-xs text-gray-400 mt-1">
-                                Every verified pass appears here as an entry
-                                and an exit.
+                                Verified passes appear here as they are scanned.
                             </p>
                         </div>
 
@@ -595,88 +211,49 @@
             </div>
 
 
-            {{-- =============================================
-                SCANNED APPOINTMENT PASS
-                The office's own Appointment Verification Pass,
-                rendered server-side from the one shared card —
-                reference, office, scheduled time, purpose and the
-                status as it stands right now (Confirmed, Completed,
-                or Cancelled because the hour ran out).
-            ============================================== --}}
-            {{-- No x-show here on purpose: a scan result must appear the
-                 instant it arrives. Shipped Alpine runs x-show's show and
-                 hide through requestAnimationFrame (timers while the tab is
-                 hidden), so a hide queued for a later frame can outlive the
-                 show that follows it — or the show never runs at all while
-                 the window is not painting — and the card stays gone even
-                 though passHtml is present. The guard would scan a valid
-                 pass and see nothing. x-if is structural: it mounts the
-                 card when passHtml exists and tears it down when it does
-                 not, in a microtask, so there is no deferred show/hide
-                 state left to strand. --}}
-            <template x-if="result?.passHtml">
-                <section id="gate-pass" class="mt-6">
+            {{-- Quick destinations --}}
+            <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
 
-                    <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <a href="{{ route('guard.scanner') }}"
+                   class="group rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-4
+                          hover:border-blue-200 hover:shadow transition">
+                    <p class="text-sm font-bold text-gray-900 group-hover:text-blue-700">Scan Pass / QR Verification</p>
+                    <p class="text-xs text-gray-500 mt-1">Camera or USB scan of a visitor, claim, appointment or ID pass.</p>
+                </a>
 
-                        <div class="flex items-center gap-2">
+                <a href="{{ route('guard.logbook') }}"
+                   class="group rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-4
+                          hover:border-blue-200 hover:shadow transition">
+                    <p class="text-sm font-bold text-gray-900 group-hover:text-blue-700">Daily Logbook</p>
+                    <p class="text-xs text-gray-500 mt-1">Today's complete audit trail of verified entries and exits.</p>
+                </a>
 
-                            <span class="w-2 h-2 rounded-full"
-                                  :class="result?.valid
-                                      ? 'bg-emerald-500'
-                                      : 'bg-red-500'"></span>
+                <a href="{{ route('guard.visitors.index') }}"
+                   class="group rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-4
+                          hover:border-blue-200 hover:shadow transition">
+                    <p class="text-sm font-bold text-gray-900 group-hover:text-blue-700">Visitor Gate Passes</p>
+                    <p class="text-xs text-gray-500 mt-1">Issue a pass for a walk-in guest or revoke one that is no longer valid.</p>
+                </a>
 
-                            <h2 class="text-sm font-extrabold uppercase
-                                       tracking-widest text-gray-500">
-                                Appointment Verification Pass
-                            </h2>
-
-                        </div>
-
-                        <span class="text-xs font-semibold text-gray-400">
-                            Scanned at {{ $gateName }}
-                        </span>
-
-                    </div>
-
-                    {{-- Trusted server-rendered HTML: the shared pass card --}}
-                    <div x-html="result?.passHtml"></div>
-
-                </section>
-            </template>
+            </div>
 
         </div>
     </div>
 
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
     <script>
-        function gateScanner() {
+        function gateOverview(initial) {
             return {
-                token: '',
-                loading: false,
-                result: null,
-                cameraOn: false,
-                scanner: null,
-                lastCode: '',
-                lastReadAt: 0,
-                soundOn: true,
+                stats: {
+                    inside: initial.inside,
+                    today: initial.today,
+                    expected: initial.expected,
+                },
+                logs: initial.logs || [],
                 clock: '',
                 today: '',
-                audioCtx: null,
-                // Id of the container the live scanner is reading into. Every
-                // start() mints a new one - see startCamera().
-                readerId: 'gate-reader',
-                search: @js($search),
-                logs: @js($logs),
-                stats: @js(['inside' => $insideCount, 'today' => $todayCount]),
+                cameraOnline: false,
+                timer: null,
 
-                /**
-                 * The desk clock keeps itself current — every time on screen
-                 * is read against it. It is pinned to campus time rather than
-                 * the browser's, so it always agrees with the log below it
-                 * (which is written in UTC and shown in campus time).
-                 */
                 init() {
                     const campus = 'Asia/Manila';
 
@@ -702,253 +279,52 @@
                     tick();
                     setInterval(tick, 1000);
 
-                    // Auto-start the camera for immediate scanning on login
-                    // (matches the original "immediate QR scanner" requirement)
-                    // Small delay lets the CDN library load and the DOM settle.
-                    setTimeout(() => this.startCamera(), 500);
+                    // Mirror the nested scanner's camera state into the badge.
+                    const sync = () => {
+                        const badge = document.querySelector('.gate-reader video');
 
-                    this.$nextTick(() => this.$refs.token?.focus());
+                        this.cameraOnline = Boolean(badge);
+                    };
+
+                    setInterval(sync, 1000);
+
+                    // Keep the numbers and the activity feed honest even when
+                    // the scan happened on the desk's other page.
+                    this.refresh();
+                    setInterval(() => this.refresh(), 15000);
                 },
 
-                /**
-                 * Live filter over the day's log — name or reference code,
-                 * case-insensitive, so the guard can type either.
-                 */
-                get filteredLogs() {
-                    const needle = (this.search || '').trim().toLowerCase();
-
-                    if (!needle) return this.logs;
-
-                    return this.logs.filter((log) =>
-                        (log.person || '').toLowerCase().includes(needle)
-                        || (log.reference || '').toLowerCase().includes(needle)
-                    );
+                get recent() {
+                    return this.logs.slice(0, 6);
                 },
 
-                get panelClass() {
-                    if (!this.result) return '';
+                absorb(detail) {
+                    if (!detail) return;
 
-                    return this.result.valid
-                        ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
-                        : 'bg-red-50 border-red-100 text-red-800';
+                    if (detail.stats) this.stats = detail.stats;
+                    if (Array.isArray(detail.logs)) this.logs = detail.logs;
                 },
 
-                /**
-                 * A rising pair for a valid pass, a low buzz for a rejection —
-                 * the operator can keep their eyes on the queue and still
-                 * hear the outcome.
-                 */
-                beep(kind) {
-                    if (!this.soundOn) return;
-
+                async refresh() {
                     try {
-                        const Ctx = window.AudioContext || window.webkitAudioContext;
-
-                        if (!Ctx) return;
-
-                        if (!this.audioCtx) this.audioCtx = new Ctx();
-                        const ctx = this.audioCtx;
-
-                        if (ctx.state === 'suspended') ctx.resume();
-
-                        const notes = kind === 'ok'
-                            ? [[880, 0, 0.09], [1318.5, 0.1, 0.13]]
-                            : [[246.94, 0, 0.18]];
-
-                        notes.forEach(([freq, delay, duration]) => {
-                            const osc = ctx.createOscillator();
-                            const gain = ctx.createGain();
-
-                            osc.type = kind === 'bad' ? 'square' : 'sine';
-                            osc.frequency.value = freq;
-
-                            const at = ctx.currentTime + delay;
-
-                            gain.gain.setValueAtTime(0.0001, at);
-                            gain.gain.exponentialRampToValueAtTime(0.22, at + 0.012);
-                            gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
-
-                            osc.connect(gain);
-                            gain.connect(ctx.destination);
-
-                            osc.start(at);
-                            osc.stop(at + duration + 0.03);
-                        });
-                    } catch (error) {}
-                },
-
-                /**
-                 * One POST answers the desk's questions: whose pass is this,
-                 * is it valid, and what did this scan just record?
-                 */
-                async submit() {
-                    const value = this.token.trim();
-
-                    if (!value || this.loading) return;
-
-                    this.loading = true;
-                    this.result = null;
-
-                    try {
-                        const response = await fetch(@js(route('guard.scan')), {
-                            method: 'POST',
+                        const response = await fetch(@js(route('guard.logbook.data')), {
                             headers: {
                                 'Accept': 'application/json',
-                                'Content-Type': 'application/json',
                                 'X-Requested-With': 'XMLHttpRequest',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                             },
-                            body: JSON.stringify({ token: value }),
+                            credentials: 'same-origin',
                         });
 
-                        this.result = await response.json();
+                        if (!response.ok) return;
 
-                        if (Array.isArray(this.result.logs)) {
-                            this.logs = this.result.logs;
-                        }
+                        const data = await response.json();
 
-                        if (this.result.stats) {
-                            this.stats = this.result.stats;
-                        }
-
-                        // An appointment scan brings the office's pass
-                        // card with it — bring it into view so the guard
-                        // reads the scheduled time and current status
-                        // without hunting for it.
-                        if (this.result.passHtml) {
-                            this.$nextTick(() => {
-                                document.getElementById('gate-pass')
-                                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            });
-                        }
-
-                        this.beep(this.result.valid ? 'ok' : 'bad');
-
-                        // A cleared field and a focused input are what a USB
-                        // scanner and the next person in line both expect.
-                        if (this.result.valid) {
-                            this.token = '';
-                        }
-
-                        this.$refs.token?.focus();
+                        if (Array.isArray(data.logs)) this.logs = data.logs;
+                        if (data.stats) this.stats = data.stats;
                     } catch (error) {
-                        this.result = {
-                            valid: false,
-                            pass: null,
-                            message: 'Could not reach the server. Check the connection and try again.',
-                        };
-
-                        this.beep('bad');
-                    } finally {
-                        this.loading = false;
+                        // Offline is not an error the desk needs to see; the
+                        // next poll simply tries again.
                     }
-                },
-
-                async startCamera() {
-                    if (this.cameraOn) return;
-
-                    // A camera failure is a scanner fault, never a scan
-                    // result: it must not overwrite the pass already on
-                    // screen, so it only speaks when nothing was scanned
-                    // yet.
-                    if (typeof Html5Qrcode === 'undefined') {
-                        if (!this.result) {
-                            this.result = {
-                                valid: false,
-                                pass: null,
-                                passHtml: null,
-                                message: 'The camera scanner could not load. Check the connection, or use the USB scanner.',
-                            };
-                            this.beep('bad');
-                        }
-                        return;
-                    }
-
-                    // html5-qrcode binds its internals to the id it is given,
-                    // and a second start() on an id it has already stopped
-                    // never settles: the button said "Start camera" and the
-                    // camera stayed dark until the page was reloaded. So each
-                    // attempt gets its own container and id, and the old one
-                    // is thrown away. The gate-reader class comes along so the
-                    // viewfinder styling above follows the new container.
-                    const previous = document.getElementById(this.readerId);
-                    const box = document.createElement('div');
-
-                    this.readerId = 'gate-reader-' + Date.now();
-                    box.id = this.readerId;
-                    box.className = 'gate-reader';
-
-                    if (previous) {
-                        previous.replaceWith(box);
-                    } else {
-                        document.getElementById('gate-reader')?.appendChild(box);
-                    }
-
-                    try {
-                        this.scanner = new Html5Qrcode(this.readerId);
-
-                        await this.scanner.start(
-                            { facingMode: 'environment' },
-                            { fps: 10, qrbox: { width: 230, height: 230 } },
-                            (decoded) => this.read(decoded),
-                            () => {}
-                        );
-
-                        this.cameraOn = true;
-                    } catch (error) {
-                        box.classList.add('hidden');
-                        this.scanner = null;
-
-                        if (!this.result) {
-                            this.result = {
-                                valid: false,
-                                pass: null,
-                                passHtml: null,
-                                message: 'Camera unavailable: ' + error + '. Use the USB scanner instead.',
-                            };
-                            this.beep('bad');
-                        }
-                    }
-                },
-
-                async stopCamera() {
-                    this.cameraOn = false;
-
-                    if (!this.scanner) return;
-
-                    // Only stop(): clear() would strip the container the next
-                    // start() has already replaced, and the element is thrown
-                    // away anyway.
-                    try {
-                        await this.scanner.stop();
-                    } catch (error) {}
-
-                    this.scanner = null;
-
-                    const box = document.getElementById(this.readerId);
-                    if (box) box.classList.add('hidden');
-                },
-
-                /**
-                 * A pass held in front of the lens decodes many times a second,
-                 * so the same code inside three seconds is the same pass
-                 * rather than a second scan.
-                 */
-                async read(code) {
-                    const now = Date.now();
-
-                    if (this.loading) return;
-                    if (code === this.lastCode && now - this.lastReadAt < 3000) return;
-
-                    this.lastCode = code;
-                    this.lastReadAt = now;
-                    this.token = code;
-
-                    await this.submit();
-                },
-
-                destroy() {
-                    this.stopCamera();
                 },
             };
         }

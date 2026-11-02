@@ -40,18 +40,64 @@ use Illuminate\View\View;
 class GateController extends Controller
 {
     /**
-     * Scanner first, day's access log underneath.
+     * Overview: today's numbers, the clock, a live camera preview and the
+     * last few arrivals. The scanning itself lives one click away on the
+     * Scan Pass page, and the full audit trail on the Daily Logbook.
      */
-    public function dashboard(Request $request): View
+    public function dashboard(): View
+    {
+        return view('guard.dashboard', [
+            'gateName' => $this->gateName(),
+            'logs' => array_slice(GateLogList::today(), 0, 6),
+            'insideCount' => GateLogList::insideCount(),
+            'todayCount' => GateLogList::todayCount(),
+            'expectedCount' => $this->expectedCount(),
+        ]);
+    }
+
+    /**
+     * Scan Pass / QR Verification — the camera desk the guard works from.
+     */
+    public function scanner(): View
+    {
+        return view('guard.scanner', [
+            'gateName' => $this->gateName(),
+            'insideCount' => GateLogList::insideCount(),
+            'todayCount' => GateLogList::todayCount(),
+            'expectedCount' => $this->expectedCount(),
+        ]);
+    }
+
+    /**
+     * Daily Logbook — every verified gate session recorded on the campus
+     * day, searchable by name or reference and refreshed in place.
+     */
+    public function logbook(Request $request): View
     {
         $search = trim((string) $request->query('q', ''));
 
-        return view('guard.dashboard', [
+        return view('guard.logbook', [
             'gateName' => $this->gateName(),
             'logs' => GateLogList::today($search),
             'search' => $search,
             'insideCount' => GateLogList::insideCount(),
             'todayCount' => GateLogList::todayCount(),
+            'expectedCount' => $this->expectedCount(),
+        ]);
+    }
+
+    /**
+     * The logbook's own feed: the same rows the page rendered with, so a
+     * refresh can never show a different audit trail than a reload would.
+     */
+    public function logbookData(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('q', ''));
+
+        return response()->json([
+            'logs' => GateLogList::today($search),
+            'stats' => $this->stats(),
+            'serverTime' => CampusTime::now()->format('g:i:s A'),
         ]);
     }
 
@@ -267,6 +313,9 @@ class GateController extends Controller
             statusLabel: $visitor->statusLabel(),
             statusTone: $visitor->isValid() ? 'valid' : 'invalid',
             reference: $visitor->reference_code,
+            // A gate pass issued to a walk-in: no account behind it, and the
+            // desk reads them the same way it reads a guest account.
+            userType: 'Guest',
             log: ['pass_type' => 'visitor', 'pass_id' => $visitor->id],
             message: $visitor->isValid()
                 ? null
@@ -303,6 +352,7 @@ class GateController extends Controller
             statusLabel: $status?->label() ?? Str::headline((string) $document->status),
             statusTone: $tone,
             reference: $document->request_number,
+            userType: $document->user?->classificationLabel() ?? 'Student',
             log: [
                 'pass_type' => 'document',
                 'pass_id' => $document->id,
@@ -363,6 +413,11 @@ class GateController extends Controller
             statusLabel: $label,
             statusTone: $tone,
             reference: $appointment->reference_code,
+            // Who they are and when they were told to come - the two things
+            // a guard reads off the card before letting anyone through.
+            userType: $appointment->user?->classificationLabel() ?? 'Student',
+            date: $appointment->date?->format('F j, Y'),
+            scheduledTime: $appointment->scheduledRange(),
             log: [
                 'pass_type' => 'appointment',
                 'pass_id' => $appointment->id,
@@ -403,6 +458,7 @@ class GateController extends Controller
             statusLabel: 'Valid',
             statusTone: 'valid',
             reference: $profile->student_id ?: (string) $user?->email,
+            userType: $user?->classificationLabel() ?? 'Student',
             log: [
                 'pass_type' => 'student',
                 'pass_id' => $profile->id,
@@ -416,6 +472,11 @@ class GateController extends Controller
      * whatever was scanned.
      *
      * @param  array<string, mixed>  $log
+     * @param  string|null  $userType  Student / Alumni / Parent / Guest, the
+     *                                 classification the desk reads at a glance
+     * @param  string|null  $date  appointment date, appointments only
+     * @param  string|null  $scheduledTime  the office's approved window,
+     *                                      appointments only
      * @return array{valid: bool, message: string, pass: array<string, mixed>, log: array<string, mixed>}
      */
     private function pass(
@@ -431,6 +492,9 @@ class GateController extends Controller
         ?string $reference,
         array $log,
         ?string $message = null,
+        ?string $userType = null,
+        ?string $date = null,
+        ?string $scheduledTime = null,
     ): array {
         return [
             'valid' => $valid,
@@ -439,11 +503,14 @@ class GateController extends Controller
                 'type' => $type,
                 'label' => GateLogList::label($type),
                 'name' => $name,
+                'userType' => $userType,
                 'personId' => $personId ?: '—',
                 'photoUrl' => $photoUrl,
                 'initial' => Str::upper(Str::substr($name, 0, 1)),
                 'destination' => $destination ?: '—',
                 'purpose' => $purpose ?: '—',
+                'date' => $date,
+                'scheduledTime' => $scheduledTime,
                 'statusLabel' => $statusLabel,
                 'statusTone' => $statusTone,
                 'reference' => $reference ?: '—',
@@ -534,14 +601,35 @@ class GateController extends Controller
     */
 
     /**
-     * @return array{inside: int, today: int}
+     * @return array{inside: int, today: int, expected: int}
      */
     private function stats(): array
     {
         return [
             'inside' => GateLogList::insideCount(),
             'today' => GateLogList::todayCount(),
+            'expected' => $this->expectedCount(),
         ];
+    }
+
+    /**
+     * The overview's "Total Expected Visitors": today's bookings that have
+     * not arrived and are not already resolved.
+     *
+     * It reads AppointmentSweep's own EXPECTED statuses and the same
+     * "is it today" test the scan verdict applies, so the number on the
+     * dashboard can never contradict what scanning that pass says. The
+     * sweep that cancels a missed hour runs on the scan, not on this read -
+     * a booking whose window has quietly expired still counts here until
+     * something touches it, which is what a guard at the desk expects to
+     * see anyway.
+     */
+    private function expectedCount(): int
+    {
+        return Appointment::query()
+            ->whereDate('date', now()->toDateString())
+            ->whereIn('status', AppointmentSweep::EXPECTED)
+            ->count();
     }
 
     private function rejected(string $message): JsonResponse

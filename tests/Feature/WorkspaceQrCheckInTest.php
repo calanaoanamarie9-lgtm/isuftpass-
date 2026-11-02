@@ -54,7 +54,7 @@ class WorkspaceQrCheckInTest extends TestCase
             $this->actingAs($this->makeStaff($office, $role))
                 ->get($prefix.'/qr')
                 ->assertOk()
-                ->assertSee('QR Scanner & Check-in')
+                ->assertSee('QR Pass Verification')
                 ->assertSee('Start camera')
                 ->assertSee('Checked in today')
                 // @js() prints the URL with escaped slashes: \/cici\/qr\/check-in.

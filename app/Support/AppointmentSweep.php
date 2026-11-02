@@ -6,7 +6,6 @@ use App\Enums\AppointmentStatus;
 use App\Mail\AppointmentCancelled;
 use App\Models\Appointment;
 use App\Notifications\AppointmentCancelledNotification;
-use App\Support\SafeMailer;
 use Illuminate\Support\Carbon;
 use Throwable;
 
@@ -38,8 +37,12 @@ class AppointmentSweep
      * two a desk may check a student in for. Checked in, completed, already
      * cancelled, rescheduled and for-reschedule each say something else has
      * happened, and none of them is a student who failed to turn up.
+     *
+     * Public because the guard's overview counts today's expected visitors
+     * from this same list: a metric and a scan verdict that disagreed about
+     * who was still coming would be worse than no metric at all.
      */
-    private const EXPECTED = [
+    public const EXPECTED = [
         AppointmentStatus::PENDING->value,
         AppointmentStatus::CONFIRMED->value,
     ];

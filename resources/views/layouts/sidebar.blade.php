@@ -317,7 +317,7 @@
                        @click="open = false"
                        class="{{ $navClass }}">
                         <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-                        <span>QR Scanner & Check-in</span>
+                        <span>QR Pass Verification</span>
                     </a>
 
                     <a href="{{ route('ssc.appointments.index') }}"
@@ -407,7 +407,7 @@
                        @click="open = false"
                        class="{{ $navClass }}">
                         <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-                        <span>QR Scanner & Check-in</span>
+                        <span>QR Pass Verification</span>
                     </a>
 
                     <a href="{{ route('accounting.appointments.index') }}"
@@ -497,7 +497,7 @@
                        @click="open = false"
                        class="{{ $navClass }}">
                         <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-                        <span>QR Scanner & Check-in</span>
+                        <span>QR Pass Verification</span>
                     </a>
 
                     <a href="{{ route('library.appointments.index') }}"
@@ -587,7 +587,7 @@
                        @click="open = false"
                        class="{{ $navClass }}">
                         <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-                        <span>QR Scanner & Check-in</span>
+                        <span>QR Pass Verification</span>
                     </a>
 
                     <a href="{{ route($dept . '.appointments.index') }}"
@@ -733,57 +733,62 @@
             GUARD / CAMPUS SECURITY
         ====================================================== --}}
         @if ($role === 'guard')
-            
-            <!-- Header / Brand -->
-            <div class="flex items-center gap-3 mb-6">
-                <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                </div>
-                <div class="min-w-0">
-                    <h2 class="text-xl font-bold text-white">ISUFSTPASS</h2>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        Security / Gate Station
+
+            {{-- Post identity — the desk's badge, distinct from the brand bar --}}
+            <div class="rounded-2xl bg-white/[0.07] ring-1 ring-white/10 p-3.5">
+
+                <div class="flex items-center gap-3">
+
+                    <span class="w-9 h-9 rounded-xl bg-amber-400/15 ring-1 ring-amber-300/25
+                                 flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                     </span>
+
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-blue-300">
+                            Guard Station
+                        </p>
+                        <p class="text-sm font-semibold text-white truncate">
+                            Security / Gate Station
+                        </p>
+                    </div>
+                </div>
+
+                <p class="mt-3 flex items-center gap-1.5 text-[11px] text-blue-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    {{ $user->office ?? 'Main Gate' }} · on duty
+                </p>
+            </div>
+
+
+            <div>
+                <p class="{{ $sectionClass }}">Gate Operations</p>
+
+                <div class="space-y-1">
+
+                    <a href="{{ route('guard.dashboard') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+                        <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                        <span>Dashboard</span>
+                    </a>
+
+                    <a href="{{ route('guard.scanner') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+                        <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM14.625 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM14.625 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5z"/></svg>
+                        <span>Scan Pass / QR Verification</span>
+                    </a>
+
+                    <a href="{{ route('guard.logbook') }}"
+                       @click="open = false"
+                       class="{{ $navClass }}">
+                        <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                        <span>Daily Logbook</span>
+                    </a>
+
                 </div>
             </div>
-            
-            <!-- Navigation Items -->
-            <nav>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="{{ route('guard.dashboard') }}"
-                           class="group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium text-blue-100 hover:bg-white/10 hover:text-white transition focus:outline-none focus:ring-2 focus:ring-blue-400"
-                           @click="open = false">
-                            <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('guard.dashboard') }}#gate-scan"
-                           class="group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium text-blue-100 hover:bg-white/10 hover:text-white transition focus:outline-none focus:ring-2 focus:ring-blue-400"
-                           @click="open = false">
-                            <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM14.625 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM14.625 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5z"/></svg>
-                            <span>Scan Pass / QR Verification</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('guard.dashboard') }}#gate-search"
-                           class="group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium text-blue-100 hover:bg-white/10 hover:text-white transition focus:outline-none focus:ring-2 focus:ring-blue-400"
-                           @click="open = false">
-                            <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
-                            <span>Manual Search</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('guard.dashboard') }}#gate-logs"
-                           class="group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium text-blue-100 hover:bg-white/10 hover:text-white transition focus:outline-none focus:ring-2 focus:ring-blue-400"
-                           @click="open = false">
-                            <svg class="w-5 h-5 shrink-0 text-blue-200 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span>Daily Logbook</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
 
         @endif
         @if ($role === 'alumni')

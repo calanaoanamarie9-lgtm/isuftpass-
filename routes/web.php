@@ -755,7 +755,14 @@ Route::middleware(['auth', 'verified', 'role:department,office'])->prefix('works
 */
 Route::middleware(['auth', 'verified', 'role:guard'])->prefix('guard')->name('guard.')->group(function () {
     Route::get('/', [GateController::class, 'dashboard'])->name('dashboard');
+
+    // Scan Pass / QR Verification — the full camera desk.
+    Route::get('/scanner', [GateController::class, 'scanner'])->name('scanner');
     Route::post('/scan', [GateController::class, 'scan'])->name('scan');
+
+    // Daily Logbook — today's audit trail, plus the poll the page refreshes from.
+    Route::get('/logbook', [GateController::class, 'logbook'])->name('logbook');
+    Route::get('/logbook/data', [GateController::class, 'logbookData'])->name('logbook.data');
 
     Route::get('/visitors', [GateController::class, 'visitors'])->name('visitors.index');
     Route::post('/visitors', [GateController::class, 'storeVisitor'])->name('visitors.store');
