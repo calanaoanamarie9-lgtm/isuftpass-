@@ -17,19 +17,24 @@
             <div class="mt-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                     <x-input-label for="last_name" :value="__('Last Name / Family Name')" />
-                    <x-text-input id="last_name" name="last_name" type="text" class="mt-1 block w-full" :value="old('last_name', \Illuminate\Support\Facades\Auth::user()->last_name)" {{ $requiresName ? 'required' : '' }} autofocus />
+                    {{-- No {{ }} echo inside these tags: Blade cannot parse a
+                         component tag that carries one, so it was emitted as
+                         literal <x-text-input> markup and the browser produced
+                         no input at all - the name fields simply did not
+                         exist. Bound attributes only. --}}
+                    <x-text-input id="last_name" name="last_name" type="text" class="mt-1 block w-full" :value="old('last_name', auth()->user()->last_name)" :required="$requiresName" autofocus />
                     <x-input-error class="mt-2" :messages="$errors->get('last_name')" />
                 </div>
 
                 <div>
                     <x-input-label for="first_name" :value="__('First Name')" />
-                    <x-text-input id="first_name" name="first_name" type="text" class="mt-1 block w-full" :value="old('first_name', \Illuminate\Support\Facades\Auth::user()->first_name)" {{ $requiresName ? 'required' : '' }} />
+                    <x-text-input id="first_name" name="first_name" type="text" class="mt-1 block w-full" :value="old('first_name', auth()->user()->first_name)" :required="$requiresName" />
                     <x-input-error class="mt-2" :messages="$errors->get('first_name')" />
                 </div>
 
                 <div>
                     <x-input-label for="middle_name" :value="__('Middle Name')" />
-                    <x-text-input id="middle_name" name="middle_name" type="text" class="mt-1 block w-full" :value="old('middle_name', \Illuminate\Support\Facades\Auth::user()->middle_name)" {{ $requiresName ? 'required' : '' }} />
+                    <x-text-input id="middle_name" name="middle_name" type="text" class="mt-1 block w-full" :value="old('middle_name', auth()->user()->middle_name)" :required="$requiresName" />
                     <x-input-error class="mt-2" :messages="$errors->get('middle_name')" />
                 </div>
             </div>
@@ -37,7 +42,7 @@
 
         <div>
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', \Illuminate\Support\Facades\Auth::user()->email)" required autocomplete="username" />
+            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', auth()->user()->email)" required autocomplete="username" />
             <x-input-error class="mt-2" :messages="$errors->get('email')" />
         </div>
 
