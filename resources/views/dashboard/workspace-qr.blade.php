@@ -739,13 +739,18 @@
                 async startCamera() {
                     if (this.cameraOn) return;
 
+                    // A camera failure is a scanner fault, never a scan
+                    // result: it must not overwrite a pass already on screen,
+                    // so it only speaks when nothing was scanned yet.
                     if (typeof Html5Qrcode === 'undefined') {
-                        this.result = {
-                            valid: false,
-                            checkedIn: false,
-                            message: 'The camera scanner could not load. Check the connection, or type the token instead.',
-                        };
-                        this.beep('bad');
+                        if (!this.result) {
+                            this.result = {
+                                valid: false,
+                                checkedIn: false,
+                                message: 'The camera scanner could not load. Check the connection, or type the token instead.',
+                            };
+                            this.beep('bad');
+                        }
                         return;
                     }
 
@@ -766,12 +771,15 @@
                     } catch (error) {
                         box.classList.add('hidden');
                         this.scanner = null;
-                        this.result = {
-                            valid: false,
-                            checkedIn: false,
-                            message: 'Camera unavailable: ' + error + '. Type the token instead.',
-                        };
-                        this.beep('bad');
+
+                        if (!this.result) {
+                            this.result = {
+                                valid: false,
+                                checkedIn: false,
+                                message: 'Camera unavailable: ' + error + '. Type the token instead.',
+                            };
+                            this.beep('bad');
+                        }
                     }
                 },
 
