@@ -19,10 +19,16 @@
          * The camera feed fills the viewfinder frame whatever the video's
          * intrinsic size, and the library's own dashboard chrome stays out
          * of it — the frame below is the only chrome this desk needs.
+         *
+         * position and inset carry !important because html5-qrcode forces an
+         * inline "position: relative" on whatever element it binds to: an
+         * inline style beats a plain declaration, so without it the container
+         * collapses to the height of its hidden canvas and the feed renders
+         * at zero height — a black viewfinder on a working camera.
          */
         #qr-reader {
-            position: absolute;
-            inset: 0;
+            position: absolute !important;
+            inset: 0 !important;
             background: #020617;
         }
 
