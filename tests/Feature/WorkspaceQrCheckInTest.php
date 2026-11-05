@@ -187,6 +187,27 @@ class WorkspaceQrCheckInTest extends TestCase
         $this->assertSame(AppointmentStatus::CHECKED_IN->value, $appointment->fresh()->status);
     }
 
+    public function test_a_legacy_json_pass_checks_in_like_the_bare_token(): void
+    {
+        $appointment = $this->makeAppointment('Library');
+
+        $passToken = (string) Str::uuid();
+        $appointment->user->studentProfile()->create(['pass_token' => $passToken]);
+
+        // An older build printed the digital ID as JSON: the office desk
+        // reads it through the same reader as the registrar's station.
+        $this->actingAs($this->makeStaff('Library', 'library'))
+            ->postJson('/library/qr/check-in', [
+                'token' => json_encode(['type' => 'isufstpass', 'token' => $passToken]),
+            ])
+            ->assertOk()
+            ->assertJsonPath('valid', true)
+            ->assertJsonPath('checkedIn', true)
+            ->assertJsonPath('student', $appointment->user->name);
+
+        $this->assertSame(AppointmentStatus::CHECKED_IN->value, $appointment->fresh()->status);
+    }
+
     public function test_a_digital_id_without_a_visit_today_says_so_and_writes_nothing(): void
     {
         $appointment = $this->makeAppointment('SSC', ['date' => now()->addDays(2)->toDateString()]);

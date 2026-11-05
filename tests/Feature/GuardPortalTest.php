@@ -505,6 +505,27 @@ class GuardPortalTest extends TestCase
             ->assertJsonPath('pass.personId', '2021-00999');
     }
 
+    public function test_a_legacy_json_pass_is_read_the_same_way_as_its_url(): void
+    {
+        $student = $this->student();
+
+        $profile = $student->studentProfile()->create([
+            'pass_token' => 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+            'student_id' => '2021-00999',
+        ]);
+
+        // An older build printed the pass as JSON; the shared reader gives
+        // the gate the same token the URL form would have.
+        $printed = json_encode(['type' => 'isufstpass', 'token' => $profile->pass_token]);
+
+        $this->actingAs($this->guard())
+            ->postJson('/guard/scan', ['token' => $printed])
+            ->assertOk()
+            ->assertJsonPath('valid', true)
+            ->assertJsonPath('pass.label', 'Digital ID')
+            ->assertJsonPath('pass.name', $student->name);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | The daily access log

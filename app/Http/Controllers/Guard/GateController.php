@@ -14,6 +14,7 @@ use App\Models\Visitor;
 use App\Support\AppointmentSweep;
 use App\Support\CampusTime;
 use App\Support\GateLogList;
+use App\Support\QrPayload;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Http\JsonResponse;
@@ -111,10 +112,16 @@ class GateController extends Controller
             'token' => ['required', 'string', 'max:2048'],
         ]);
 
-        $token = $this->extractToken($data['token']);
+        $token = QrPayload::token($data['token']);
 
         if ($token === '') {
-            return $this->rejected('Unrecognised QR code — nothing to verify.');
+            // Nothing the reader can name: an empty scan is an empty scan,
+            // anything else is a code this desk does not know.
+            return $this->rejected(
+                trim($data['token']) === ''
+                    ? 'Unrecognised QR code — nothing to verify.'
+                    : 'No pass found for this QR code.'
+            );
         }
 
         $resolution = $this->resolve($token);
@@ -643,27 +650,6 @@ class GateController extends Controller
             'logs' => GateLogList::today(),
             'stats' => $this->stats(),
         ]);
-    }
-
-    /**
-     * Accept the token however it arrives: a bare UUID typed into the USB
-     * scanner, or a full verification URL lifted from a phone's screen.
-     */
-    private function extractToken(string $raw): string
-    {
-        $raw = trim(str_replace("\r", '', $raw));
-
-        if ($raw === '') {
-            return '';
-        }
-
-        $path = parse_url($raw, PHP_URL_PATH);
-
-        if (is_string($path) && $path !== '') {
-            return basename($path);
-        }
-
-        return basename($raw);
     }
 
     /**

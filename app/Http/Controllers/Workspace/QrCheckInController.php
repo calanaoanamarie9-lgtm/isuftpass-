@@ -9,6 +9,7 @@ use App\Models\StudentProfile;
 use App\Models\User;
 use App\Support\AppointmentSweep;
 use App\Support\CheckInList;
+use App\Support\QrPayload;
 use App\Support\WorkspaceQrVerification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,7 +47,7 @@ class QrCheckInController extends Controller
         ]);
 
         $office = auth()->user()->officeScope();
-        $token = $this->extractToken($data['token']);
+        $token = QrPayload::token($data['token']);
 
         // Both identifiers this desk understands — the appointment's qr_token
         // and the student's pass_token — are uuid columns, so a typed
@@ -185,17 +186,5 @@ class QrCheckInController extends Controller
             'student' => $student,
             'checkIns' => CheckInList::today(auth()->user()->officeScope()),
         ]);
-    }
-
-    /**
-     * A camera hands back exactly what was printed — almost always the whole
-     * verification URL — and a USB scanner may append a carriage return, so
-     * only the identifying segment is kept.
-     */
-    private function extractToken(string $input): string
-    {
-        $path = parse_url(trim($input), PHP_URL_PATH) ?: trim($input);
-
-        return trim(basename($path));
     }
 }
