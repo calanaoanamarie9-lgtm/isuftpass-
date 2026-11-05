@@ -118,10 +118,17 @@ class DocumentRequestController extends Controller
 
         // A new request only becomes work when the registrar sees it. The
         // alert lands on their own queue, so the next click is one link away.
+        // The message names the requester and their classification (Student,
+        // Alumni, Parent, Guest) — never the generic "A student".
         RegistrarNotifier::alert(
             $documentRequest,
             'New document request',
-            $documentRequest->student_name.' submitted a request for '.$documentRequest->documentsSummary().'. It is waiting in your queue.'
+            sprintf(
+                '%s (%s) submitted a request for %s. It is waiting in your queue.',
+                $user->name,
+                $user->classificationLabel(),
+                $documentRequest->documentsSummary(),
+            )
         );
 
         // Flash first: the rating modal appears before the browser leaves

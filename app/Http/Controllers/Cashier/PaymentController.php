@@ -100,11 +100,18 @@ class PaymentController extends Controller
 
         // The registrar must know the instant the OR is recorded — it is the
         // signal that the request is paid and ready for them to start
-        // processing.
+        // processing. The message names whose payment it is (requester plus
+        // classification) alongside the OR and amount.
         RegistrarNotifier::alert(
             $documentRequest,
             'Payment recorded — ready to start processing',
-            'Payment of ₱'.number_format($documentRequest->totalFee(), 2).' (OR No. '.$documentRequest->or_number.') has been recorded. The request is now Paid — click "Start Processing" to begin credential processing.'
+            sprintf(
+                'Payment of ₱%s (OR No. %s) has been recorded for %s (%s). The request is now Paid — click "Start Processing" to begin credential processing.',
+                number_format($documentRequest->totalFee(), 2),
+                $documentRequest->or_number,
+                $documentRequest->user->name,
+                $documentRequest->user->classificationLabel(),
+            )
         );
 
         return redirect()

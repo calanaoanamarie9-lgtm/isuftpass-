@@ -273,6 +273,9 @@ class AppointmentController extends Controller
 
         // Send office notification so the desk sees the new booking on their queue.
         // Alert both the targeted office/department staff and the Registrar.
+        // The message names the requester and their classification (Student,
+        // Alumni, Parent, Guest) so every desk — department, office or
+        // registrar — reads whose booking it is at a glance.
         $recipients = User::query()
             ->where('is_active', true)
             ->where('approval_status', User::APPROVAL_APPROVED)
@@ -292,14 +295,16 @@ class AppointmentController extends Controller
             $overflow ? 'Appointment needs rescheduling' : 'New appointment booked',
             $overflow
                 ? sprintf(
-                    "%s's booking with %s on %s could not fit the chosen slot and needs rescheduling.",
+                    "%s (%s)'s booking with %s on %s could not fit the chosen slot and needs rescheduling.",
                     $appointment->user->name,
+                    $appointment->user->classificationLabel(),
                     $appointment->office,
                     $appointment->date->format('M j, Y'),
                 )
                 : sprintf(
-                    '%s booked with %s on %s at %s. It is waiting for your confirmation.',
+                    '%s (%s) booked with %s on %s at %s. It is waiting for your confirmation.',
                     $appointment->user->name,
+                    $appointment->user->classificationLabel(),
                     $appointment->office,
                     $appointment->date->format('M j, Y'),
                     $appointment->timeToCome(),

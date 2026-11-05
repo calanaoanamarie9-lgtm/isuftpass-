@@ -26,9 +26,20 @@ class DocumentRequestOfficeNotification extends Notification
 
     public function toArray(object $notifiable): array
     {
+        // Same rule as the appointment alert: name the requester and their
+        // classification (Student, Alumni, Parent, Guest) so the desk knows
+        // whose request it is without opening it first.
+        $requester = $this->documentRequest->user;
+
         return [
             'title' => 'New Document Request',
-            'message' => 'A student has submitted document request ' . $this->documentRequest->request_number . ' for ' . $this->documentRequest->documentsSummary(),
+            'message' => sprintf(
+                '%s (%s) has submitted document request %s for %s',
+                $requester->name,
+                $requester->classificationLabel(),
+                $this->documentRequest->request_number,
+                $this->documentRequest->documentsSummary(),
+            ),
             'url' => route('registrar.document-requests.index'),
         ];
     }

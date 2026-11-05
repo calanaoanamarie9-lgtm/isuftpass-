@@ -80,7 +80,10 @@
                                         <span class="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
                                     @endif
                                 </div>
-                                <p class="text-sm text-gray-600 mt-0.5">{{ $notification->data['message'] ?? '' }}</p>
+                                {{-- The full dynamic message ("Name (Role) has requested …").
+                                     It must wrap as a whole — no truncate/line-clamp — so the
+                                     requester's name and role always reach the desk intact. --}}
+                                <p class="text-sm text-gray-600 mt-0.5 break-words">{{ $notification->data['message'] ?? '' }}</p>
                                 <p class="text-xs text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
                             </div>
 

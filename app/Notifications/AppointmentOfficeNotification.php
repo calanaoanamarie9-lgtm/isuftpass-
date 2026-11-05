@@ -37,9 +37,21 @@ class AppointmentOfficeNotification extends Notification
             }
         }
 
+        // Name the requester as the office staff will meet them: their own
+        // name plus their classification (Student, Alumni, Parent, Guest),
+        // never the generic "A student" — the desk needs to know whose
+        // booking it is before the student walks in.
+        $requester = $this->appointment->user;
+
         return [
             'title' => 'New Appointment Request',
-            'message' => 'A student has requested an appointment with the ' . $this->appointment->office . ' office on ' . $this->appointment->date->format('F j, Y'),
+            'message' => sprintf(
+                '%s (%s) has requested an appointment with the %s office on %s',
+                $requester->name,
+                $requester->classificationLabel(),
+                $this->appointment->office,
+                $this->appointment->date->format('F j, Y'),
+            ),
             'url' => $url,
         ];
     }

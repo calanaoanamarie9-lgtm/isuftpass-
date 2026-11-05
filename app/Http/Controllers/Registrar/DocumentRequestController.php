@@ -138,8 +138,9 @@ class DocumentRequestController extends Controller
             $documentRequest,
             'Approved — payment pending',
             sprintf(
-                '%s has been approved and is awaiting payment of ₱%s.',
+                '%s (%s) has been approved and is awaiting payment of ₱%s.',
                 $documentRequest->student_name,
+                $documentRequest->user->classificationLabel(),
                 number_format($documentRequest->totalFee(), 2),
             )
         );
