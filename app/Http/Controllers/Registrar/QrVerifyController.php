@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\DocumentRequest;
 use App\Models\User;
+use App\Support\QrPayload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -21,7 +22,7 @@ class QrVerifyController extends Controller
         $query = trim((string) $request->query('q'));
 
         if ($query !== '') {
-            [$passToken, $claimToken, $appointmentToken] = $this->extractTokens($query);
+            ['pass' => $passToken, 'claim' => $claimToken, 'appointment' => $appointmentToken] = QrPayload::extract($query);
 
             // A transaction token resolves to ITS transaction alone: the page
             // shows that single Digital Claim Pass / appointment card and
@@ -96,56 +97,5 @@ class QrVerifyController extends Controller
                 }
             })
             ->first();
-    }
-
-    /**
-     * Resolve a scanned value into [passToken, claimToken, appointmentToken].
-     *
-     * Supports:
-     *  - full verify URLs   http://host/verify/pass/{uuid} | .../verify/document/{uuid} | .../verify/appointment/{uuid}
-     *  - bare token UUIDs
-     *  - legacy JSON payloads {"type":"isufstpass"|"isufstdoc", ...}
-     */
-    private function extractTokens(string $value): array
-    {
-        $uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
-
-        if (preg_match("#/verify/pass/({$uuid})#i", $value, $m)) {
-            return [$m[1], null, null];
-        }
-
-        if (preg_match("#/verify/document/({$uuid})#i", $value, $m)) {
-            return [null, $m[1], null];
-        }
-
-        if (preg_match("#/verify/appointment/({$uuid})#i", $value, $m)) {
-            return [null, null, $m[1]];
-        }
-
-        // …and a reference-form payload, /verify/appointment/APT-2026-ABCD,
-        // the same way the printed card names the booking.
-        if (preg_match('#/verify/appointment/([^/]+)#i', $value, $m)) {
-            return [null, null, $m[1]];
-        }
-
-        if (preg_match("/^{$uuid}$/i", $value)) {
-            return [$value, null, null];
-        }
-
-        $payload = json_decode($value, true);
-
-        if (is_array($payload)) {
-            $type = $payload['type'] ?? null;
-
-            if ($type === 'isufstpass' && isset($payload['token'])) {
-                return [$payload['token'], null, null];
-            }
-
-            if ($type === 'isufstdoc' && isset($payload['request'])) {
-                return [null, $payload['request'], null];
-            }
-        }
-
-        return [null, null, null];
     }
 }

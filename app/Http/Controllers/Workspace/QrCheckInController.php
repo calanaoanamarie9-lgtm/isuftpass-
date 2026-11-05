@@ -9,6 +9,7 @@ use App\Models\StudentProfile;
 use App\Models\User;
 use App\Support\AppointmentSweep;
 use App\Support\CheckInList;
+use App\Support\WorkspaceQrVerification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -79,7 +80,7 @@ class QrCheckInController extends Controller
             return $this->rejected('This QR does not match any appointment or student pass.');
         }
 
-        $appointment = $this->todaysVisit($student, $office);
+        $appointment = WorkspaceQrVerification::todayFor($student, $office);
 
         if (! $appointment) {
             return $this->rejected(
@@ -89,24 +90,6 @@ class QrCheckInController extends Controller
         }
 
         return $this->checkInAppointment($appointment, $office);
-    }
-
-    /**
-     * This student's visit at this office today, preferring the ones a desk can
-     * act on so a cancelled morning row never hides a confirmed afternoon one.
-     */
-    private function todaysVisit(User $student, string $office): ?Appointment
-    {
-        $today = fn () => $student->appointments()
-            ->with('user.studentProfile')
-            ->where('office', $office)
-            ->whereDate('date', now()->toDateString());
-
-        return $today()
-            ->whereIn('status', [...self::CHECKABLE, AppointmentStatus::CHECKED_IN->value])
-            ->orderBy('time_slot')
-            ->first()
-            ?? $today()->orderBy('time_slot')->first();
     }
 
     private function checkInAppointment(Appointment $appointment, string $office): JsonResponse

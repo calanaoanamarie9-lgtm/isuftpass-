@@ -55,7 +55,7 @@ class WorkspaceQrCheckInTest extends TestCase
                 ->get($prefix.'/qr')
                 ->assertOk()
                 ->assertSee('QR Pass Verification')
-                ->assertSee('Start camera')
+                ->assertSee('Scan QR Code with Camera')
                 ->assertSee('Checked in today')
                 // @js() prints the URL with escaped slashes: \/cici\/qr\/check-in.
                 ->assertSee(str_replace('/', '\/', $prefix.'/qr/check-in'), false)

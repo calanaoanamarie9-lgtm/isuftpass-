@@ -7,8 +7,8 @@ use App\Models\ConsultationService;
 use App\Models\LibraryService;
 use App\Support\AppointmentList;
 use App\Support\AvailabilityPage;
-use App\Support\CheckInList;
 use App\Support\WorkspaceDashboard;
+use App\Support\WorkspaceQrVerification;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -35,12 +35,9 @@ class LibraryController extends Controller
         ]);
     }
 
-    public function qrScanner(): View
+    public function qrScanner(Request $request): View
     {
-        return view('Offices.Library.qr', [
-            'office' => 'Library',
-            'checkIns' => CheckInList::today('Library'),
-        ]);
+        return view('Offices.Library.qr', WorkspaceQrVerification::page($request->user(), $request));
     }
 
     public function consultations(): View

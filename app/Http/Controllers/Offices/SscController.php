@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ConsultationService;
 use App\Support\AppointmentList;
 use App\Support\AvailabilityPage;
-use App\Support\CheckInList;
 use App\Support\WorkspaceDashboard;
+use App\Support\WorkspaceQrVerification;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -36,12 +36,9 @@ class SscController extends Controller
         ]);
     }
 
-    public function qrScanner(): View
+    public function qrScanner(Request $request): View
     {
-        return view('Offices.SSC.qr', [
-            'office' => self::OFFICE,
-            'checkIns' => CheckInList::today(self::OFFICE),
-        ]);
+        return view('Offices.SSC.qr', WorkspaceQrVerification::page($request->user(), $request));
     }
 
     public function consultations(): View
