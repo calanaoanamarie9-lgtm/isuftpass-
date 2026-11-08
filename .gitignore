@@ -27,3 +27,5 @@ postgresql_import.sql
 
 # One-off SQL backups (contain user records) — never commit these.
 /database/backups/
+/.cloud-attachments/
+

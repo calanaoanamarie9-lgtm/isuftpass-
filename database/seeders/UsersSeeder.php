@@ -57,5 +57,17 @@ class UsersSeeder extends Seeder
             'address' => 'Barotac Nuevo, Iloilo',
             'pass_token' => (string) Str::uuid(),
         ]);
+        User::firstOrCreate(
+            ['email' => 'guard@isufst.edu.ph'],
+            [
+                'name' => 'Guard 1',
+                'role' => User::ROLE_GUARD,
+                'office' => 'Main Gate',
+                'password' => 'password123',
+                'email_verified_at' => now(),
+                'approval_status' => User::APPROVAL_APPROVED,
+                'is_active' => true,
+            ]
+        );
     }
 }
