@@ -21,7 +21,7 @@ class AppointmentBooked extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Appointment Confirmation & Reminder - ISUFSTPASS',
+            subject: 'Appointment Request Received - ISUFSTPASS',
         );
     }
 

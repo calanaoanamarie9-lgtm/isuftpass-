@@ -7,16 +7,18 @@
     </p>
 
     <p style="margin:0 0 22px;font-size:14px;line-height:1.8;color:#374151;">
-        This is a reminder for your visit to <strong>{{ $appointment->office }}</strong>
-        on <strong>{{ $appointment->date->format('F j, Y') }}</strong>
+        Your appointment request with <strong>{{ $appointment->office }}</strong>
+        for <strong>{{ $appointment->date->format('F j, Y') }}</strong>
+        has been received.
         @if ($appointment->time_slot)
-            during <strong>{{ $appointment->time_slot }}</strong>.
+            You asked for <strong>{{ $appointment->time_slot }}</strong>
+            &mdash; the office will confirm the exact time when it approves your request.
         @else
-            &mdash; the office will tell you the exact time once it approves.
+            The office will tell you the exact time once it approves.
         @endif
     </p>
 
-    @include('emails.partials.badge', ['slot' => 'Appointment Reminder', 'bg' => '#dbeafe', 'text' => '#1e40af'])
+    @include('emails.partials.badge', ['slot' => 'Appointment Request Received', 'bg' => '#dbeafe', 'text' => '#1e40af'])
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;border-collapse:collapse;">
         @include('emails.partials.row', ['label' => 'Office / Department', 'value' => $appointment->office])

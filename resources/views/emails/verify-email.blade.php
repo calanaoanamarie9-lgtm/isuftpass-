@@ -20,7 +20,7 @@
                             ISUFSTPASS
                         </div>
                         <div style="color:#bfdbfe;font-size:12px;margin-top:10px;line-height:1.6;">
-                            QR CODE-BASED DOCUMENT MANAGEMENT<br>SYSTEM
+                            QR CODE-BASED ONLINE TRANSACTION MANAGEMENT<br>SYSTEM
                         </div>
                     </td>
                 </tr>

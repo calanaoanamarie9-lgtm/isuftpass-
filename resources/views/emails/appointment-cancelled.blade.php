@@ -7,10 +7,10 @@
     </p>
 
     <p style="margin:0 0 22px;font-size:14px;line-height:1.8;color:#374151;">
-        Your appointment with the <strong>{{ $appointment->office }}</strong> office scheduled on
+        Your appointment with <strong>{{ $appointment->office }}</strong> scheduled on
         <strong>{{ $appointment->date->format('F j, Y') }}</strong>
-        @if ($appointment->time_slot)
-            ({{ $appointment->time_slot }})
+        @if ($appointment->confirmed_time || $appointment->time_slot)
+            ({{ $appointment->timeToCome() }})
         @endif
         has been <strong>cancelled</strong>.
     </p>
@@ -36,8 +36,8 @@
         @include('emails.partials.row', ['label' => 'Office / Department', 'value' => $appointment->office])
         @include('emails.partials.row', ['label' => 'Purpose', 'value' => $appointment->purpose])
         @include('emails.partials.row', ['label' => 'Scheduled Date', 'value' => $appointment->date->format('F j, Y (D)')])
-        @if ($appointment->time_slot)
-            @include('emails.partials.row', ['label' => 'Time Slot', 'value' => $appointment->time_slot])
+        @if ($appointment->confirmed_time || $appointment->time_slot)
+            @include('emails.partials.row', ['label' => 'Scheduled Time', 'value' => $appointment->timeToCome()])
         @endif
         @if ($reason)
             @include('emails.partials.row', ['label' => 'Reason', 'value' => $reason])

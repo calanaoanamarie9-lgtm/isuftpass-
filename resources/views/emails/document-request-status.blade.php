@@ -24,7 +24,7 @@
         'border' => '#071f67',
         'title' => '#071f67',
     ])
-        You can track the progress of your request anytime under "My Requests & Status" in your ISUFSTPASS account.
+        You can track the progress of your request anytime under "My Requests" in your ISUFSTPASS account.
     @endcomponent
 
     @include('emails.partials.button', [

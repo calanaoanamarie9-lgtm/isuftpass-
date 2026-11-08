@@ -7,7 +7,7 @@
     </p>
 
     <p style="margin:0 0 22px;font-size:14px;line-height:1.8;color:#374151;">
-        Your Registrar appointment has been <strong>rescheduled</strong>
+        Your appointment with <strong>{{ $appointment->office }}</strong> has been <strong>rescheduled</strong>
         @if ($appointment->reschedule_reason)
             because {{ strtolower($appointment->reschedule_reason) }}.
         @else

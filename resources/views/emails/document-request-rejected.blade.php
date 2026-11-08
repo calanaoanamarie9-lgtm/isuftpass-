@@ -8,7 +8,7 @@
 
     <p style="margin:0 0 22px;font-size:14px;line-height:1.8;color:#374151;">
         Your request for <strong>{{ $documentRequest->documentsSummary() }}</strong>
-        (Transaction No.: <strong>{{ $documentRequest->request_number }})</strong> was rejected due to:
+        (Request No.: <strong>{{ $documentRequest->request_number }}</strong>) was rejected due to:
     </p>
 
     <div style="margin-top:4px;padding:16px 18px;border-radius:10px;background-color:#fef2f2;border-left:4px solid #dc2626;">

@@ -8,13 +8,13 @@
 
     <p style="margin:0 0 22px;font-size:14px;line-height:1.8;color:#374151;">
         Your document request for <strong>{{ $documentRequest->documentsSummary() }}</strong>
-        (Transaction No.: <strong>{{ $documentRequest->request_number }}</strong>)
+        (Request No.: <strong>{{ $documentRequest->request_number }}</strong>)
         with the purpose <strong>{{ \App\Enums\RequestPurposeType::tryFrom($documentRequest->purpose_type)?->label() ?? $documentRequest->purpose_type }}</strong>
         has been received on {{ $documentRequest->submitted_at?->format('F j, Y') ?? now()->format('F j, Y') }}
         and is currently pending review by the Registrar's Office.
     </p>
 
-    @include('emails.partials.badge', ['slot' => 'Pending Review', 'bg' => '#fee2e2', 'text' => '#b91c1c'])
+    @include('emails.partials.badge', ['slot' => 'Submitted', 'bg' => '#fee2e2', 'text' => '#b91c1c'])
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;border-collapse:collapse;">
         @include('emails.partials.row', ['label' => 'Request Number', 'value' => $documentRequest->request_number])
