@@ -198,6 +198,40 @@ class RolePermissionTest extends TestCase
         $this->assertSame('BS Information Technology 2023', $request->student_course_year);
     }
 
+    /**
+     * The year level an alumni gave at complete-details is the one the
+     * requisition form prints, next to the course they finished - not the
+     * year they graduated, which the form asks for separately.
+     */
+    public function test_alumni_requisition_form_prints_the_year_level_from_their_record(): void
+    {
+        Mail::fake();
+        Notification::fake();
+
+        $documents = $this->documents();
+        $alumni = $this->user('student', 'alumni');
+        $alumni->forceFill([
+            'course' => 'College of Agriculture',
+            'year_level' => '4th Year',
+        ])->save();
+
+        $this->actingAs($alumni)
+            ->post('/student/document-requests', $this->docPayload([$documents['alumni']->id], [
+                'year_graduated' => '2023',
+                'course' => 'College of Agriculture',
+            ]))
+            ->assertRedirect(route('student.documents.index'));
+
+        $request = $alumni->documentRequests()->firstOrFail();
+
+        $this->assertSame('College of Agriculture 4th Year', $request->student_course_year);
+
+        $this->actingAs($alumni)
+            ->get(route('student.documents.requisition', $request))
+            ->assertOk()
+            ->assertSee('College of Agriculture 4th Year', false);
+    }
+
     public function test_parent_and_guest_cannot_reach_document_requests(): void
     {
         $this->actingAs($this->user('student', 'parent'))

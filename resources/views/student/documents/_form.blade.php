@@ -503,7 +503,7 @@
                                     <div>
                                         <p class="text-[11px] font-bold uppercase
                                                   tracking-wide text-gray-400">Year Level</p>
-                                        <p class="text-sm font-bold text-gray-900 mt-0.5">{{ $profile?->year_level ?? ($classification === 'alumni' ? $alumni->year_graduated : null) ?? '—' }}</p>
+                                        <p class="text-sm font-bold text-gray-900 mt-0.5">{{ $profile?->year_level ?? ($classification === 'alumni' ? ($alumni->year_level ?? $alumni->year_graduated) : null) ?? '—' }}</p>
                                     </div>
 
                                 </div>

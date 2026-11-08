@@ -47,12 +47,13 @@ class CompleteProfileController extends Controller
 
         $data = $request->post();
 
-        // Address, course and year level are required — but only for the
-        // student form, the only one that shows them. The alumni, guest and
-        // parent forms never submit these fields, so a blanket `required`
-        // would bounce every one of those saves. This draws the same line
-        // the view draws: it renders the student fields whenever a student
-        // profile exists.
+        // Address, course and year level are required - but only for the
+        // forms that show them. Students keep them on their profile row and
+        // alumni submit the same fields below; the guest and parent forms
+        // never submit course or year level, so a blanket `required` would
+        // bounce every one of those saves. This draws the same line the view
+        // draws: it renders the student fields whenever a student profile
+        // exists.
         $isStudent = $user->studentProfile !== null;
 
         // Validate contact_number (required for all)
@@ -85,11 +86,13 @@ class CompleteProfileController extends Controller
 
             $rules = match ($type) {
                 'alumni' => $common + [
-                    // The alumni step asks for what a graduate still has:
-                    // a home address and the college they finished. No
-                    // student ID (they already left) and no year graduated.
+                    // Alumni fill in the same personal details students do -
+                    // student ID and year level included - so one record shape
+                    // serves the registrar whichever type filed the request.
+                    'student_id' => ['nullable', 'string', 'max:30'],
                     'address' => ['required', 'string', 'max:255'],
                     'course' => ['required', 'string', Rule::in(StudentProfile::COLLEGES)],
+                    'year_level' => ['required', 'string', Rule::in(StudentProfile::YEAR_LEVELS)],
                 ],
                 'guest' => $common + [
                     'address' => ['required', 'string', 'max:255'],
@@ -110,11 +113,17 @@ class CompleteProfileController extends Controller
             ]);
 
             if ($type === 'alumni') {
+                if ($request->has('student_id')) {
+                    $updateData['student_id'] = $request->student_id;
+                }
                 if ($request->has('address')) {
                     $updateData['address'] = $request->address;
                 }
                 if ($request->has('course')) {
                     $updateData['course'] = $request->course;
+                }
+                if ($request->has('year_level')) {
+                    $updateData['year_level'] = $request->year_level;
                 }
             } elseif ($type === 'guest') {
                 if ($request->has('address')) {

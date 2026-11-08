@@ -285,12 +285,17 @@ class DocumentRequestController extends Controller
 
     /**
      * The "Course Year" line stored on the request. Students read it from
-     * their student profile; alumni from their graduation details.
+     * their student profile; alumni from their own record, where the year
+     * level they gave at complete-details is what the requisition form has
+     * to print. A graduate who filed before that field existed still has
+     * their year graduated, so it stays as the fallback.
      */
     private function courseYear(User $user, mixed $profile): string
     {
         if ($user->classification() === 'alumni') {
-            return trim(($user->course ?? '').' '.($user->year_graduated ?? '')) ?: 'Not provided';
+            $year = $user->year_level ?: $user->year_graduated;
+
+            return trim(($user->course ?? '').' '.($year ?? '')) ?: 'Not provided';
         }
 
         return trim(($profile?->course ?? '').' '.($profile?->year_level ?? '')) ?: 'Not provided';

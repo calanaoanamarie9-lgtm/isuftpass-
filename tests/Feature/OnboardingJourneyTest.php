@@ -114,6 +114,7 @@ class OnboardingJourneyTest extends TestCase
                 'contact_number' => '09171234567',
                 'address' => 'Barotac Nuevo, Iloilo',
                 'course' => 'College of Agriculture',
+                'year_level' => '4th Year',
             ],
             'alumni.dashboard',
             'Welcome, Anna M Alumni!',

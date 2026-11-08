@@ -184,44 +184,51 @@ class CompleteProfileTest extends TestCase
             ->assertSee('Alumni Details')
             ->assertSee('Address')
             ->assertSee('Select College')
-            // A graduate has already left: the alumni form asks for neither
-            // a student ID nor a graduation year - only students and parents
-            // still have a use for those.
-            ->assertDontSee('name="student_id"', false)
+            // Alumni fill in the same personal details as students, student
+            // ID and year level included. A graduation year is still not
+            // asked: the alumni row has no use for it.
+            ->assertSee('name="student_id"', false)
+            ->assertSee('name="year_level"', false)
             ->assertDontSee('name="year_graduated"', false);
 
         $this->post('/complete-profile', [
+            'student_id' => '2019-04521',
             'contact_number' => '09171234567',
             'address' => 'Barotac Nuevo, Iloilo',
             'course' => 'College of Agriculture',
+            'year_level' => '4th Year',
         ])->assertRedirect(route('dashboard', absolute: false));
 
         $this->assertDatabaseHas('users', [
             'email' => 'john@example.com',
+            'student_id' => '2019-04521',
             'contact_number' => '09171234567',
             'address' => 'Barotac Nuevo, Iloilo',
             'course' => 'College of Agriculture',
+            'year_level' => '4th Year',
         ]);
     }
 
     /**
-     * The alumni step asks for what a graduate still has: a home address
-     * and the college they finished, both required, with course drawn from
-     * the same dropdown the student form uses - not a free-text box.
+     * The alumni step asks for the same details the student step does: a
+     * home address, the college they finished and their year level, all
+     * required, with course and year level drawn from the same dropdowns
+     * the student form uses - not free-text boxes.
      */
-    public function test_alumni_requires_address_and_a_valid_college(): void
+    public function test_alumni_requires_address_a_valid_college_and_a_year_level(): void
     {
         $this->registerOther('alumni');
 
         $this->post('/complete-profile', [
             'contact_number' => '09171234567',
-        ])->assertSessionHasErrors(['address', 'course']);
+        ])->assertSessionHasErrors(['address', 'course', 'year_level']);
 
         $this->post('/complete-profile', [
             'contact_number' => '09171234567',
             'address' => 'Iloilo City',
             'course' => 'BSA',
-        ])->assertSessionHasErrors('course');
+            'year_level' => '5th Year',
+        ])->assertSessionHasErrors(['course', 'year_level']);
     }
 
     /**
@@ -236,6 +243,7 @@ class CompleteProfileTest extends TestCase
             'contact_number' => '09171234567',
             'address' => 'Iloilo City',
             'course' => 'College of Agriculture',
+            'year_level' => '4th Year',
         ])
             ->assertSessionHasNoErrors()
             ->assertRedirect(route('dashboard', absolute: false));
@@ -355,7 +363,7 @@ class CompleteProfileTest extends TestCase
     public function test_avatar_posts_are_ignored_for_every_other_registration_type(): void
     {
         $cases = [
-            'alumni' => ['address' => 'Iloilo City', 'course' => 'College of Agriculture'],
+            'alumni' => ['address' => 'Iloilo City', 'course' => 'College of Agriculture', 'year_level' => '4th Year'],
             'guest' => ['address' => 'Iloilo City', 'purpose' => 'inquiry'],
             'parent' => ['relationship_to_student' => 'mother', 'student_full_name' => 'Jane Student'],
         ];
