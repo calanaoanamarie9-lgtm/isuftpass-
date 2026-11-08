@@ -940,9 +940,7 @@
 
                     <span>
                         Email:
-                        <a href="mailto:cict_dingle@isufst.edu.ph">
-                            cict_dingle@isufst.edu.ph
-                        </a>
+                        <a href="mailto:registrariscofdingle@gmail.com">registrariscofdingle@gmail.com</a>/<a href="mailto:registrardingle@isufst.edu.ph">registrardingle@isufst.edu.ph</a>
                     </span>
 
                 </div>
