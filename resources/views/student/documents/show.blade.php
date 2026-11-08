@@ -30,11 +30,6 @@
 
         $totalFee = (float) $documentRequest->documents->sum('fee');
 
-        $totalCopies = (int) $documentRequest->documents
-            ->sum('pivot.quantity');
-
-        $totalCopies = $totalCopies > 0 ? $totalCopies : 1;
-
 
         /*
         |--------------------------------------------------------------------------
@@ -501,31 +496,6 @@
 
                             @endif
 
-
-                            {{-- Copies --}}
-                            <div>
-
-                                <p
-                                    class="text-[10px]
-                                           font-bold
-                                           tracking-wider
-                                           text-gray-400
-                                           uppercase"
-                                >
-                                    Copies
-                                </p>
-
-                                <p
-                                    class="mt-1
-                                           text-sm
-                                           font-black
-                                           text-gray-900"
-                                >
-                                    {{ $totalCopies }}
-                                    {{ $totalCopies == 1 ? 'copy' : 'copies' }}
-                                </p>
-
-                            </div>
 
 
                             {{-- Claiming Office --}}
@@ -1055,68 +1025,26 @@
                            shadow-sm"
                 >
 
-                    <div class="flex flex-col sm:flex-row
-                                sm:items-center
-                                justify-between
-                                gap-4">
+                    <div class="min-w-0">
 
-                        <div class="min-w-0">
+                        <p class="text-xs
+                                  font-black
+                                  uppercase
+                                  tracking-wider
+                                  text-amber-600">
+                            Order of Payment
+                        </p>
 
-                            <p class="text-xs
-                                      font-black
-                                      uppercase
-                                      tracking-wider
-                                      text-amber-600">
-                                Order of Payment
-                            </p>
-
-                            <p class="mt-1
-                                      text-sm
-                                      text-gray-600
-                                      leading-relaxed">
-                                Your request is approved.
-                                <b>{{ $documentRequest->op_number }}</b>
-                                is your official billing statement — settle
-                                it at the Cashier's Office to have your
-                                payment recorded.
-                            </p>
-
-                        </div>
-
-                        <a
-                            href="{{ route('student.documents.order-of-payment', $documentRequest) }}"
-                            class="inline-flex
-                                   items-center
-                                   justify-center
-                                   gap-2
-                                   px-5 py-3
-                                   rounded-xl
-                                   bg-amber-500
-                                   hover:bg-amber-600
-                                   text-white
-                                   text-sm
-                                   font-bold
-                                   transition
-                                   whitespace-nowrap"
-                        >
-
-                            <svg
-                                class="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H7a2 2 0 00-2 2v4a2 2 0 002 2zm4-12V9a4 4 0 018 0v2"
-                                />
-                            </svg>
-
-                            Print Order of Payment
-
-                        </a>
+                        <p class="mt-1
+                                  text-sm
+                                  text-gray-600
+                                  leading-relaxed">
+                            Your request is approved.
+                            <b>{{ $documentRequest->op_number }}</b>
+                            is your official billing statement — settle
+                            it at the Cashier's Office to have your
+                            payment recorded.
+                        </p>
 
                     </div>
 

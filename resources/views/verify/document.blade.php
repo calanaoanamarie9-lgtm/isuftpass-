@@ -37,9 +37,6 @@
 
         $totalFee = (float) $documentRequest->documents->sum('fee');
 
-        $totalCopies = (int) $documentRequest->documents->sum('pivot.quantity');
-        $totalCopies = $totalCopies > 0 ? $totalCopies : 1;
-
         $statusClass = match ($documentRequest->status) {
             'submitted', 'pending', 'payment_pending' =>
                 'bg-red-100 text-red-800 border-red-200',

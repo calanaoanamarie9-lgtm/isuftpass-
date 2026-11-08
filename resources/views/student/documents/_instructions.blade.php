@@ -8,7 +8,7 @@
         ],
         'for_signature' => [
             'Your request has been verified and approved by the Registrar\'s Office' . ($request->op_number ? ' (Order of Payment ' . $request->op_number . ' issued).' : '.'),
-            'Print the Order of Payment and settle your payment at the Cashier\'s Office.',
+            'Settle your payment at the Cashier\'s Office.',
             'Once the Cashier records your payment, your request will be marked Paid.',
         ],
         'awaiting_or_validation' => [

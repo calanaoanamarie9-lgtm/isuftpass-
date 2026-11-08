@@ -1149,24 +1149,6 @@
 
                                         </p>
 
-                                        @if ($request->op_number)
-
-                                            <a href="{{ route('registrar.document-requests.order-of-payment', $request) }}"
-                                               class="mt-2.5
-                                                      ml-6
-                                                      inline-flex
-                                                      items-center gap-1.5
-                                                      text-[11px]
-                                                      font-bold
-                                                      text-blue-800
-                                                      underline">
-
-                                                Print Order of Payment
-
-                                            </a>
-
-                                        @endif
-
                                     </div>
 
                                 @endif
