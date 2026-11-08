@@ -27,7 +27,7 @@
                 ISUFSTPASS
             </h1>
             <p class="mt-1 text-sm text-slate-500">
-                QR Code-Based Transaction Management System
+                QR Code-Based Online Transaction Management System
             </p>
         </div>
 

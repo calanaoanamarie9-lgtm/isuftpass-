@@ -85,7 +85,7 @@
                 </p>
 
                 <p class="text-[10px] text-gray-400 mt-1">
-                    QR Code-Based Transaction Management System
+                    QR Code-Based Online Transaction Management System
                 </p>
 
                 <p class="text-[10px] text-gray-400 mt-2 font-semibold">

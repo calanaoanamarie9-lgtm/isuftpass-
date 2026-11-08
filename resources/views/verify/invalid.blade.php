@@ -54,7 +54,7 @@
 
         <div class="text-center mt-6">
             <p class="text-xs font-bold text-blue-900">ISUFSTPASS</p>
-            <p class="text-[10px] text-gray-400 mt-1">QR Code-Based Transaction Management System</p>
+            <p class="text-[10px] text-gray-400 mt-1">QR Code-Based Online Transaction Management System</p>
         </div>
 
     </main>

@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>
-        ISUFSTPASS - QR Code-Based Online TransactionManagement System
+        ISUFSTPASS - QR Code-Based Online Transaction Management System
     </title>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -44,7 +44,7 @@
                         </h1>
 
                         <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
-                            Transaction Management System
+                            QR Code-Based Online Transaction Management System
                         </p>
                     </div>
 
@@ -784,7 +784,7 @@
 
             <p class="mt-6 text-gray-600 leading-relaxed">
 
-                ISUFSTPASS is a QR Code-Based Transaction Management System
+                ISUFSTPASS is a QR Code-Based Online Transaction Management System
                 developed to improve the delivery of university services.
                 It provides a centralized platform where users can submit
                 document requests, book appointments, monitor transaction
@@ -841,7 +841,7 @@
                             </p>
 
                             <p class="text-xs">
-                                QR Code-Based Transaction Management System
+                                QR Code-Based Online Transaction Management System
                             </p>
 
                         </div>

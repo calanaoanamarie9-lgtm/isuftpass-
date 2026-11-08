@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>ISUFSTPASS - QR Code-Based Document Management System</title>
+        <title>ISUFSTPASS - QR Code-Based Online Transaction Management System</title>
 
         @include('partials.pwa-head')
 
