@@ -72,6 +72,21 @@ class CompleteProfileTest extends TestCase
             ->assertDontSee('enctype="multipart/form-data"', false);
     }
 
+    /**
+     * The onboarding panel on the left lists the three steps, each drawn
+     * once: a stray wrapper used to stay open, nesting the active step
+     * inside the completed one and drawing a second "Verify Email".
+     */
+    public function test_the_steps_panel_lists_each_step_once(): void
+    {
+        $this->registerStudent();
+
+        $html = $this->get('/complete-profile')->assertOk()->getContent();
+
+        $this->assertSame(3, substr_count($html, '<!-- Step '), 'the panel must show three steps');
+        $this->assertSame(1, substr_count($html, 'Confirm your account'), 'the Verify Email step is drawn twice');
+    }
+
     public function test_student_can_complete_personal_details(): void
     {
         $this->registerStudent();

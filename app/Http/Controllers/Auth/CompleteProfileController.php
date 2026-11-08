@@ -58,6 +58,7 @@ class CompleteProfileController extends Controller
 
         // Validate contact_number (required for all)
         $validated = Validator::make($data, [
+            'student_id' => ['nullable', 'string', 'max:30'],
             'contact_number' => ['required', 'string', 'max:20'],
             'address' => $isStudent ? ['required', 'string', 'max:255'] : ['nullable', 'string', 'max:255'],
             'course' => $isStudent ? ['required', 'string', 'max:100'] : ['nullable', 'string', 'max:100'],

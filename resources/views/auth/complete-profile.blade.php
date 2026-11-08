@@ -133,6 +133,8 @@
                                 </p>
                             </div>
 
+                        </div>
+
                         <!-- Step 3 -->
                         <div class="flex items-center gap-4">
 
@@ -147,25 +149,6 @@
 
                                 <p class="text-xs text-blue-200">
                                     Your information
-                                </p>
-                            </div>
-
-                        </div>
-
-                        <!-- Step 3 -->
-                        <div class="flex items-center gap-4 opacity-60">
-
-                            <div class="w-9 h-9 rounded-full bg-white/10 border border-white/30 backdrop-blur-sm flex items-center justify-center text-xs font-bold">
-                                3
-                            </div>
-
-                            <div>
-                                <p class="text-sm font-semibold">
-                                    Verify Email
-                                </p>
-
-                                <p class="text-xs text-blue-200">
-                                    Confirm your account
                                 </p>
                             </div>
 
@@ -189,33 +172,33 @@
                     <!-- Top Navigation -->
                     <div class="flex items-center justify-between mb-8">
 
-                               <!-- Back to Home -->
-                    <div class="mt-7 flex justify-center">
+                        <!-- Back to Home -->
+                        <div>
 
-                        <a
-                            href="{{ url('/') }}"
-                            class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 transition-colors"
-                        >
-
-                            <svg
-                                class="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                            <a
+                                href="{{ url('/') }}"
+                                class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 transition-colors"
                             >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                                />
-                            </svg>
 
-                            Back to Home
+                                <svg
+                                    class="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                                    />
+                                </svg>
 
-                        </a>
+                                Back to Home
 
-                    </div>
+                            </a>
+
+                        </div>
 
                         <!-- Logout -->
                         <form method="POST" action="{{ route('logout') }}">
@@ -960,7 +943,7 @@
 
                                 @endif
 
-                        </div>
+                            </div>
 
 
                         @endif
@@ -1003,7 +986,7 @@
                                     id="contact_number"
                                     name="contact_number"
                                     type="tel"
-                                    value="{{ old('contact_number', $isStudent ? $profile->contact_number : $profile->contact_number) }}"
+                                    value="{{ old('contact_number', $profile->contact_number) }}"
                                     required
                                     autocomplete="tel"
                                     placeholder="e.g. 0917 123 4567"
