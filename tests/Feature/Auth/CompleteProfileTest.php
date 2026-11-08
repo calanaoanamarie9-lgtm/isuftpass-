@@ -196,7 +196,6 @@ class CompleteProfileTest extends TestCase
 
         $this->get('/complete-profile')
             ->assertOk()
-            ->assertSee('Alumni Details')
             ->assertSee('Address')
             ->assertSee('Select College')
             // Alumni fill in the same personal details as students, student
@@ -222,6 +221,39 @@ class CompleteProfileTest extends TestCase
             'course' => 'College of Agriculture',
             'year_level' => '4th Year',
         ]);
+    }
+
+    /**
+     * The alumni panel is the student panel: the same fields in the same
+     * order, so both types are asked for one record shape instead of the
+     * alumni seeing an "Alumni Details" section of their own.
+     */
+    public function test_the_alumni_form_shows_exactly_the_student_form_fields(): void
+    {
+        $fields = function (): array {
+            $html = $this->get('/complete-profile')->assertOk()->getContent();
+
+            preg_match_all('/<(?:input|select|textarea)[^>]*\sname="([^"]+)"/i', $html, $matches);
+
+            // The logout button posts its own CSRF field; only the details form counts.
+            return array_values(array_filter($matches[1], fn ($name) => ! str_starts_with($name, '_')));
+        };
+
+        $this->registerStudent('parity-student@example.com');
+        $student = $fields();
+
+        $this->post('/logout');
+        $this->registerOther('alumni', 'parity-alumni@example.com');
+        $alumni = $fields();
+
+        $this->assertSame($student, $alumni, 'the alumni form must match the student form field for field');
+        $this->assertSame(
+            ['student_id', 'contact_number', 'address', 'course', 'year_level'],
+            $alumni,
+            'the shared shape must be the student one'
+        );
+
+        $this->get('/complete-profile')->assertDontSee('Alumni Details');
     }
 
     /**

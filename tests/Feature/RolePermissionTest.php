@@ -164,44 +164,82 @@ class RolePermissionTest extends TestCase
             ->assertDontSee($documents['student']->name);
     }
 
-    public function test_alumni_request_requires_graduation_details(): void
+    /**
+     * Alumni fill in the request form students do. The graduation-year and
+     * course boxes they used to get are gone, and nothing extra has to be
+     * satisfied for their request to save.
+     */
+    public function test_alumni_request_form_asks_for_what_the_student_form_asks(): void
     {
         $documents = $this->documents();
 
-        $this->actingAs($this->user('student', 'alumni'))
-            ->post('/student/document-requests', $this->docPayload([$documents['alumni']->id]))
-            ->assertSessionHasErrors(['year_graduated', 'course']);
+        $fieldNames = function (string $html): array {
+            preg_match_all('/<(?:input|select|textarea)[^>]*\sname="([^"]+)"/i', $html, $matches);
 
-        $this->assertDatabaseCount('document_requests', 0);
+            return array_values(array_unique($matches[1]));
+        };
+
+        $studentForm = $this->actingAs($this->user())
+            ->get('/student/document-requests/create')
+            ->assertOk()
+            ->getContent();
+
+        $alumniForm = $this->actingAs($this->user('student', 'alumni'))
+            ->get('/student/document-requests/create')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(
+            $fieldNames($studentForm),
+            $fieldNames($alumniForm),
+            'the alumni request form must match the student request form field for field'
+        );
+
+        $this->assertStringNotContainsString('name="year_graduated"', $alumniForm);
+        $this->assertStringNotContainsString('Course Completed', $alumniForm);
     }
 
-    public function test_alumni_request_saves_graduation_details_to_account(): void
+    /**
+     * The printed requisition carries the same identity block whoever filed
+     * it: an alumni's address and contact number come from their account,
+     * not from the student profile they do not have.
+     */
+    public function test_alumni_requisition_prints_the_same_identity_block_as_a_students(): void
     {
         Mail::fake();
         Notification::fake();
 
         $documents = $this->documents();
         $alumni = $this->user('student', 'alumni');
+        $alumni->forceFill([
+            'student_id' => '2019-04521',
+            'address' => 'Barotac Nuevo, Iloilo',
+            'contact_number' => '09171234567',
+            'course' => 'College of Agriculture',
+            'year_level' => '4th Year',
+        ])->save();
 
         $this->actingAs($alumni)
-            ->post('/student/document-requests', $this->docPayload([$documents['alumni']->id], [
-                'year_graduated' => '2023',
-                'course' => 'BS Information Technology',
-            ]))
+            ->post('/student/document-requests', $this->docPayload([$documents['alumni']->id]))
+            ->assertSessionHasNoErrors()
             ->assertRedirect(route('student.documents.index'));
 
-        $alumni->refresh();
-        $this->assertSame('2023', $alumni->year_graduated);
-        $this->assertSame('BS Information Technology', $alumni->course);
-
         $request = $alumni->documentRequests()->firstOrFail();
-        $this->assertSame('BS Information Technology 2023', $request->student_course_year);
+
+        $this->assertSame('Barotac Nuevo, Iloilo', $request->student_address);
+        $this->assertSame('09171234567', $request->student_contact);
+        $this->assertSame('College of Agriculture 4th Year', $request->student_course_year);
+
+        $this->get(route('student.documents.requisition', $request))
+            ->assertOk()
+            ->assertSee('Barotac Nuevo, Iloilo', false)
+            ->assertSee('09171234567', false)
+            ->assertSee('College of Agriculture 4th Year', false);
     }
 
     /**
      * The year level an alumni gave at complete-details is the one the
-     * requisition form prints, next to the course they finished - not the
-     * year they graduated, which the form asks for separately.
+     * requisition form prints, next to the course they finished.
      */
     public function test_alumni_requisition_form_prints_the_year_level_from_their_record(): void
     {
@@ -216,18 +254,14 @@ class RolePermissionTest extends TestCase
         ])->save();
 
         $this->actingAs($alumni)
-            ->post('/student/document-requests', $this->docPayload([$documents['alumni']->id], [
-                'year_graduated' => '2023',
-                'course' => 'College of Agriculture',
-            ]))
+            ->post('/student/document-requests', $this->docPayload([$documents['alumni']->id]))
             ->assertRedirect(route('student.documents.index'));
 
         $request = $alumni->documentRequests()->firstOrFail();
 
         $this->assertSame('College of Agriculture 4th Year', $request->student_course_year);
 
-        $this->actingAs($alumni)
-            ->get(route('student.documents.requisition', $request))
+        $this->get(route('student.documents.requisition', $request))
             ->assertOk()
             ->assertSee('College of Agriculture 4th Year', false);
     }

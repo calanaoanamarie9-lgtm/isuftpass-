@@ -91,14 +91,15 @@ class DocumentRequestController extends Controller
 
         $this->authorizeDocuments($validated['document_ids']);
 
-        $this->persistAlumniDetails($user, $validated);
-
         $profile = $user->studentProfile;
 
+        // Students keep these on their profile row; everybody else, alumni
+        // included, keeps them on the account itself. The printed requisition
+        // has to carry the same block whoever filed it.
         $documentRequest = $user->documentRequests()->create([
             'student_name' => $user->name,
-            'student_address' => $profile?->address ?? 'Not provided',
-            'student_contact' => $profile?->contact_number ?? 'Not provided',
+            'student_address' => $profile?->address ?? $user->address ?? 'Not provided',
+            'student_contact' => $profile?->contact_number ?? $user->contact_number ?? 'Not provided',
             'student_course_year' => $this->courseYear($user, $profile),
             'purpose_type' => $validated['purpose_type'],
             'transfer_to' => $validated['transfer_to'] ?? null,
@@ -188,8 +189,6 @@ class DocumentRequestController extends Controller
 
         $this->authorizeDocuments($validated['document_ids']);
 
-        $this->persistAlumniDetails(Auth::user(), $validated);
-
         $documentRequest->update([
             'purpose_type' => $validated['purpose_type'],
             'transfer_to' => $validated['transfer_to'] ?? null,
@@ -269,21 +268,6 @@ class DocumentRequestController extends Controller
     }
 
     /**
-     * Alumni requests carry their graduation details; keep the account in sync.
-     */
-    private function persistAlumniDetails(User $user, array $validated): void
-    {
-        if ($user->classification() !== 'alumni') {
-            return;
-        }
-
-        $user->forceFill([
-            'year_graduated' => $validated['year_graduated'] ?? $user->year_graduated,
-            'course' => $validated['course'] ?? $user->course,
-        ])->save();
-    }
-
-    /**
      * The "Course Year" line stored on the request. Students read it from
      * their student profile; alumni from their own record, where the year
      * level they gave at complete-details is what the requisition form has
@@ -333,13 +317,6 @@ class DocumentRequestController extends Controller
             'claim_mode' => ['required', Rule::in(ClaimMode::toSelectKeys())],
             'representative_name' => ['nullable', 'required_if:claim_mode,representative', 'string', 'max:191'],
         ];
-
-        // Alumni requests must state the year they graduated and the course
-        // they completed, so the Registrar can match the record.
-        if (Auth::user()?->classification() === 'alumni') {
-            $rules['year_graduated'] = ['required', 'string', 'max:20'];
-            $rules['course'] = ['required', 'string', 'max:100'];
-        }
 
         return $request->validate($rules);
     }
@@ -398,9 +375,9 @@ class DocumentRequestController extends Controller
             'refCode' => $documentRequest->request_number,
             'caption' => 'Present this QR code to authorized personnel.',
             'name' => $user->name,
-            'studentId' => $profile?->student_id ?? '',
-            'course' => $profile?->course ?? '',
-            'yearLevel' => $profile?->year_level ?? '',
+            'studentId' => $profile?->student_id ?? $user->student_id ?? '',
+            'course' => $profile?->course ?? $user->course ?? '',
+            'yearLevel' => $profile?->year_level ?? $user->year_level ?? '',
             'qrPayload' => QrUrl::to('/verify/document/'.$documentRequest->claim_token),
         ];
 

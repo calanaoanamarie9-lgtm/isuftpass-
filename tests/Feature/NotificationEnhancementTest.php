@@ -262,8 +262,6 @@ class NotificationEnhancementTest extends TestCase
                 'educational_status' => 'graduated',
                 'educational_level' => 'college',
                 'claim_mode' => 'personal',
-                'year_graduated' => '2020',
-                'course' => 'BS Information Technology',
             ])
             ->assertRedirect(route('student.documents.index'));
 

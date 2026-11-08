@@ -287,7 +287,7 @@
                         @csrf
 
 
-                        @if ($type === 'student')
+                        @if ($type === 'student' || $type === 'alumni')
 
                             <!-- Student ID -->
                             <div>
@@ -531,204 +531,6 @@
                         @endif
 
 
-                        @if ($type === 'alumni')
-
-                            <!-- Alumni Details -->
-                            <p class="text-xs font-bold uppercase tracking-widest text-blue-700 pt-1">
-                                Alumni Details
-                            </p>
-
-
-                            <!-- Student ID -->
-                            <div>
-
-                                <label
-                                    for="student_id"
-                                    class="block text-sm font-semibold text-gray-800 mb-2"
-                                >
-                                    Student ID <span class="text-gray-400 font-normal">(optional)</span>
-                                </label>
-
-                                <div class="relative">
-
-                                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-
-                                        <svg
-                                            class="w-5 h-5 text-gray-400"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"
-                                            />
-                                        </svg>
-
-                                    </div>
-
-                                    <input
-                                        id="student_id"
-                                        name="student_id"
-                                        type="text"
-                                        value="{{ old('student_id', $profile->student_id) }}"
-                                        autocomplete="off"
-                                        placeholder="e.g. 2024-12345"
-                                        class="block w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
-                                    >
-
-                                </div>
-
-                                @if ($errors->get('student_id'))
-
-                                    <p class="mt-2 text-sm text-red-600">
-                                        {{ $errors->first('student_id') }}
-                                    </p>
-
-                                @endif
-
-                            </div>
-
-
-                            <!-- Address -->
-                            <div>
-
-                                <label
-                                    for="address"
-                                    class="block text-sm font-semibold text-gray-800 mb-2"
-                                >
-                                    Address
-                                </label>
-
-                                <input
-                                    id="address"
-                                    name="address"
-                                    type="text"
-                                    value="{{ old('address', $profile->address) }}"
-                                    required
-                                    autocomplete="street-address"
-                                    placeholder="e.g. Barotac Nuevo, Iloilo"
-                                    class="block w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none"
-                                >
-
-                                @if ($errors->get('address'))
-
-                                    <p class="mt-2 text-sm text-red-600">
-                                        {{ $errors->first('address') }}
-                                    </p>
-
-                                @endif
-
-                            </div>
-
-
-                            <!-- Course -->
-                            <div>
-
-                                <label
-                                    for="course"
-                                    class="block text-sm font-semibold text-gray-800 mb-2"
-                                >
-                                    Course
-                                </label>
-
-                                <div class="relative">
-
-                                    <select
-                                        id="course"
-                                        name="course"
-                                        autocomplete="off"
-                                        required
-                                        class="block w-full px-4 pr-10 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none appearance-none"
-                                    >
-                                        <option value="" {{ old('course', $profile->course) ? '' : 'selected' }}>
-                                            Select College
-                                        </option>
-
-                                        @foreach (\App\Models\StudentProfile::COLLEGES as $college)
-
-                                            <option value="{{ $college }}" {{ old('course', $profile->course) === $college ? 'selected' : '' }}>
-                                                {{ $college }}
-                                            </option>
-
-                                        @endforeach
-                                    </select>
-
-                                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                        </svg>
-                                    </div>
-
-                                </div>
-
-                                @if ($errors->get('course'))
-
-                                    <p class="mt-2 text-sm text-red-600">
-                                        {{ $errors->first('course') }}
-                                    </p>
-
-                                @endif
-
-                            </div>
-
-
-                            <!-- Year Level -->
-                            <div>
-
-                                <label
-                                    for="year_level"
-                                    class="block text-sm font-semibold text-gray-800 mb-2"
-                                >
-                                    Year Level
-                                </label>
-
-                                <div class="relative">
-
-                                    <select
-                                        id="year_level"
-                                        name="year_level"
-                                        required
-                                        class="block w-full px-4 pr-10 py-3.5 rounded-xl border border-gray-300 bg-white text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition outline-none appearance-none"
-                                    >
-                                        <option value="" {{ old('year_level', $profile->year_level) ? '' : 'selected' }}>
-                                            Select Year Level
-                                        </option>
-
-                                        @foreach (\App\Models\StudentProfile::YEAR_LEVELS as $year)
-
-                                            <option value="{{ $year }}" {{ old('year_level', $profile->year_level) === $year ? 'selected' : '' }}>
-                                                {{ $year }}
-                                            </option>
-
-                                        @endforeach
-                                    </select>
-
-                                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                        </svg>
-                                    </div>
-
-                                </div>
-
-                                @if ($errors->get('year_level'))
-
-                                    <p class="mt-2 text-sm text-red-600">
-                                        {{ $errors->first('year_level') }}
-                                    </p>
-
-                                @endif
-
-                            </div>
-
-
-
-                        @endif
-
-
                         @if ($type === 'guest')
 
                             <!-- Visitor Information -->
@@ -949,7 +751,7 @@
                         @endif
 
 
-                        @if ($type !== 'student')
+                        @if ($type === 'guest' || $type === 'parent')
 
 
                         <!-- Contact Number (shared) -->
