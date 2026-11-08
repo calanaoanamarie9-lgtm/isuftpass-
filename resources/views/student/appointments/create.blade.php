@@ -441,7 +441,7 @@
                                 </svg>
 
                                 <p class="text-xs text-gray-500">
-                                    Green dates have available slots. Red dates are fully booked
+                                    Green dates have available slots. Red dates are closed
                                     or unavailable. Select an office first.
                                 </p>
 

@@ -564,7 +564,7 @@
                                     <span class="w-2.5 h-2.5 rounded-full
                                                  bg-red-400"></span>
 
-                                    Full / Blocked
+                                    Closed / Blocked
 
                                 </span>
 
@@ -747,7 +747,7 @@
                                                         ? slot.remaining + ' seat' +
                                                           (slot.remaining === 1 ? '' : 's') +
                                                           ' available'
-                                                        : 'Fully booked'">
+                                                        : 'Closed'">
                                                 </p>
 
                                             </div>

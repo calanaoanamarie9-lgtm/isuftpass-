@@ -432,8 +432,8 @@ class SlotAvailabilityCapacityTest extends TestCase
             ->assertOk()
             ->assertSee('New Date')
             // The calendar on this page names its unusable days closed too;
-            // the time-slot cards below it keep their own "fully booked"
-            // wording, which is about a seat and not about a day.
+            // the time-slot cards below it now use the same "Closed" word
+            // for a full seat, so the whole page reads one vocabulary.
             ->assertSee('Closed</span>', false)
             ->assertSee('data-no-confirm data-date=', false);
     }

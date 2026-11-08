@@ -323,7 +323,7 @@
                                                              rounded-full bg-orange-50 text-orange-700
                                                              border border-orange-200 text-xs font-bold">
                                                     <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                                                    Fully Booked
+                                                    Closed
                                                 </span>
 
                                             @else
