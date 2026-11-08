@@ -24,7 +24,11 @@
         @include('emails.partials.row', ['label' => 'Office', 'value' => $appointment->office])
         @include('emails.partials.row', ['label' => 'Previous Schedule', 'value' => $oldSchedule ?? ($appointment->original_date?->format('F j, Y') . ' · ' . ($appointment->original_time_slot ?? '-'))])
         @include('emails.partials.row', ['label' => 'New Date', 'value' => $appointment->date->format('F j, Y (D)')])
-        @include('emails.partials.row', ['label' => 'New Time Slot', 'value' => $appointment->time_slot])
+        @if ($appointment->confirmed_time)
+            @include('emails.partials.row', ['label' => 'Come At', 'value' => $appointment->confirmed_time])
+        @else
+            @include('emails.partials.row', ['label' => 'New Time Slot', 'value' => $appointment->time_slot])
+        @endif
         @if ($appointment->reschedule_reason)
             @include('emails.partials.row', ['label' => 'Reason', 'value' => $appointment->reschedule_reason])
         @endif
