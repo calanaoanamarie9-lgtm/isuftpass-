@@ -9,6 +9,7 @@
     <p style="margin:0 0 18px;font-size:14px;line-height:1.8;color:#374151;">
         Your document request <strong>{{ $documentRequest->request_number }}</strong>
         for <strong>{{ $documentRequest->documentsSummary() }}</strong> has been
+        <strong>approved</strong> and is ready for pick-up.
     </p>
 
     @include('emails.partials.badge', ['slot' => 'Approved — Ready for Pick-up', 'bg' => '#dcfce7', 'text' => '#166534'])
