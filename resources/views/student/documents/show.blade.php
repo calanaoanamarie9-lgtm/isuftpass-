@@ -1165,6 +1165,33 @@
 
                     </div>
 
+                    {{-- The printed proof of payment — same Official Receipt
+                         the cashier issues at the window, opened from the
+                         owner's own copy of the request. --}}
+                    <a href="{{ route('student.documents.receipt', $documentRequest) }}"
+                       target="_blank"
+                       rel="noopener"
+                       class="mt-5 inline-flex
+                              items-center justify-center
+                              gap-2
+                              px-5 py-2.5
+                              rounded-xl
+                              bg-emerald-600
+                              hover:bg-emerald-700
+                              text-white
+                              text-sm font-bold
+                              transition
+                              shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                             stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M7 21h10a2 2 0 0 0 2-2V9.414a1 1 0 0 0-.293-.707l-5.414-5.414A1 1 0 0 0 12.586 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M9 13h6M9 17h4" />
+                        </svg>
+                        View Official Receipt
+                    </a>
+
                     @if ($documentRequest->status === 'awaiting_or_validation')
 
                         <p class="mt-5 text-sm

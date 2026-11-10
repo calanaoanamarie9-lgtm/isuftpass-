@@ -10,6 +10,7 @@ use App\Enums\Office;
 use App\Enums\RequestPurposeType;
 use App\Http\Controllers\Controller;
 use App\Mail\DocumentRequestReceived;
+use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\DocumentRequest;
 use App\Models\Feedback;
@@ -333,6 +334,36 @@ class DocumentRequestController extends Controller
 
         return view('documents.order-of-payment', [
             'request' => $documentRequest->load(['user.studentProfile', 'documents']),
+        ]);
+    }
+
+    /**
+     * The owner's copy of the Official Receipt — the proof of payment the
+     * requester keeps after the cashier records it. Same printed document
+     * the cashier hands over at the window, authorized as the owner (or
+     * staff) rather than as the cashier's desk.
+     *
+     * The cashier's signature line cannot read the session: whoever opens
+     * this page is the requester, so the name comes from the audit trail
+     * written when the payment was recorded.
+     */
+    public function receipt(DocumentRequest $documentRequest): View
+    {
+        Gate::authorize('view', $documentRequest);
+
+        abort_unless($documentRequest->isPaid(), 404);
+
+        $cashierName = AuditLog::query()
+            ->where('action', 'payment.recorded')
+            ->where('description', 'like', '%'.$documentRequest->request_number.'%')
+            ->latest()
+            ->value('actor_name');
+
+        return view('cashier.payments.receipt', [
+            'request' => $documentRequest->load(['user', 'documents']),
+            'cashierName' => $cashierName ?? 'Cashier Staff',
+            'backUrl' => route('student.documents.show', $documentRequest),
+            'backLabel' => 'Back to request',
         ]);
     }
 

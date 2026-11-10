@@ -132,6 +132,9 @@ class PaymentController extends Controller
         return view('cashier.payments.receipt', [
             'request' => $documentRequest->load(['user', 'documents']),
             'cashier' => Auth::user(),
+            'cashierName' => Auth::user()?->name,
+            'backUrl' => route('cashier.payments.pending'),
+            'backLabel' => 'Back to payments',
         ]);
     }
 

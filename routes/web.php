@@ -407,6 +407,10 @@ Route::middleware(['auth', 'verified', 'role:student'])->prefix('student')->name
     Route::get('/document-requests/{documentRequest}/qr/download', [DocumentRequestController::class, 'downloadQr'])->name('documents.qr.download');
     Route::get('/document-requests/{documentRequest}/requisition', [DocumentRequestController::class, 'requisition'])->name('documents.requisition');
     Route::get('/document-requests/{documentRequest}/order-of-payment', [DocumentRequestController::class, 'orderOfPayment'])->name('documents.order-of-payment');
+    // The owner's copy of the Official Receipt — the proof of payment the
+    // requester keeps. Same printed document the cashier hands over at the
+    // window, but only ever for the request the signed-in user owns.
+    Route::get('/document-requests/{documentRequest}/receipt', [DocumentRequestController::class, 'receipt'])->name('documents.receipt');
     Route::get('/document-requests/{documentRequest}/edit', [DocumentRequestController::class, 'edit'])->name('documents.edit');
     Route::put('/document-requests/{documentRequest}', [DocumentRequestController::class, 'update'])->name('documents.update');
     Route::post('/document-requests/{documentRequest}/cancel', [DocumentRequestController::class, 'cancel'])->name('documents.cancel');

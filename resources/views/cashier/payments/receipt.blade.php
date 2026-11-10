@@ -258,7 +258,9 @@
 
     <div class="print-bar">
 
-        <a href="{{ url()->previous() }}">Back to payments</a>
+        <a href="{{ $backUrl ?? url()->previous() }}">
+            {{ $backLabel ?? 'Back to payments' }}
+        </a>
 
         <button type="button" onclick="window.print()">
             Print Official Receipt
@@ -386,7 +388,7 @@
                         Cashier
                     </div>
 
-                    <b>{{ $cashier->name }}</b>
+                    <b>{{ $cashierName ?? $cashier->name }}</b>
 
                 </div>
 
