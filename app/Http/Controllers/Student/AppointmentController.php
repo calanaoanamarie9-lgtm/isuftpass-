@@ -45,6 +45,9 @@ class AppointmentController extends Controller
             : 'upcoming';
 
         $appointments = Auth::user()->appointments()
+            // Completed rows offer "Rate this service" until it is given,
+            // so each card needs the viewer's own rating, not everyone's.
+            ->with(['feedback' => fn ($q) => $q->where('user_id', Auth::id())])
             ->when($tab === 'upcoming', fn ($q) => $q->upcoming()->orderBy('date')->orderBy('time_slot'))
             ->when($tab === 'completed', fn ($q) => $q->where('status', AppointmentStatus::COMPLETED->value)->latest())
             ->when($tab === 'cancelled', fn ($q) => $q->where('status', AppointmentStatus::CANCELLED->value)->latest())

@@ -6,6 +6,7 @@ use App\Enums\Office;
 use App\Http\Controllers\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Admin\ConfigController;
 use App\Http\Controllers\Admin\DepartmentController;
+use App\Http\Controllers\Admin\FeedbackController as AdminFeedbackController;
 use App\Http\Controllers\Admin\SlotCapacityController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Cashier\LedgerController;
@@ -542,6 +543,10 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
 
     // Master Logs & Audits
     Route::get('/audits', [AdminAuditLogController::class, 'index'])->name('audits.index');
+
+    // Feedback Management — the ratings and comments users left on
+    // finished appointments and document requests, with the averages.
+    Route::get('/feedback', [AdminFeedbackController::class, 'index'])->name('feedback.index');
 
     // Consultation services — System Admin oversight across every office.
     Route::patch('/consultations/{consultationService}/toggle', [ConsultationServiceController::class, 'toggle'])

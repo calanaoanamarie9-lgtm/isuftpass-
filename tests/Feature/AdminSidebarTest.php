@@ -9,7 +9,7 @@ use Tests\TestCase;
 /**
  * The admin's own sidebar.
  *
- * The System Admin gets seven items of their own, and the pages they open
+ * The System Admin gets eight items of their own, and the pages they open
  * under /admin are the Registrar's own - the policies have always let the
  * admin manage any office's bookings, so the menu and the pages agree.
  */
@@ -22,7 +22,7 @@ class AdminSidebarTest extends TestCase
         return User::factory()->create(['role' => 'admin']);
     }
 
-    public function test_the_admin_sidebar_lists_its_seven_items(): void
+    public function test_the_admin_sidebar_lists_its_eight_items(): void
     {
         $html = $this->actingAs($this->admin())
             ->get('/dashboard')
@@ -38,6 +38,7 @@ class AdminSidebarTest extends TestCase
             'QR Scanner &amp; Verification',
             'Student &amp; User Accounts',
             'Transaction History &amp; Reports',
+            'Feedback Management',
             'System Settings',
         ] as $item) {
             $this->assertStringContainsString($item, $html, 'Missing sidebar item: '.$item);
@@ -62,6 +63,7 @@ class AdminSidebarTest extends TestCase
             '/admin/qr',
             '/admin/users',
             '/admin/audits',
+            '/admin/feedback',
             '/admin/settings',
         ] as $path) {
             $this->actingAs($admin)

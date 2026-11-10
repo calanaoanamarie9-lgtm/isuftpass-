@@ -1208,6 +1208,141 @@
 
 
             {{-- ============================================================
+                 RATE THIS SERVICE
+                 Offered the moment the request is claimable or done —
+                 the same window the rating form itself enforces — and
+                 replaced by the submitted stars once given.
+            ============================================================= --}}
+            @php
+                $myDocumentRating = $documentRequest->feedback
+                    ->firstWhere('user_id', auth()->id());
+            @endphp
+
+            @if (in_array($documentRequest->status, ['ready_for_pickup', 'completed'], true))
+
+                <div class="mt-5 bg-white border border-gray-200
+                            rounded-2xl p-5 sm:p-6 shadow-sm">
+
+                    <div class="flex flex-col sm:flex-row
+                                sm:items-center sm:justify-between
+                                gap-4">
+
+                        <div class="flex items-start gap-3">
+
+                            <div class="w-10 h-10 shrink-0 rounded-xl
+                                        bg-amber-50
+                                        flex items-center justify-center">
+
+                                <svg class="w-5 h-5 text-amber-500"
+                                     fill="currentColor"
+                                     viewBox="0 0 24 24">
+
+                                    <path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z"/>
+
+                                </svg>
+
+                            </div>
+
+                            <div>
+
+                                <h3 class="text-sm font-extrabold
+                                           text-[#102d5b]">
+
+                                    {{ $myDocumentRating ? 'Your Rating' : 'Rate This Service' }}
+
+                                </h3>
+
+                                @if ($myDocumentRating)
+
+                                    <div class="flex items-center gap-2 mt-1">
+
+                                        <div class="flex gap-0.5">
+
+                                            @for ($star = 1; $star <= 5; $star++)
+
+                                                <svg class="w-4 h-4
+                                                            {{ $star <= $myDocumentRating->rating
+                                                                ? 'text-yellow-400'
+                                                                : 'text-gray-200' }}"
+                                                     fill="currentColor"
+                                                     viewBox="0 0 24 24">
+
+                                                    <path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z"/>
+
+                                                </svg>
+
+                                            @endfor
+
+                                        </div>
+
+                                        <span class="text-sm font-semibold
+                                                     text-gray-600">
+
+                                            Thank you for your feedback!
+
+                                        </span>
+
+                                    </div>
+
+                                    @if ($myDocumentRating->comment)
+
+                                        <p class="text-xs text-gray-500 mt-1">
+
+                                            &ldquo;{{ $myDocumentRating->comment }}&rdquo;
+
+                                        </p>
+
+                                    @endif
+
+                                @else
+
+                                    <p class="text-sm text-gray-500 mt-1">
+
+                                        Rate how this request was handled &mdash;
+                                        it only takes a moment.
+
+                                    </p>
+
+                                @endif
+
+                            </div>
+
+                        </div>
+
+                        @unless ($myDocumentRating)
+
+                            <a href="{{ route('student.feedback.create', ['kind' => 'document', 'id' => $documentRequest->id]) }}"
+                               class="inline-flex items-center gap-2
+                                      px-4 py-2.5 rounded-xl
+                                      bg-amber-400
+                                      hover:bg-amber-500
+                                      text-amber-950
+                                      text-sm font-bold
+                                      transition
+                                      w-fit">
+
+                                <svg class="w-4 h-4"
+                                     fill="currentColor"
+                                     viewBox="0 0 24 24">
+
+                                    <path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z"/>
+
+                                </svg>
+
+                                Rate this service
+
+                            </a>
+
+                        @endunless
+
+                    </div>
+
+                </div>
+
+            @endif
+
+
+            {{-- ============================================================
                  REMINDERS
             ============================================================= --}}
             <div

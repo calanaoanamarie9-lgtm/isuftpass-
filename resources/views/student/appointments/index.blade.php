@@ -391,6 +391,85 @@
 
                                 </div>
 
+                            @elseif ($appointment->status === 'completed')
+
+                                {{-- =================================================
+                                     RATE THIS SERVICE — the visit is over,
+                                     so the student can now judge it.
+                                ================================================== --}}
+                                @php $myRating = $appointment->feedback->first(); @endphp
+
+                                <div class="mt-6 pt-5 border-t border-gray-100
+                                            flex flex-col sm:flex-row
+                                            sm:items-center
+                                            sm:justify-between gap-3">
+
+                                    @if ($myRating)
+
+                                        <div class="flex items-center gap-3">
+
+                                            <div class="flex gap-0.5">
+
+                                                @for ($star = 1; $star <= 5; $star++)
+
+                                                    <svg class="w-4 h-4
+                                                                {{ $star <= $myRating->rating
+                                                                    ? 'text-yellow-400'
+                                                                    : 'text-gray-200' }}"
+                                                         fill="currentColor"
+                                                         viewBox="0 0 24 24">
+
+                                                        <path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z"/>
+
+                                                    </svg>
+
+                                                @endfor
+
+                                            </div>
+
+                                            <p class="text-sm font-semibold
+                                                      text-gray-600">
+
+                                                Thank you for your feedback!
+
+                                            </p>
+
+                                        </div>
+
+                                    @else
+
+                                        <p class="text-sm text-gray-500">
+
+                                            How was your visit? Rate this
+                                            service to help us improve.
+
+                                        </p>
+
+                                        <a href="{{ route('student.feedback.create', ['kind' => 'appointment', 'id' => $appointment->id]) }}"
+                                           class="inline-flex items-center gap-2
+                                                  px-4 py-2.5 rounded-xl
+                                                  bg-amber-400
+                                                  hover:bg-amber-500
+                                                  text-amber-950
+                                                  text-sm font-bold
+                                                  transition">
+
+                                            <svg class="w-4 h-4"
+                                                 fill="currentColor"
+                                                 viewBox="0 0 24 24">
+
+                                                <path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z"/>
+
+                                            </svg>
+
+                                            Rate this service
+
+                                        </a>
+
+                                    @endif
+
+                                </div>
+
                             @endif
 
                         </div>
