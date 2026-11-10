@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\AppointmentStatus;
+use App\Enums\DocumentRequestStatus;
 use App\Models\Appointment;
 use App\Models\User;
 use App\Notifications\AppointmentCancelledNotification;
@@ -14,13 +15,15 @@ use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 /**
- * A booking the student never arrived for.
+ * A booking the student never arrived for - or arrived too late for.
  *
- * Three things have to hold: the booking closes itself out once its hour is
- * gone and not a minute sooner (a student inside the window, inside the
- * grace, or already checked in is never touched), the gate reads such a pass
- * as cancelled the instant it is scanned, and the endpoint that does the
- * sweeping for everyone else stays behind the cron secret.
+ * Four things have to hold: the booking closes itself out the minute its
+ * window is over and not a second sooner (a student inside the window, or
+ * already checked in, is never touched), a gate scan at 9:01 for an 8:00 -
+ * 9:00 slot cancels it on the spot, a document request scanned at the same
+ * late hour is not touched at all (the policy is for online appointments
+ * only), and the endpoint that does the sweeping for everyone else stays
+ * behind the cron secret.
  *
  * Appointments run on campus wall clock, so every test pins "now" rather
  * than reading it - 06:00 UTC is 2:00 PM in Manila.
@@ -35,8 +38,11 @@ class AppointmentAutoCancelTest extends TestCase
     /** 01:00 UTC == 9:00 AM Manila: the window is still open. */
     private const INSIDE_WINDOW = '2026-10-19 01:00:00';
 
-    /** 02:15 UTC == 10:15 AM Manila: late, but still inside the grace. */
-    private const INSIDE_GRACE = '2026-10-19 02:15:00';
+    /** 02:00:59 UTC == 10:00:59 AM Manila: the window's last free second. */
+    private const LAST_SECOND_IN_WINDOW = '2026-10-19 02:00:59';
+
+    /** 02:01 UTC == 10:01 AM Manila: one second late - already missed. */
+    private const FIRST_LATE_SECOND = '2026-10-19 02:01:00';
 
     private function at(string $utc): void
     {
@@ -90,7 +96,12 @@ class AppointmentAutoCancelTest extends TestCase
 
         AppointmentSweep::run();
 
-        Notification::assertSentTo($student, AppointmentCancelledNotification::class);
+        Notification::assertSentTo(
+            $student,
+            AppointmentCancelledNotification::class,
+            // The scheduled sweep saw nobody arrive, so its notice says so.
+            fn ($notification): bool => $notification->reason === 'Scheduled time passed without check-in.'
+        );
     }
 
     public function test_a_booking_inside_its_window_is_left_alone(): void
@@ -102,14 +113,31 @@ class AppointmentAutoCancelTest extends TestCase
         $this->assertSame(AppointmentStatus::CONFIRMED->value, $appointment->fresh()->status);
     }
 
-    public function test_a_student_inside_the_grace_period_still_gets_in(): void
+    public function test_a_booking_is_still_valid_in_the_last_second_of_its_window(): void
     {
-        $this->at(self::INSIDE_GRACE);
+        $this->at(self::LAST_SECOND_IN_WINDOW);
         $appointment = $this->booking($this->student());
 
         $this->assertSame(0, AppointmentSweep::run());
         $this->assertSame(AppointmentStatus::CONFIRMED->value, $appointment->fresh()->status);
         $this->assertNull($appointment->fresh()->cancelled_at);
+    }
+
+    /**
+     * No grace: the closing minute is the deadline, so 10:01 for a window
+     * that shut at 10:00 is already late and the booking cancels itself.
+     */
+    public function test_a_booking_is_cancelled_the_minute_its_window_closes(): void
+    {
+        $this->at(self::FIRST_LATE_SECOND);
+        $appointment = $this->booking($this->student());
+
+        $this->assertSame(1, AppointmentSweep::run());
+
+        $fresh = $appointment->fresh();
+
+        $this->assertSame(AppointmentStatus::CANCELLED->value, $fresh->status);
+        $this->assertNotNull($fresh->cancelled_at);
     }
 
     public function test_a_student_who_already_arrived_is_never_cancelled(): void
@@ -191,7 +219,92 @@ class AppointmentAutoCancelTest extends TestCase
                 'This appointment is “Cancelled” and cannot be used for entry.'
             );
 
-        $this->assertSame(AppointmentStatus::CANCELLED->value, $appointment->fresh()->status);
+        $fresh = $appointment->fresh();
+
+        $this->assertSame(AppointmentStatus::CANCELLED->value, $fresh->status);
+        // The scan was an arrival - just a late one - so the reason says
+        // that rather than the cron's no-show wording.
+        $this->assertStringContainsString(
+            'Arrived after the allocated time slot',
+            (string) $fresh->notes
+        );
+    }
+
+    /**
+     * The policy in its own words: an 8:00 - 9:00 AM booking scanned at
+     * the gate at 9:01 AM is late, so the appointment is automatically
+     * cancelled - the pass reads Cancelled and entry is refused.
+     */
+    public function test_a_gate_scan_at_901_cancels_an_8_to_9_appointment(): void
+    {
+        // 01:01 UTC == 9:01 AM Manila: one minute past an 8:00 - 9:00 slot.
+        $this->at('2026-10-19 01:01:00');
+
+        $appointment = $this->booking($this->student(), [
+            'start_time' => '08:00',
+            'end_time' => '09:00',
+            'time_slot' => '08:00 AM - 09:00 AM',
+        ]);
+
+        $guard = User::factory()->create([
+            'role' => User::ROLE_GUARD,
+            'office' => 'Main Gate',
+        ]);
+
+        $this->actingAs($guard)
+            ->postJson('/guard/scan', ['token' => $appointment->qr_token])
+            ->assertOk()
+            ->assertJsonPath('valid', false)
+            ->assertJsonPath('pass.statusLabel', 'Cancelled')
+            ->assertJsonPath('pass.statusTone', 'invalid');
+
+        $fresh = $appointment->fresh();
+
+        $this->assertSame(AppointmentStatus::CANCELLED->value, $fresh->status);
+        $this->assertNotNull($fresh->cancelled_at);
+        $this->assertStringContainsString(
+            'Arrived after the allocated time slot',
+            (string) $fresh->notes
+        );
+    }
+
+    /**
+     * The late-arrival policy applies to online appointments only. A
+     * Digital Claim Pass carries no slot to be late for, so the same late
+     * hour resolves it normally and its request is never cancelled.
+     */
+    public function test_a_document_request_scanned_late_is_not_cancelled(): void
+    {
+        $this->at(self::AFTER_HOURS);
+
+        $request = $this->student()->documentRequests()->create([
+            'student_name' => 'Maria Santos',
+            'student_address' => 'Iloilo City',
+            'student_contact' => '09170000000',
+            'student_course_year' => 'BSIT 3',
+            'status' => DocumentRequestStatus::READY_FOR_PICKUP->value,
+            'purpose_type' => 'employment',
+            'educational_status' => 'not_graduated',
+            'educational_level' => 'college',
+            'claim_mode' => 'personal',
+            'submitted_at' => now(),
+        ]);
+
+        $guard = User::factory()->create([
+            'role' => User::ROLE_GUARD,
+            'office' => 'Main Gate',
+        ]);
+
+        $this->actingAs($guard)
+            ->postJson('/guard/scan', ['token' => $request->claim_token])
+            ->assertOk()
+            ->assertJsonPath('valid', true)
+            ->assertJsonPath('pass.statusLabel', 'Ready for Pick-up');
+
+        $this->assertSame(
+            DocumentRequestStatus::READY_FOR_PICKUP->value,
+            $request->fresh()->status
+        );
     }
 
     public function test_a_guard_scan_leaves_a_booking_inside_its_window_untouched(): void
@@ -239,6 +352,12 @@ class AppointmentAutoCancelTest extends TestCase
 
         $this->assertSame(AppointmentStatus::CANCELLED->value, $fresh->status);
         $this->assertNull($fresh->checked_in_at);
+        // The desk scanned the pass too, so it carries the late-arrival
+        // wording rather than the cron's no-show wording.
+        $this->assertStringContainsString(
+            'Arrived after the allocated time slot',
+            (string) $fresh->notes
+        );
     }
 
     /*

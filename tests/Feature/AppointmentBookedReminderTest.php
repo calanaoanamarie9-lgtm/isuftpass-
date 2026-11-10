@@ -18,8 +18,8 @@ use Tests\TestCase;
  * name the same window and the same penalty, because a student who is told
  * 10-15 minutes in one and 15-30 in the other has no reason to trust
  * either. The window is the one the sweep enforces - AppointmentSweep
- * gives a booking a half hour past its closing time before it cancels it
- * - so the warning describes what the system really does rather than a
+ * closes a booking the minute its window shuts, with no grace - so the
+ * warning describes what the system really does rather than a
  * promise nobody keeps.
  */
 class AppointmentBookedReminderTest extends TestCase

@@ -376,11 +376,15 @@ class GateController extends Controller
      */
     private function appointmentPass(Appointment $appointment): array
     {
-        // Close the booking out before it is read: a visit whose hour ran
-        // out with nobody checked in is cancelled right here, so the desk
-        // never shows a pass as good after the appointment stopped being
-        // real - even before the scheduled sweep gets to it.
-        AppointmentSweep::cancelIfMissed($appointment);
+        // Close the booking out before it is read: a visit whose window ran
+        // out with nobody checked in is cancelled right here - the scan is
+        // the arrival, and it is late - so the desk never shows a pass as
+        // good after the appointment stopped being real, even before the
+        // scheduled sweep gets to it.
+        AppointmentSweep::cancelIfMissed(
+            $appointment,
+            'Arrived after the allocated time slot.'
+        );
 
         $status = AppointmentStatus::tryFrom((string) $appointment->status);
 

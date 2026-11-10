@@ -114,11 +114,15 @@ class QrCheckInController extends Controller
             );
         }
 
-        // The same close-out the gate does: an hour that ran out with no
+        // The same close-out the gate does: a window that ran out with no
         // arrival is cancelled before the desk decides what this scan
-        // means, so a missed visit is reported as cancelled instead of
-        // being walked in as if the student were on time.
-        AppointmentSweep::cancelIfMissed($appointment);
+        // means - the scan is the arrival, and it is late - so a missed
+        // visit is reported as cancelled instead of being walked in as if
+        // the student were on time.
+        AppointmentSweep::cancelIfMissed(
+            $appointment,
+            'Arrived after the allocated time slot.'
+        );
 
         if (! in_array($appointment->status, self::CHECKABLE, true)) {
             return $this->answered(

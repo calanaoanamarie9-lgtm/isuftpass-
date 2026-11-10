@@ -10,28 +10,24 @@ use Illuminate\Support\Carbon;
 use Throwable;
 
 /**
- * Bookings whose student never arrived.
+ * Bookings whose student never arrived in time.
  *
- * An appointment is a promise to be somewhere at a named hour. Once that hour
- * - plus a grace for the student running a little late - has passed with
- * nobody checked in, nobody is coming and no one is going to remember to
- * close it out, so it is cancelled the way a registrar would cancel it: the
+ * An appointment is a promise to be somewhere inside a named window - the
+ * office allocates 8:00 AM - 9:00 AM and the student is expected at the gate
+ * while it runs. The window shuts with no grace: a scan at 9:01 is already
+ * late, so the booking is cancelled the way a registrar would cancel it - the
  * same status, the same cancelled_at, the same in-app notice. Left alone it
  * would sit on every list as "Confirmed" for ever, and its pass would keep
  * reading as good at the gate long after the visit was over.
  *
  * The scheduled endpoint runs it across the day; both QR desks also run it
  * over the single booking under the scanner, so a pass is never read as
- * valid a moment after it stopped being one.
+ * valid a moment after it stopped being one. Document requests never reach
+ * this class - they carry no window, and the late-arrival policy applies to
+ * online appointments only.
  */
 class AppointmentSweep
 {
-    /**
-     * Minutes past the end of the office's window in which a student may
-     * still arrive and be checked in before the booking counts as missed.
-     */
-    public const GRACE_MINUTES = 30;
-
     /**
      * The statuses that mean "this student is still expected" - exactly the
      * two a desk may check a student in for. Checked in, completed, already
@@ -48,7 +44,8 @@ class AppointmentSweep
     ];
 
     /**
-     * True when the appointment's promised time has run out with no arrival.
+     * True when the appointment's promised window has run out with no
+     * arrival - late counts as missed from the first second past the slot.
      */
     public static function hasMissed(Appointment $appointment): bool
     {
@@ -63,21 +60,25 @@ class AppointmentSweep
 
         $deadline = self::deadline($appointment);
 
-        return $deadline !== null && now()->greaterThan($deadline);
+        return $deadline !== null && now()->greaterThanOrEqualTo($deadline);
     }
 
     /**
      * Cancel the booking if, and only if, its time has run out. Returns
      * whether this call is the one that cancelled it, so a caller can report
      * an outcome and a second scan a second later stays silent.
+     *
+     * A desk that just scanned a pass passes its own reason (a scan is an
+     * arrival, so the late wording is the true one); the scheduled sweep
+     * scans nothing and keeps the default no-show wording.
      */
-    public static function cancelIfMissed(Appointment $appointment): bool
+    public static function cancelIfMissed(Appointment $appointment, ?string $reason = null): bool
     {
         if (! self::hasMissed($appointment)) {
             return false;
         }
 
-        $reason = 'Scheduled time passed without check-in (grace period expired).';
+        $reason ??= 'Scheduled time passed without check-in.';
 
         $appointment->update([
             'status' => AppointmentStatus::CANCELLED->value,
@@ -92,8 +93,7 @@ class AppointmentSweep
 
         AuditLogger::log(
             'appointment.auto-cancelled',
-            'Auto-cancelled appointment '.$appointment->reference_code
-            .' - the scheduled time passed with no check-in.'
+            'Auto-cancelled appointment '.$appointment->reference_code.' - '.$reason
         );
 
         return true;
@@ -135,6 +135,9 @@ class AppointmentSweep
      * reads dates - the same rule every "is today" check here uses. An hour
      * the office chose is a wall clock on campus, so it is read on the
      * appointment's own date in Manila and only then compared with now.
+     *
+     * The window itself is the deadline: once its closing minute is over the
+     * booking is late, with no grace tacked on.
      */
     private static function deadline(Appointment $appointment): ?Carbon
     {
@@ -154,8 +157,7 @@ class AppointmentSweep
             return Carbon::parse($date, 'UTC')->endOfDay();
         }
 
-        return Carbon::parse($date.' '.$closing, CampusTime::TIMEZONE)
-            ->addMinutes(self::GRACE_MINUTES);
+        return Carbon::parse($date.' '.$closing, CampusTime::TIMEZONE)->addMinute();
     }
 
     /**
