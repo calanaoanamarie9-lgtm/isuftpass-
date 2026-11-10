@@ -18,16 +18,11 @@
         default => 'Student Profile',
     };
 
-    // Self-registered offices (role 'office') and any department-role account
-    // whose office is not one of the four colleges use the generic workspace.
-    $dept = match (true) {
-        $role === 'office' => 'workspace',
-        strtoupper($user->office ?? '') === 'CBMSD' => 'cbmsd',
-        strtoupper($user->office ?? '') === 'COAG' => 'coag',
-        strtoupper($user->office ?? '') === 'COED' => 'coed',
-        strtoupper($user->office ?? '') === 'CICI' => 'cici',
-        default => 'workspace',
-    };
+    // The workspace this account works from. Office::workspaceKey() is the
+    // same mapping the /dashboard redirect reads, so a desk that opens its own
+    // page also gets that page's menu - an office account named after the
+    // Library sees library.* links, not the generic workspace ones.
+    $dept = \App\Enums\Office::workspaceKey($user->officeScope());
 
     /*
     |--------------------------------------------------------------------------

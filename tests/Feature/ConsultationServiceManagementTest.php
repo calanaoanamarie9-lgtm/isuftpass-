@@ -357,27 +357,26 @@ class ConsultationServiceManagementTest extends TestCase
 
     /**
      * The SSC account is a generic role 'office' staff account
-     * (office = 'SSC'): its workspace lives under /workspace, while /ssc is
-     * the role:ssc group. The shared create/edit form must therefore target
-     * the group the request came in on — deriving it from the office name
-     * sent the SSC form to /ssc/consultations and answered 403.
+     * (office = 'SSC'), and SSC has a page of its own: the account works from
+     * /ssc, the group its office maps to, and the shared create/edit form must
+     * target that group rather than the generic workspace.
      */
-    public function test_the_ssc_office_account_can_add_a_service_from_its_workspace(): void
+    public function test_the_ssc_office_account_can_add_a_service_from_its_own_page(): void
     {
         $staff = User::factory()->create(['role' => 'office', 'office' => 'SSC']);
 
         $this->actingAs($staff)
-            ->get('/workspace/consultations/create')
+            ->get('/ssc/consultations/create')
             ->assertOk()
-            ->assertSee('action="'.route('workspace.consultations.store').'"', false);
+            ->assertSee('action="'.route('ssc.consultations.store').'"', false);
 
         $this->actingAs($staff)
-            ->post('/workspace/consultations', [
+            ->post('/ssc/consultations', [
                 'name' => 'Scholarship & Financial Assistance',
                 'description' => 'Student scholarship help desk.',
                 'is_active' => '1',
             ])
-            ->assertRedirect(route('workspace.consultations'))
+            ->assertRedirect(route('ssc.consultations'))
             ->assertSessionHas('status');
 
         $service = ConsultationService::firstWhere('name', 'Scholarship & Financial Assistance');
@@ -386,18 +385,18 @@ class ConsultationServiceManagementTest extends TestCase
         $this->assertSame('SSC', $service->office);
     }
 
-    public function test_the_ssc_office_account_can_edit_its_service_from_its_workspace(): void
+    public function test_the_ssc_office_account_can_edit_its_service_from_its_own_page(): void
     {
         $staff = User::factory()->create(['role' => 'office', 'office' => 'SSC']);
         $service = ConsultationService::create(['office' => 'SSC', 'name' => 'Scholarship']);
 
         $this->actingAs($staff)
-            ->get('/workspace/consultations/'.$service->id.'/edit')
+            ->get('/ssc/consultations/'.$service->id.'/edit')
             ->assertOk()
-            ->assertSee(route('workspace.consultations.update', $service));
+            ->assertSee(route('ssc.consultations.update', $service));
 
         $this->actingAs($staff)
-            ->put('/workspace/consultations/'.$service->id, ['name' => 'Scholarship & Aid'])
+            ->put('/ssc/consultations/'.$service->id, ['name' => 'Scholarship & Aid'])
             ->assertRedirect()
             ->assertSessionHas('status');
 
@@ -405,13 +404,18 @@ class ConsultationServiceManagementTest extends TestCase
     }
 
     /**
-     * /ssc stays the role:ssc group — a role 'office' account does not get to
-     * borrow it, which is why the form must target the workspace group.
+     * An office account only enters the group its own office maps to: the
+     * Library's account cannot post to SSC's page, and a self-registered
+     * office cannot borrow a page it has none of its own.
      */
-    public function test_a_role_office_account_cannot_post_to_the_ssc_group(): void
+    public function test_an_office_account_cannot_post_to_another_offices_page(): void
     {
-        $this->actingAs(User::factory()->create(['role' => 'office', 'office' => 'SSC']))
+        $this->actingAs(User::factory()->create(['role' => 'office', 'office' => 'Library']))
             ->post('/ssc/consultations', ['name' => 'Not allowed'])
+            ->assertForbidden();
+
+        $this->actingAs(User::factory()->create(['role' => 'office', 'office' => 'Clinic']))
+            ->post('/ssc/consultations', ['name' => 'Not allowed either'])
             ->assertForbidden();
 
         $this->assertSame(0, ConsultationService::count());

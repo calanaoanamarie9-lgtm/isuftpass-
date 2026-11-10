@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
+            'office.workspace' => \App\Http\Middleware\EnsureOfficeAccountMatchesWorkspace::class,
         ]);
 
         // The only API route is called by the signed-in page (the feedback

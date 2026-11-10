@@ -496,11 +496,22 @@ class RolePermissionTest extends TestCase
         $this->assertFalse($ssc->canRequestDocuments());
     }
 
-    public function test_office_role_accounts_land_on_the_office_workspace(): void
+    /**
+     * Where an office account lands is decided by its office: a desk with a
+     * page of its own opens that page, and a self-registered office opens the
+     * generic workspace.
+     */
+    public function test_office_role_accounts_land_on_the_page_their_office_maps_to(): void
     {
-        $office = User::factory()->create(['role' => 'office', 'office' => 'SSC']);
+        $this->actingAs(User::factory()->create(['role' => 'office', 'office' => 'SSC']))
+            ->get('/dashboard')
+            ->assertRedirect(route('ssc.dashboard'));
 
-        $this->actingAs($office)
+        $this->actingAs(User::factory()->create(['role' => 'office', 'office' => 'Library']))
+            ->get('/dashboard')
+            ->assertRedirect(route('library.dashboard'));
+
+        $this->actingAs(User::factory()->create(['role' => 'office', 'office' => 'Property Management']))
             ->get('/dashboard')
             ->assertRedirect(route('workspace.dashboard'));
     }

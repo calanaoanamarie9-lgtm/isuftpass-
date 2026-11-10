@@ -377,6 +377,22 @@ class AdminModuleTest extends TestCase
     }
 
     /**
+     * A desk that already has a page of its own opens that page - and only
+     * that page - once its account exists.
+     */
+    public function test_an_office_account_opens_its_own_page_and_no_other(): void
+    {
+        $library = User::factory()->create(['role' => 'office', 'office' => 'Library']);
+
+        $this->actingAs($library)->get('/library')->assertOk()->assertSee('Library');
+
+        // Another office's page, and the generic workspace, are both closed to
+        // it: its own page is the one place its data is built from.
+        $this->actingAs($library)->get('/cici')->assertForbidden();
+        $this->actingAs($library)->get('/workspace')->assertForbidden();
+    }
+
+    /**
      * The other account type the form offers: a college account goes to its
      * own college's workspace, not to the generic one.
      */

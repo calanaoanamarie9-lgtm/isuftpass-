@@ -156,6 +156,31 @@ enum Office: string
         return $typed;
     }
 
+    /**
+     * The workspace route group an office's staff works from.
+     *
+     * Seven offices have a page of their own; everything else - a
+     * self-registered office, or the Registrar's and Cashier's desks, whose
+     * accounts carry their own roles - shares the generic workspace. The
+     * dashboard, the sidebar and the redirects all read this one mapping, so
+     * an account's menu and its landing page cannot disagree.
+     */
+    public static function workspaceKey(?string $office): string
+    {
+        // Compared in upper case because the enum's own values are not
+        // written in one case ('CICI' but 'Library').
+        return match (strtoupper(self::fromTyped((string) $office))) {
+            'CICI' => 'cici',
+            'CBMSD' => 'cbmsd',
+            'COAG' => 'coag',
+            'COED' => 'coed',
+            'SSC' => 'ssc',
+            'ACCOUNTING' => 'accounting',
+            'LIBRARY' => 'library',
+            default => 'workspace',
+        };
+    }
+
     public function label(): string
     {
         return match ($this) {

@@ -291,35 +291,21 @@ Route::get('/dashboard', function () {
         default => 'student.dashboard',
     };
 
-    // Self-registered offices (role 'office') get their own generic
-    // workspace — appointments only, no document requests.
-    if ($user->role === 'office') {
-        return redirect()->route('workspace.dashboard');
-    }
-
     // The security desk is a scanner before it is a dashboard: a guard who
     // logs in should be looking at the camera, not at a home page.
     if ($user->role === User::ROLE_GUARD) {
         return redirect()->route('guard.dashboard');
     }
 
-    if (in_array($user->role, ['department', 'ssc', 'accounting', 'library'], true)) {
-        // Office is typed at registration, not picked, so match it the way the
-        // sidebar already does - case must not decide which workspace a
-        // staff account lands in. A legacy department account whose office is
-        // none of the eight built-ins falls through to the generic workspace.
-        $dept = match (strtoupper($user->office ?? '')) {
-            'SSC' => 'ssc',
-            'ACCOUNTING' => 'accounting',
-            'LIBRARY' => 'library',
-            'CICI' => 'cici',
-            'CBMSD' => 'cbmsd',
-            'COAG' => 'coag',
-            'COED' => 'coed',
-            default => 'workspace',
-        };
-
-        return redirect()->route($dept.'.dashboard');
+    if (in_array($user->role, ['department', 'office', 'ssc', 'accounting', 'library'], true)) {
+        // Which workspace an account lands in is decided by its office, not by
+        // its role: the seven offices with a page of their own send both their
+        // dedicated role and any office account named after them to that page,
+        // and everything else - a self-registered office, a legacy department
+        // name - falls through to the generic workspace. Office::workspaceKey()
+        // is the same mapping the sidebar reads, so the menu and the landing
+        // page cannot point at different workspaces.
+        return redirect()->route(Office::workspaceKey($user->officeScope()).'.dashboard');
     }
 
     if ($user->role === 'cashier') {
@@ -654,7 +640,7 @@ $workspaceRoutes = function (): void {
         ->name('notifications.read');
 };
 
-Route::middleware(['auth', 'verified', 'role:department'])->prefix('cici')->name('cici.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department,office', 'office.workspace:cici'])->prefix('cici')->name('cici.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [CiciController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [CiciController::class, 'appointments'])->name('appointments.index');
     Route::get('/availability', [CiciController::class, 'availability'])->name('availability.index');
@@ -665,7 +651,7 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('cici')->name
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'verified', 'role:department'])->prefix('cbmsd')->name('cbmsd.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department,office', 'office.workspace:cbmsd'])->prefix('cbmsd')->name('cbmsd.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [CbmsdController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [CbmsdController::class, 'appointments'])->name('appointments.index');
     Route::get('/availability', [CbmsdController::class, 'availability'])->name('availability.index');
@@ -676,7 +662,7 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('cbmsd')->nam
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'verified', 'role:department'])->prefix('coag')->name('coag.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department,office', 'office.workspace:coag'])->prefix('coag')->name('coag.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [CoagController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [CoagController::class, 'appointments'])->name('appointments.index');
     Route::get('/availability', [CoagController::class, 'availability'])->name('availability.index');
@@ -687,7 +673,7 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('coag')->name
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'verified', 'role:department'])->prefix('coed')->name('coed.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department,office', 'office.workspace:coed'])->prefix('coed')->name('coed.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [CoedController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [CoedController::class, 'appointments'])->name('appointments.index');
     Route::get('/availability', [CoedController::class, 'availability'])->name('availability.index');
@@ -698,7 +684,7 @@ Route::middleware(['auth', 'verified', 'role:department'])->prefix('coed')->name
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'verified', 'role:department,ssc'])->prefix('ssc')->name('ssc.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department,ssc,office', 'office.workspace:ssc'])->prefix('ssc')->name('ssc.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [SscController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [SscController::class, 'appointments'])->name('appointments.index');
     Route::get('/availability', [SscController::class, 'availability'])->name('availability.index');
@@ -709,7 +695,7 @@ Route::middleware(['auth', 'verified', 'role:department,ssc'])->prefix('ssc')->n
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'verified', 'role:department,accounting'])->prefix('accounting')->name('accounting.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department,accounting,office', 'office.workspace:accounting'])->prefix('accounting')->name('accounting.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [AccountingController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [AccountingController::class, 'appointments'])->name('appointments.index');
     Route::get('/availability', [AccountingController::class, 'availability'])->name('availability.index');
@@ -720,7 +706,7 @@ Route::middleware(['auth', 'verified', 'role:department,accounting'])->prefix('a
     $workspaceRoutes();
 });
 
-Route::middleware(['auth', 'verified', 'role:department,library'])->prefix('library')->name('library.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department,library,office', 'office.workspace:library'])->prefix('library')->name('library.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [LibraryController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [LibraryController::class, 'appointments'])->name('appointments.index');
     Route::get('/availability', [LibraryController::class, 'availability'])->name('availability.index');
@@ -742,7 +728,7 @@ Route::middleware(['auth', 'verified', 'role:department,library'])->prefix('libr
 | tooling the named offices get — appointments only, no document requests.
 | Everything is scoped server-side to auth()->user()->officeScope().
 */
-Route::middleware(['auth', 'verified', 'role:department,office'])->prefix('workspace')->name('workspace.')->group(function () use ($workspaceRoutes) {
+Route::middleware(['auth', 'verified', 'role:department,office', 'office.workspace:workspace'])->prefix('workspace')->name('workspace.')->group(function () use ($workspaceRoutes) {
     Route::get('/', [OfficeWorkspaceController::class, 'dashboard'])->name('dashboard');
     Route::get('/appointments', [OfficeWorkspaceController::class, 'appointments'])->name('appointments.index');
     Route::get('/availability', [OfficeWorkspaceController::class, 'availability'])->name('availability.index');
@@ -789,17 +775,18 @@ Route::middleware(['auth', 'verified', 'role:guard'])->prefix('guard')->name('gu
 // Ownership is resolved server-side from auth()->user()->office, never from the
 // URL, so the route prefix is just a namespace here.
 foreach ([
-    'cici' => 'department',
-    'cbmsd' => 'department',
-    'coag' => 'department',
-    'coed' => 'department',
-    'ssc' => 'department,ssc',
-    'accounting' => 'department,accounting',
-    'library' => 'department,library',
+    'cici' => 'department,office',
+    'cbmsd' => 'department,office',
+    'coag' => 'department,office',
+    'coed' => 'department,office',
+    'ssc' => 'department,ssc,office',
+    'accounting' => 'department,accounting,office',
+    'library' => 'department,library,office',
     'registrar' => 'registrar',
     'workspace' => 'department,office',
 ] as $consultationPrefix => $consultationRoles) {
-    Route::middleware(['auth', 'verified', 'role:'.$consultationRoles])
+    // An office account only manages services on its own group's page.
+    Route::middleware(['auth', 'verified', 'role:'.$consultationRoles, 'office.workspace:'.$consultationPrefix])
         ->prefix($consultationPrefix)
         ->name($consultationPrefix.'.')
         ->group(function () {
