@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Office as OfficeEnum;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Mail\OfficeAccountApproved;
@@ -85,11 +86,35 @@ class UserController extends Controller
                 'office' => $filtered()->whereNotIn('role', [User::ROLE_STUDENT])->count(),
             ],
             'roleOptions' => $this->roleOptions(),
+            'availableOffices' => $this->availableOffices(),
             'search' => $search,
             'roleFilter' => $role,
             'approvalFilter' => $approval,
             'pendingCount' => User::pendingApproval()->count(),
         ]);
+    }
+
+    /**
+     * Offices available for selection when provisioning office accounts.
+     *
+     * @return array<string, string>
+     */
+    private function availableOffices(): array
+    {
+        $offices = OfficeEnum::toSelect();
+
+        $fromTable = \App\Models\Office::query()
+            ->where('is_active', true)
+            ->pluck('name', 'name')
+            ->all();
+
+        foreach ($fromTable as $name) {
+            if (! isset($offices[$name])) {
+                $offices[$name] = $name;
+            }
+        }
+
+        return $offices;
     }
 
     /**
@@ -167,25 +192,53 @@ class UserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
             'role' => ['required', Rule::in([User::ROLE_STUDENT, User::ROLE_REGISTRAR, User::ROLE_CASHIER, User::ROLE_ADMIN, User::ROLE_DEPARTMENT, User::ROLE_OFFICE, User::ROLE_GUARD])],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
+            'office' => ['nullable', 'string', 'max:150'],
+            'position' => ['nullable', 'string', 'max:120'],
+            'contact_number' => ['nullable', 'string', 'max:20'],
+        ];
+
+        if (in_array($request->role, [User::ROLE_OFFICE, User::ROLE_DEPARTMENT], true)) {
+            $rules['office'] = ['required', 'string', 'max:150'];
+        }
+
+        $data = $request->validate($rules);
+
+        $officeName = ! empty($data['office']) ? OfficeEnum::fromTyped($data['office']) : null;
 
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'role' => $data['role'],
+            'office' => $officeName,
+            'position' => $data['position'] ?? null,
+            'contact_number' => $data['contact_number'] ?? null,
             'password' => $data['password'],
             'is_active' => true,
+            'approval_status' => User::APPROVAL_APPROVED,
+            'approved_at' => now(),
+            'approved_by' => $request->user()->id,
             'email_verified_at' => now(),
         ]);
 
-        AuditLogger::log('user.created', 'Created '.ucfirst($user->role).' account for '.$user->email.'.', $request->user());
+        if ($officeName) {
+            \App\Models\Office::firstOrCreate(
+                ['name' => $officeName],
+                [
+                    'is_active' => true,
+                    'location' => 'Main Campus',
+                    'hours' => 'Mon - Fri, 8:00 AM - 5:00 PM',
+                ]
+            );
+        }
 
-        return back()->with('status', 'Account created for '.$user->email.'.');
+        AuditLogger::log('user.created', 'Created '.ucfirst($user->role).' ('.($officeName ?? $user->email).') account for '.$user->email.'.', $request->user());
+
+        return back()->with('status', 'Office account created successfully for '.$user->email.($officeName ? ' ('.$officeName.')' : '').'.');
     }
 
     public function toggle(User $user, Request $request): RedirectResponse

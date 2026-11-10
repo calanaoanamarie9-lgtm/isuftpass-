@@ -519,22 +519,23 @@
 
 
                         <!-- =================================================
-                             OFFICE / STAFF
+                             OTHER
                         ================================================== -->
                         <a
-                            href="{{ route('register.form', ['type' => 'office']) }}"
+                            href="{{ route('register.form', ['type' => 'other']) }}"
                             class="group relative flex flex-col
                                    p-6 rounded-2xl
-                                   border border-indigo-100
-                                   bg-gradient-to-br from-indigo-50 to-white
-                                   hover:border-indigo-500
-                                   hover:shadow-xl hover:shadow-indigo-900/10
+                                   border border-yellow-200
+                                   bg-gradient-to-br from-yellow-50 to-white
+                                   hover:border-yellow-400
+                                   hover:shadow-xl hover:shadow-yellow-900/10
                                    hover:-translate-y-1
                                    transition-all duration-300">
 
+                            <!-- Top Accent -->
                             <div class="absolute top-0 left-6 right-6
                                         h-1 rounded-b-full
-                                        bg-indigo-600
+                                        bg-yellow-400
                                         opacity-0
                                         group-hover:opacity-100
                                         transition"></div>
@@ -542,13 +543,13 @@
                             <div class="flex items-start justify-between">
 
                                 <div class="w-14 h-14 rounded-2xl
-                                            bg-indigo-600
+                                            bg-yellow-400
                                             flex items-center justify-center
-                                            shadow-lg shadow-indigo-600/20
+                                            shadow-lg shadow-yellow-400/20
                                             group-hover:scale-105
                                             transition-transform">
 
-                                    <svg class="w-7 h-7 text-white"
+                                    <svg class="w-7 h-7 text-blue-950"
                                          fill="none"
                                          stroke="currentColor"
                                          viewBox="0 0 24 24">
@@ -557,7 +558,7 @@
                                             stroke-linecap="round"
                                             stroke-linejoin="round"
                                             stroke-width="1.8"
-                                            d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4M9 10h.01M15 10h.01M9 13h.01M15 13h.01"
+                                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                                         />
 
                                     </svg>
@@ -566,12 +567,12 @@
 
                                 <span class="w-8 h-8 rounded-full
                                              bg-white
-                                             border border-indigo-100
+                                             border border-yellow-200
                                              flex items-center justify-center
-                                             text-indigo-500
-                                             group-hover:bg-indigo-600
-                                             group-hover:text-white
-                                             group-hover:border-indigo-600
+                                             text-yellow-600
+                                             group-hover:bg-yellow-400
+                                             group-hover:text-blue-950
+                                             group-hover:border-yellow-400
                                              transition">
 
                                     <svg class="w-4 h-4"
@@ -594,88 +595,13 @@
 
                             <div class="mt-5">
 
-                                <p class="text-lg font-black text-gray-900">
-                                    Office / Staff
-                                </p>
-
-                                <p class="mt-1 text-sm text-gray-500 leading-5">
-                                    For university personnel and office staff.
-                                </p>
-
-                            </div>
-
-                            <div class="mt-5 pt-4 border-t border-indigo-100
-                                        flex items-center justify-between">
-
-                                <span class="text-xs font-bold text-indigo-600">
-                                    Staff Account
-                                </span>
-
-                                <span class="text-xs font-semibold text-gray-400
-                                             group-hover:text-indigo-600 transition">
-                                    Register →
-                                </span>
-
-                            </div>
-
-                        </a>
-
-
-                        <!-- =================================================
-                             OTHER
-                        ================================================== -->
-                        <a
-                            href="{{ route('register.form', ['type' => 'other']) }}"
-                            class="group relative sm:col-span-2
-                                   flex items-center gap-5
-                                   p-6 rounded-2xl
-                                   border border-yellow-200
-                                   bg-gradient-to-r from-yellow-50 via-white to-white
-                                   hover:border-yellow-400
-                                   hover:shadow-xl hover:shadow-yellow-900/10
-                                   hover:-translate-y-1
-                                   transition-all duration-300">
-
-                            <div class="absolute top-0 left-6 right-6
-                                        h-1 rounded-b-full
-                                        bg-yellow-400
-                                        opacity-0
-                                        group-hover:opacity-100
-                                        transition"></div>
-
-                            <div class="w-14 h-14 shrink-0
-                                        rounded-2xl
-                                        bg-yellow-400
-                                        flex items-center justify-center
-                                        shadow-lg shadow-yellow-400/20
-                                        group-hover:scale-105
-                                        transition-transform">
-
-                                <svg class="w-7 h-7 text-blue-950"
-                                     fill="none"
-                                     stroke="currentColor"
-                                     viewBox="0 0 24 24">
-
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="1.8"
-                                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                                    />
-
-                                </svg>
-
-                            </div>
-
-                            <div class="flex-1 min-w-0">
-
                                 <div class="flex items-center gap-2">
 
                                     <p class="text-lg font-black text-gray-900">
                                         Other
                                     </p>
 
-                                    <span class="px-2 py-1 rounded-md
+                                    <span class="px-2 py-0.5 rounded-md
                                                  bg-yellow-100
                                                  text-yellow-700
                                                  text-[10px]
@@ -685,36 +611,23 @@
 
                                 </div>
 
-                                <p class="mt-1 text-sm text-gray-500">
+                                <p class="mt-1 text-sm text-gray-500 leading-5">
                                     For alumni, guests, parents, and guardians.
                                 </p>
 
                             </div>
 
-                            <div class="hidden sm:flex
-                                        w-10 h-10 rounded-full
-                                        bg-white
-                                        border border-yellow-200
-                                        items-center justify-center
-                                        text-yellow-600
-                                        group-hover:bg-yellow-400
-                                        group-hover:text-blue-950
-                                        group-hover:border-yellow-400
-                                        transition">
+                            <div class="mt-5 pt-4 border-t border-yellow-100
+                                        flex items-center justify-between">
 
-                                <svg class="w-5 h-5"
-                                     fill="none"
-                                     stroke="currentColor"
-                                     viewBox="0 0 24 24">
+                                <span class="text-xs font-bold text-yellow-700">
+                                    Guest / Visitor
+                                </span>
 
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M9 5l7 7-7 7"
-                                    />
-
-                                </svg>
+                                <span class="text-xs font-semibold text-gray-400
+                                             group-hover:text-yellow-700 transition">
+                                    Register →
+                                </span>
 
                             </div>
 

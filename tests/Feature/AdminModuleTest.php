@@ -284,6 +284,133 @@ class AdminModuleTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'office.created']);
     }
 
+    /**
+     * The administrator opens the office's login in the same save that adds
+     * the office. The account carries the office that was just created and
+     * lands approved and verified, so the desk can sign in immediately
+     * instead of waiting for the approval queue.
+     */
+    public function test_admin_creates_the_office_account_with_the_office(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $this->actingAs($admin)
+            ->post('/admin/offices', [
+                'name' => 'Property Management Office',
+                'location' => 'Main Building, 2nd Floor',
+                'contact' => '(033) 555-7788',
+                'create_account' => '1',
+                'account_name' => 'Maria Santos',
+                'email' => 'property@isufst.edu.ph',
+                'position' => 'Property Custodian',
+                'role' => 'office',
+                'password' => 'password123',
+                'password_confirmation' => 'password123',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $account = User::where('email', 'property@isufst.edu.ph')->firstOrFail();
+
+        $this->assertSame('office', $account->role);
+        $this->assertSame('Property Management Office', $account->office);
+        $this->assertSame('Property Custodian', $account->position);
+        $this->assertSame('(033) 555-7788', $account->contact_number);
+        $this->assertTrue($account->is_active);
+        $this->assertTrue($account->isApproved());
+        $this->assertNotNull($account->email_verified_at);
+        $this->assertSame($admin->id, $account->approved_by);
+
+        // The office card tells the administrator which desk can sign in.
+        $this->actingAs($admin)
+            ->get('/admin/offices')
+            ->assertOk()
+            ->assertSee('Maria Santos')
+            ->assertSee('property@isufst.edu.ph');
+
+        // And the account works: the office signs in with what was chosen
+        // here, without an approval step or a verification link.
+        $this->post('/logout');
+
+        $this->post('/login', [
+            'email' => 'property@isufst.edu.ph',
+            'password' => 'password123',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertAuthenticatedAs($account);
+    }
+
+    /**
+     * The login is optional: without the box ticked the office is added on
+     * its own, and the account fields are not demanded.
+     */
+    public function test_an_office_can_be_added_without_a_login_account(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $this->actingAs($admin)
+            ->post('/admin/offices', ['name' => 'Guidance Office'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('offices', ['name' => 'Guidance Office']);
+        $this->assertDatabaseCount('users', 1);
+    }
+
+    /**
+     * Bad account details are caught before anything is written, so a failed
+     * save cannot leave an office behind that nobody can sign in to.
+     */
+    public function test_a_rejected_office_account_leaves_no_office_behind(): void
+    {
+        $admin = $this->makeAdmin();
+
+        User::factory()->create(['email' => 'taken@isufst.edu.ph']);
+
+        $this->actingAs($admin)
+            ->post('/admin/offices', [
+                'name' => 'Property Management Office',
+                'create_account' => '1',
+                'account_name' => 'Maria Santos',
+                'email' => 'taken@isufst.edu.ph',
+                'password' => 'password123',
+                'password_confirmation' => 'password123',
+            ])
+            ->assertSessionHasErrors('email');
+
+        $this->assertDatabaseMissing('offices', ['name' => 'Property Management Office']);
+
+        $this->actingAs($admin)
+            ->post('/admin/offices', [
+                'name' => 'Property Management Office',
+                'create_account' => '1',
+                'account_name' => 'Maria Santos',
+                'email' => 'property@isufst.edu.ph',
+                'password' => 'password123',
+                'password_confirmation' => 'different123',
+            ])
+            ->assertSessionHasErrors('password');
+
+        $this->assertDatabaseMissing('offices', ['name' => 'Property Management Office']);
+    }
+
+    /**
+     * Only an administrator reaches the form; an office account of its own
+     * cannot add offices or make itself company.
+     */
+    public function test_an_office_account_cannot_open_the_office_settings_page(): void
+    {
+        $office = User::factory()->create([
+            'role' => User::ROLE_OFFICE,
+            'office' => 'Library',
+            'approval_status' => User::APPROVAL_APPROVED,
+        ]);
+
+        $this->actingAs($office)
+            ->get('/admin/offices')
+            ->assertForbidden();
+    }
+
     public function test_admin_can_save_system_configuration(): void
     {
         $admin = $this->makeAdmin();

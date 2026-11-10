@@ -52,20 +52,44 @@
                 </div>
 
 
-                {{-- ACCOUNT ADMINISTRATION --}}
-                <div class="inline-flex items-center gap-2
-                            bg-white
-                            border border-gray-200
-                            rounded-full
-                            px-4 py-2
-                            text-sm
-                            font-medium
-                            text-gray-600
-                            shadow-sm">
+                <div class="flex items-center gap-3">
 
-                    <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                    <button type="button"
+                            @click="$dispatch('open-add-office')"
+                            class="inline-flex items-center gap-2
+                                   bg-[#063b91] hover:bg-[#052f75]
+                                   text-white
+                                   rounded-full
+                                   px-5 py-2.5
+                                   text-sm
+                                   font-bold
+                                   shadow-sm hover:shadow
+                                   transition">
 
-                    Account Administration
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+
+                        <span>Add Office</span>
+
+                    </button>
+
+                    {{-- ACCOUNT ADMINISTRATION --}}
+                    <div class="inline-flex items-center gap-2
+                                bg-white
+                                border border-gray-200
+                                rounded-full
+                                px-4 py-2
+                                text-sm
+                                font-medium
+                                text-gray-600
+                                shadow-sm">
+
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+
+                        Account Administration
+
+                    </div>
 
                 </div>
 
@@ -920,18 +944,39 @@
                     </div>
 
 
-                    <span class="hidden sm:inline-flex
-                                 items-center
-                                 px-3 py-1.5
-                                 rounded-full
-                                 bg-blue-50
-                                 text-blue-700
-                                 text-xs
-                                 font-bold">
+                    <div class="flex items-center gap-3">
 
-                        {{ $users->total() }} Accounts
+                        <button type="button"
+                                @click="$dispatch('open-add-office')"
+                                class="inline-flex items-center gap-1.5
+                                       px-3.5 py-1.5
+                                       rounded-xl
+                                       bg-blue-600 hover:bg-blue-700
+                                       text-white text-xs font-bold
+                                       shadow-sm transition">
 
-                    </span>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+
+                            <span>Add Office</span>
+
+                        </button>
+
+                        <span class="hidden sm:inline-flex
+                                     items-center
+                                     px-3 py-1.5
+                                     rounded-full
+                                     bg-blue-50
+                                     text-blue-700
+                                     text-xs
+                                     font-bold">
+
+                            {{ $users->total() }} Accounts
+
+                        </span>
+
+                    </div>
 
                 </div>
 
@@ -1676,6 +1721,12 @@
 
     </div>
 
+
+    {{-- =========================================================
+        ADD OFFICE ACCOUNT MODAL
+        Opened via $dispatch('open-add-office').
+    ========================================================== --}}
+    @include('admin.users.partials.add-office-modal')
 
     {{-- =========================================================
         RESET PASSWORD MODAL
