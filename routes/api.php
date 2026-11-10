@@ -1,21 +1,17 @@
 <?php
 
-use App\Http\Controllers\Api\FeedbackController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| API routes
 |--------------------------------------------------------------------------
 |
-| Loaded by bootstrap/app.php. The feedback endpoint is called by the
-| signed-in page itself, so the group carries the session stack (see
-| Middleware::api() in bootstrap/app.php) and authenticates with the
-| normal web guard instead of a token guard.
+| The post-submission rating modal that used the one route here is gone: a
+| request or a booking is not rated when it is filed, only once the service
+| is finished - the document claimed, the visit completed - from the page
+| that shows the finished record. The group (and the web session stack
+| registered for it in bootstrap/app.php) is kept so a future same-origin
+| endpoint has somewhere to live.
 |
 */
-
-Route::middleware('auth')->group(function () {
-    Route::post('/feedback/store', [FeedbackController::class, 'store'])
-        ->name('api.feedback.store');
-});

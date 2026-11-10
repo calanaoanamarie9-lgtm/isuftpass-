@@ -1209,8 +1209,11 @@
 
             {{-- ============================================================
                  RATE THIS SERVICE
-                 Offered the moment the request is claimable or done —
-                 the same window the rating form itself enforces — and
+                 Offered once the document has been claimed — the request
+                 is "completed" only when the desk records the claim, which
+                 is the same window the rating form itself enforces. A
+                 request that is merely ready for pick-up is still waiting
+                 on the student, so nothing is asked yet. The card is
                  replaced by the submitted stars once given.
             ============================================================= --}}
             @php
@@ -1218,7 +1221,7 @@
                     ->firstWhere('user_id', auth()->id());
             @endphp
 
-            @if (in_array($documentRequest->status, ['ready_for_pickup', 'completed'], true))
+            @if ($documentRequest->status === \App\Enums\DocumentRequestStatus::COMPLETED->value)
 
                 <div class="mt-5 bg-white border border-gray-200
                             rounded-2xl p-5 sm:p-6 shadow-sm">

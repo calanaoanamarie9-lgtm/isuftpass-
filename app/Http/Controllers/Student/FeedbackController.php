@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Enums\AppointmentStatus;
+use App\Enums\DocumentRequestStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\DocumentRequest;
@@ -83,11 +85,20 @@ class FeedbackController extends Controller
             ->exists();
     }
 
+    /**
+     * Nothing is rated before it is over.
+     *
+     * An appointment is over when the visit is marked completed, and a
+     * document request when the desk records the claim - the "Completed"
+     * status the registrar's screen calls "Claimed". A request that is merely
+     * ready for pick-up has not been served yet: the student has not stood at
+     * the window, so there is nothing to rate.
+     */
     private function ensureCompleted(Appointment|DocumentRequest $feedbackable): void
     {
         $completed = $feedbackable instanceof Appointment
-            ? $feedbackable->status === 'completed'
-            : in_array($feedbackable->status, ['completed', 'ready_for_pickup'], true);
+            ? $feedbackable->status === AppointmentStatus::COMPLETED->value
+            : $feedbackable->status === DocumentRequestStatus::COMPLETED->value;
 
         abort_unless($completed, 403, 'Feedback is only available for completed services.');
     }

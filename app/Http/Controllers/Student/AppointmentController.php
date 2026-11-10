@@ -8,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Mail\AppointmentBooked;
 use App\Mail\AppointmentCancelled;
 use App\Models\Appointment;
-use App\Models\Feedback;
 use App\Models\SlotAvailability;
 use App\Models\User;
 use App\Notifications\AppointmentBookedNotification;
@@ -22,7 +21,6 @@ use App\Support\SafeMailer;
 use Illuminate\Support\Facades\Notification;
 use App\Support\SlotAvailabilityService;
 use App\Support\TimeSlots;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -203,7 +201,7 @@ class AppointmentController extends Controller
         return response()->json(app(SlotAvailabilityService::class)->monthOverview($data['office'], $data['month']));
     }
 
-    public function store(Request $request): RedirectResponse|JsonResponse
+    public function store(Request $request): RedirectResponse
     {
         $office = (string) $request->input('office');
 
@@ -317,7 +315,9 @@ class AppointmentController extends Controller
         // Flash first: the rating modal opens before the browser leaves this
         // page, and the confirmation still has to greet them on the page
         // they land on afterwards.
-        $redirect = redirect()
+        // Nothing is rated here: the booking has only been made. The rating
+        // card appears on the completed visit, and nowhere before that.
+        return redirect()
             ->route('student.appointments.index')
             ->with(
                 'status',
@@ -325,22 +325,6 @@ class AppointmentController extends Controller
                     ? 'The chosen slot is full. Your appointment was recorded as For Reschedule — the Registrar will move it to the next available slot.'
                     : 'Appointment booked. A confirmation email has been sent.'
             );
-
-        // The form posts in the background so the rating modal can open
-        // before the redirect. A plain (no-JavaScript) submit still gets
-        // the ordinary redirect.
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'feedback' => [
-                    'transactionType' => Feedback::TYPE_APPOINTMENT,
-                    'transactionId' => $appointment->id,
-                    'redirect' => route('student.appointments.index'),
-                ],
-            ]);
-        }
-
-        return $redirect;
     }
 
     /**

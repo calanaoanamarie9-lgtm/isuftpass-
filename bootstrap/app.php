@@ -18,9 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'office.workspace' => \App\Http\Middleware\EnsureOfficeAccountMatchesWorkspace::class,
         ]);
 
-        // The only API route is called by the signed-in page (the feedback
-        // modal), so the API group needs the web session stack: without it
-        // `auth` has no session to read and CSRF cannot be validated.
+        // The API group has no routes today, but anything added there is
+        // called by a signed-in page rather than by a token client, so it
+        // needs the web session stack: without it `auth` has no session to
+        // read and CSRF cannot be validated.
         $middleware->api(prepend: [
             \Illuminate\Cookie\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,

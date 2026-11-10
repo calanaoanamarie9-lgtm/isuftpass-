@@ -169,7 +169,27 @@ class FeedbackManagementTest extends TestCase
     |--------------------------------------------------------------------------
     */
 
-    public function test_a_finished_document_request_offers_the_rate_form(): void
+    /**
+     * The window opens when the desk records the claim: the registrar's
+     * "Claimed" is the stored "completed" status.
+     */
+    public function test_a_claimed_document_request_offers_the_rate_form(): void
+    {
+        $student = $this->student();
+        $request = $this->documentRequest($student, 'completed');
+
+        $this->actingAs($student)
+            ->get('/student/document-requests/'.$request->id)
+            ->assertOk()
+            ->assertSee('Rate This Service')
+            ->assertSee(route('student.feedback.create', ['kind' => 'document', 'id' => $request->id]));
+    }
+
+    /**
+     * Ready for pick-up is not picked up: the student has not claimed it yet,
+     * so the page asks nothing - and the form itself refuses the attempt.
+     */
+    public function test_a_document_waiting_for_pickup_cannot_be_rated(): void
     {
         $student = $this->student();
         $request = $this->documentRequest($student, 'ready_for_pickup');
@@ -177,8 +197,22 @@ class FeedbackManagementTest extends TestCase
         $this->actingAs($student)
             ->get('/student/document-requests/'.$request->id)
             ->assertOk()
-            ->assertSee('Rate This Service')
-            ->assertSee(route('student.feedback.create', ['kind' => 'document', 'id' => $request->id]));
+            ->assertDontSee('Rate This Service')
+            ->assertDontSee(route('student.feedback.create', ['kind' => 'document', 'id' => $request->id]));
+
+        $this->actingAs($student)
+            ->get('/student/feedback/create?kind=document&id='.$request->id)
+            ->assertForbidden();
+
+        $this->actingAs($student)
+            ->post('/student/feedback', [
+                'kind' => 'document',
+                'id' => $request->id,
+                'rating' => 5,
+            ])
+            ->assertForbidden();
+
+        $this->assertSame(0, Feedback::count());
     }
 
     public function test_a_request_still_in_progress_does_not_offer_rating(): void
@@ -191,6 +225,28 @@ class FeedbackManagementTest extends TestCase
             ->assertOk()
             ->assertDontSee('Rate This Service')
             ->assertDontSee(route('student.feedback.create', ['kind' => 'document', 'id' => $request->id]));
+    }
+
+    /**
+     * Filing is not the end of the service, so nothing is rated on submit:
+     * neither form carries the old post-submission modal, and the rating only
+     * shows once the record is finished.
+     */
+    public function test_submitting_does_not_ask_for_a_rating(): void
+    {
+        $student = $this->student();
+
+        $this->actingAs($student)
+            ->get('/student/document-requests/create')
+            ->assertOk()
+            ->assertDontSee('How was your experience?')
+            ->assertDontSee('data-feedback-form', false);
+
+        $this->actingAs($student)
+            ->get('/student/appointments/create')
+            ->assertOk()
+            ->assertDontSee('How was your experience?')
+            ->assertDontSee('data-feedback-form', false);
     }
 
     public function test_a_completed_appointment_offers_the_rate_form(): void

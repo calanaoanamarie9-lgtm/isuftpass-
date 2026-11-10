@@ -13,7 +13,6 @@ use App\Mail\DocumentRequestReceived;
 use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\DocumentRequest;
-use App\Models\Feedback;
 use App\Models\User;
 use App\Notifications\DocumentRequestReceivedNotification;
 use App\Notifications\DocumentRequestStatusNotification;
@@ -24,7 +23,6 @@ use App\Support\RegistrarNotifier;
 use App\Support\SafeMailer;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\SvgWriter;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -82,7 +80,7 @@ class DocumentRequestController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse|JsonResponse
+    public function store(Request $request): RedirectResponse
     {
         $user = Auth::user();
 
@@ -133,30 +131,14 @@ class DocumentRequestController extends Controller
             )
         );
 
-        // Flash first: the rating modal appears before the browser leaves
-        // this page, and the confirmation still has to greet them on the
-        // page they land on afterwards.
-        $redirect = redirect()
+        // Nothing is rated here: the request has only been filed. The rating
+        // card appears on the request's own page once the desk records the
+        // claim, and nowhere before that.
+        return redirect()
             ->route('student.documents.index')
             ->with('swal', 'Request Successfully Submitted')
             ->with('status', 'Document request submitted. Track its progress under My Requests & Status.')
             ->with('instructions', $documentRequest->id);
-
-        // The form posts in the background so the rating modal can open
-        // before the redirect. A plain (no-JavaScript) submit still gets
-        // the ordinary redirect.
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'feedback' => [
-                    'transactionType' => Feedback::TYPE_DOCUMENT_REQUEST,
-                    'transactionId' => $documentRequest->id,
-                    'redirect' => route('student.documents.index'),
-                ],
-            ]);
-        }
-
-        return $redirect;
     }
 
     /**
