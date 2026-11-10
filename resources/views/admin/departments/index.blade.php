@@ -294,177 +294,6 @@
                     </div>
 
 
-                    {{-- =============================================
-                        LOGIN ACCOUNT
-                    ============================================== --}}
-                    {{-- The administrator opens the office's account here,
-                         in the same save that registers the office: the
-                         account is written with the office value the row
-                         just got, so it can never point at a desk that
-                         does not exist. --}}
-                    <div class="mt-6 pt-5 border-t border-gray-100"
-                         x-data="{ createAccount: @js((bool) old('create_account')) }">
-
-                        <label class="flex items-start gap-3 cursor-pointer">
-
-                            <input type="checkbox"
-                                   name="create_account"
-                                   value="1"
-                                   x-model="createAccount"
-                                   @checked(old('create_account'))
-                                   class="mt-0.5 rounded border-gray-300
-                                          text-blue-700 focus:ring-blue-500">
-
-                            <span>
-
-                                <span class="block text-sm font-bold text-gray-800">
-                                    Create the login account for this office
-                                </span>
-
-                                <span class="block text-xs text-gray-400 mt-0.5">
-                                    The account is approved and verified on save, so the office can sign in right away.
-                                </span>
-
-                            </span>
-
-                        </label>
-
-
-                        <div x-show="createAccount"
-                             x-cloak
-                             class="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-
-                            {{-- Account name --}}
-                            <div class="lg:col-span-2">
-
-                                <label class="block text-xs font-bold uppercase
-                                              tracking-wide text-gray-500 mb-2">
-                                    Account Name
-                                </label>
-
-                                <input type="text"
-                                       name="account_name"
-                                       value="{{ old('account_name') }}"
-                                       placeholder="e.g. Maria Santos"
-                                       class="w-full rounded-xl border-gray-300
-                                              focus:border-blue-600 focus:ring-blue-600
-                                              text-sm">
-
-                            </div>
-
-
-                            {{-- Position --}}
-                            <div>
-
-                                <label class="block text-xs font-bold uppercase
-                                              tracking-wide text-gray-500 mb-2">
-                                    Position
-                                </label>
-
-                                <input type="text"
-                                       name="position"
-                                       value="{{ old('position') }}"
-                                       placeholder="Office Head / Staff"
-                                       class="w-full rounded-xl border-gray-300
-                                              focus:border-blue-600 focus:ring-blue-600
-                                              text-sm">
-
-                            </div>
-
-
-                            {{-- Email --}}
-                            <div>
-
-                                <label class="block text-xs font-bold uppercase
-                                              tracking-wide text-gray-500 mb-2">
-                                    Email
-                                </label>
-
-                                <input type="email"
-                                       name="email"
-                                       value="{{ old('email') }}"
-                                       placeholder="office@isufst.edu.ph"
-                                       class="w-full rounded-xl border-gray-300
-                                              focus:border-blue-600 focus:ring-blue-600
-                                              text-sm">
-
-                            </div>
-
-
-                            {{-- Account type --}}
-                            <div>
-
-                                <label class="block text-xs font-bold uppercase
-                                              tracking-wide text-gray-500 mb-2">
-                                    Account Type
-                                </label>
-
-                                <select name="role"
-                                        class="w-full rounded-xl border-gray-300
-                                               focus:border-blue-600 focus:ring-blue-600
-                                               text-sm">
-
-                                    <option value="{{ \App\Models\User::ROLE_OFFICE }}"
-                                            @selected(old('role', \App\Models\User::ROLE_OFFICE) === \App\Models\User::ROLE_OFFICE)>
-                                        Office account
-                                    </option>
-
-                                    <option value="{{ \App\Models\User::ROLE_DEPARTMENT }}"
-                                            @selected(old('role') === \App\Models\User::ROLE_DEPARTMENT)>
-                                        Department / college account
-                                    </option>
-
-                                </select>
-
-                            </div>
-
-
-                            {{-- Password --}}
-                            <div>
-
-                                <label class="block text-xs font-bold uppercase
-                                              tracking-wide text-gray-500 mb-2">
-                                    Password
-                                </label>
-
-                                <input type="password"
-                                       name="password"
-                                       autocomplete="new-password"
-                                       placeholder="At least 8 characters"
-                                       class="w-full rounded-xl border-gray-300
-                                              focus:border-blue-600 focus:ring-blue-600
-                                              text-sm">
-
-                                <p class="mt-1 text-[11px] text-gray-400">
-                                    Hand this to the office — they can change it in Profile Settings.
-                                </p>
-
-                            </div>
-
-
-                            {{-- Confirm password --}}
-                            <div>
-
-                                <label class="block text-xs font-bold uppercase
-                                              tracking-wide text-gray-500 mb-2">
-                                    Confirm Password
-                                </label>
-
-                                <input type="password"
-                                       name="password_confirmation"
-                                       autocomplete="new-password"
-                                       placeholder="Repeat the password"
-                                       class="w-full rounded-xl border-gray-300
-                                              focus:border-blue-600 focus:ring-blue-600
-                                              text-sm">
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
                     {{-- Submit --}}
                     <div class="mt-6 pt-5 border-t border-gray-100
                                 flex justify-end">
@@ -621,7 +450,7 @@
                                     @if ($accounts->isEmpty())
 
                                         <p class="text-xs text-gray-500 mt-1">
-                                            No account yet — this office cannot sign in.
+                                            No account yet — this office cannot sign in. Create one with Add Office in User Management.
                                         </p>
 
                                     @else
@@ -659,12 +488,14 @@
                                 </div>
 
 
+                                {{-- The only place an office login is created: the
+                                     Add Office form on User Management. --}}
                                 <a href="{{ route('admin.users.index', ['role' => \App\Models\User::ROLE_OFFICE]) }}"
                                    class="self-start sm:self-auto inline-flex items-center gap-2
                                           px-4 py-2 rounded-xl bg-white border border-gray-200
                                           text-xs font-bold text-[#102d5b]
                                           hover:bg-gray-50 transition shrink-0">
-                                    Manage accounts
+                                    {{ $accounts->isEmpty() ? 'Add Office account' : 'Manage accounts' }}
                                 </a>
 
                             </div>

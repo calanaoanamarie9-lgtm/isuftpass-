@@ -285,41 +285,41 @@ class AdminModuleTest extends TestCase
     }
 
     /**
-     * The administrator opens the office's login in the same save that adds
-     * the office. The account carries the office that was just created and
-     * lands approved and verified, so the desk can sign in immediately
-     * instead of waiting for the approval queue.
+     * The office's login is created in one place - the Add Office form on
+     * User Management - which also registers the office the first time it is
+     * named there. The account lands approved and verified, so the desk can
+     * sign in immediately instead of waiting in the approval queue, and the
+     * office's own card shows who can sign in for it.
      */
-    public function test_admin_creates_the_office_account_with_the_office(): void
+    public function test_add_office_provisions_the_office_and_its_login(): void
     {
         $admin = $this->makeAdmin();
 
         $this->actingAs($admin)
-            ->post('/admin/offices', [
-                'name' => 'Property Management Office',
-                'location' => 'Main Building, 2nd Floor',
-                'contact' => '(033) 555-7788',
-                'create_account' => '1',
-                'account_name' => 'Maria Santos',
+            ->post('/admin/users', [
+                'name' => 'Maria Santos',
                 'email' => 'property@isufst.edu.ph',
-                'position' => 'Property Custodian',
                 'role' => 'office',
+                'office' => 'Property Management Office',
+                'position' => 'Property Custodian',
+                'contact_number' => '09171234567',
                 'password' => 'password123',
                 'password_confirmation' => 'password123',
             ])
             ->assertRedirect()
-            ->assertSessionHas('status');
+            ->assertSessionHasNoErrors();
 
         $account = User::where('email', 'property@isufst.edu.ph')->firstOrFail();
 
         $this->assertSame('office', $account->role);
         $this->assertSame('Property Management Office', $account->office);
         $this->assertSame('Property Custodian', $account->position);
-        $this->assertSame('(033) 555-7788', $account->contact_number);
         $this->assertTrue($account->is_active);
         $this->assertTrue($account->isApproved());
         $this->assertNotNull($account->email_verified_at);
-        $this->assertSame($admin->id, $account->approved_by);
+
+        // Naming a new office signs it into the directory too.
+        $this->assertDatabaseHas('offices', ['name' => 'Property Management Office']);
 
         // The office card tells the administrator which desk can sign in.
         $this->actingAs($admin)
@@ -341,10 +341,75 @@ class AdminModuleTest extends TestCase
     }
 
     /**
-     * The login is optional: without the box ticked the office is added on
-     * its own, and the account fields are not demanded.
+     * Signing in with an account made in Add Office lands the desk in its own
+     * workspace - the typed office gets the generic one - and never through
+     * the personal-details step, because admin-created staff did not register.
      */
-    public function test_an_office_can_be_added_without_a_login_account(): void
+    public function test_an_added_office_account_lands_in_its_own_workspace(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $this->actingAs($admin)->post('/admin/users', [
+            'name' => 'Maria Santos',
+            'email' => 'property@isufst.edu.ph',
+            'role' => 'office',
+            'office' => 'Property Management Office',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertSessionHasNoErrors();
+
+        $this->post('/logout');
+
+        $this->post('/login', [
+            'email' => 'property@isufst.edu.ph',
+            'password' => 'password123',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertAuthenticated();
+
+        // Not the student dashboard, and not the onboarding form.
+        $this->get('/dashboard')->assertRedirect('/workspace');
+
+        $this->get('/workspace')
+            ->assertOk()
+            ->assertSee('Office Workspace')
+            ->assertSee('Property Management Office');
+    }
+
+    /**
+     * The other account type the form offers: a college account goes to its
+     * own college's workspace, not to the generic one.
+     */
+    public function test_an_added_college_account_lands_on_its_college_page(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $this->actingAs($admin)->post('/admin/users', [
+            'name' => 'Pedro Cruz',
+            'email' => 'cici.head@isufst.edu.ph',
+            'role' => 'department',
+            'office' => 'CICI',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertSessionHasNoErrors();
+
+        $this->post('/logout');
+
+        $this->post('/login', [
+            'email' => 'cici.head@isufst.edu.ph',
+            'password' => 'password123',
+        ])->assertSessionHasNoErrors();
+
+        $this->get('/dashboard')->assertRedirect('/cici');
+
+        $this->get('/cici')->assertOk();
+    }
+
+    /**
+     * The directory holds the office; the login is made in User Management.
+     * Adding the office here asks for no account details at all.
+     */
+    public function test_adding_an_office_asks_for_no_login_details(): void
     {
         $admin = $this->makeAdmin();
 
@@ -355,43 +420,30 @@ class AdminModuleTest extends TestCase
 
         $this->assertDatabaseHas('offices', ['name' => 'Guidance Office']);
         $this->assertDatabaseCount('users', 1);
+
+        // The empty card points the administrator at the one place an
+        // account is created.
+        $this->get('/admin/offices')
+            ->assertOk()
+            ->assertSee('Add Office account')
+            ->assertDontSee('name="create_account"', false);
     }
 
     /**
-     * Bad account details are caught before anything is written, so a failed
-     * save cannot leave an office behind that nobody can sign in to.
+     * An office is registered once: the directory row the account is scoped
+     * to cannot be duplicated by typing the name again.
      */
-    public function test_a_rejected_office_account_leaves_no_office_behind(): void
+    public function test_an_office_name_can_only_be_added_once(): void
     {
         $admin = $this->makeAdmin();
 
-        User::factory()->create(['email' => 'taken@isufst.edu.ph']);
+        $this->actingAs($admin)->post('/admin/offices', ['name' => 'Guidance Office']);
 
         $this->actingAs($admin)
-            ->post('/admin/offices', [
-                'name' => 'Property Management Office',
-                'create_account' => '1',
-                'account_name' => 'Maria Santos',
-                'email' => 'taken@isufst.edu.ph',
-                'password' => 'password123',
-                'password_confirmation' => 'password123',
-            ])
-            ->assertSessionHasErrors('email');
+            ->post('/admin/offices', ['name' => 'Guidance Office'])
+            ->assertSessionHasErrors('name');
 
-        $this->assertDatabaseMissing('offices', ['name' => 'Property Management Office']);
-
-        $this->actingAs($admin)
-            ->post('/admin/offices', [
-                'name' => 'Property Management Office',
-                'create_account' => '1',
-                'account_name' => 'Maria Santos',
-                'email' => 'property@isufst.edu.ph',
-                'password' => 'password123',
-                'password_confirmation' => 'different123',
-            ])
-            ->assertSessionHasErrors('password');
-
-        $this->assertDatabaseMissing('offices', ['name' => 'Property Management Office']);
+        $this->assertSame(1, Office::where('name', 'Guidance Office')->count());
     }
 
     /**
