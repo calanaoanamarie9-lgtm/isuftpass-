@@ -97,6 +97,11 @@
                             <li class="flex gap-2.5">
                                 <span class="mt-0.5 shrink-0 w-4 h-4 rounded-full bg-emerald-400/20
                                              text-emerald-300 flex items-center justify-center text-[10px] font-black">✓</span>
+                                <span>An Online Appointment opens as an <strong class="text-white">Appointment Verification Pass</strong>; a Document Request opens as a <strong class="text-white">Digital Claim Pass</strong>.</span>
+                            </li>
+                            <li class="flex gap-2.5">
+                                <span class="mt-0.5 shrink-0 w-4 h-4 rounded-full bg-emerald-400/20
+                                             text-emerald-300 flex items-center justify-center text-[10px] font-black">✓</span>
                                 <span>Appointments are accepted only on their scheduled date, while approved or pending.</span>
                             </li>
                             <li class="flex gap-2.5">
@@ -108,6 +113,16 @@
                                 <span class="mt-0.5 shrink-0 w-4 h-4 rounded-full bg-emerald-400/20
                                              text-emerald-300 flex items-center justify-center text-[10px] font-black">✓</span>
                                 <span>Claim passes open the gate only once the document is ready for pickup.</span>
+                            </li>
+                            <li class="flex gap-2.5">
+                                <span class="mt-0.5 shrink-0 w-4 h-4 rounded-full bg-amber-400/20
+                                             text-amber-300 flex items-center justify-center text-[10px] font-black">!</span>
+                                <span>An appointment scanned <strong class="text-white">past its time slot</strong> is cancelled on the spot. This applies to appointments only — document requests are never cancelled by a scan.</span>
+                            </li>
+                            <li class="flex gap-2.5">
+                                <span class="mt-0.5 shrink-0 w-4 h-4 rounded-full bg-emerald-400/20
+                                             text-emerald-300 flex items-center justify-center text-[10px] font-black">✓</span>
+                                <span>Every successful scan is written to the Daily Logbook with the time, the pass holder, the transaction type and the guard on duty.</span>
                             </li>
                             <li class="flex gap-2.5">
                                 <span class="mt-0.5 shrink-0 w-4 h-4 rounded-full bg-red-400/20

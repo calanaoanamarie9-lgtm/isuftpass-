@@ -13,11 +13,18 @@ use App\Models\GateLog;
  */
 class GateLogList
 {
-    /** What each pass type is called on the desk's table. */
+    /**
+     * What each pass type is called on the desk's table and, more
+     * importantly, on the scanner: the verdict panel prints this label
+     * next to the scanned name, so the two transactions the specification
+     * names must read exactly as it names them — an appointment resolves
+     * to an Appointment Verification Pass, a document request to a Digital
+     * Claim Pass.
+     */
     public const TYPES = [
         'visitor' => 'Visitor Gate Pass',
         'document' => 'Digital Claim Pass',
-        'appointment' => 'Appointment Visit Pass',
+        'appointment' => 'Appointment Verification Pass',
         'student' => 'Digital ID',
     ];
 

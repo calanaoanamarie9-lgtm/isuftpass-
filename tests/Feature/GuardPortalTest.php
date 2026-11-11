@@ -408,7 +408,7 @@ class GuardPortalTest extends TestCase
         $this->actingAs($guard)
             ->postJson('/guard/scan', ['token' => $today->qr_token])
             ->assertJsonPath('valid', true)
-            ->assertJsonPath('pass.label', 'Appointment Visit Pass')
+            ->assertJsonPath('pass.label', 'Appointment Verification Pass')
             ->assertJsonPath('pass.destination', 'Registrar');
 
         $tomorrow = $this->appointment($student, now()->addDay()->toDateString());
@@ -433,6 +433,133 @@ class GuardPortalTest extends TestCase
         // The guard logs a gate visit; the office still owns the check-in.
         $this->assertSame(AppointmentStatus::CONFIRMED->value, $fresh->status);
         $this->assertNull($fresh->checked_in_at);
+    }
+
+    /**
+     * The scanner names the two transactions the specification names, and
+     * names them the way the specification names them: an online
+     * appointment resolves to an Appointment Verification Pass, a document
+     * request to a Digital Claim Pass. The label is what the verdict panel
+     * prints beside the scanned name, so a guard reading the screen is
+     * reading these exact words.
+     */
+    public function test_the_scanner_labels_the_two_pass_types_by_their_given_names(): void
+    {
+        $guard = $this->guard();
+        $student = $this->student();
+        $student->studentProfile()->create(['student_id' => '2021-00123']);
+
+        $appointment = $this->appointment($student, now()->toDateString());
+        $claim = $this->claimPass($student, DocumentRequestStatus::READY_FOR_PICKUP->value, 'Maria Santos');
+
+        $this->actingAs($guard)
+            ->postJson('/guard/scan', ['token' => $appointment->qr_token])
+            ->assertOk()
+            ->assertJsonPath('pass.type', 'appointment')
+            ->assertJsonPath('pass.label', 'Appointment Verification Pass');
+
+        $this->actingAs($guard)
+            ->postJson('/guard/scan', ['token' => $claim->claim_token])
+            ->assertOk()
+            ->assertJsonPath('pass.type', 'document')
+            ->assertJsonPath('pass.label', 'Digital Claim Pass');
+    }
+
+    /**
+     * Every scan that verifies is written to the Daily Logbook with the
+     * four fields it exists to capture: when it happened, whose pass it
+     * was, what kind of transaction it belonged to, and which guard was on
+     * the desk. A scan that does not verify writes nothing.
+     */
+    public function test_a_successful_scan_is_recorded_in_the_logbook_with_its_four_fields(): void
+    {
+        $guard = $this->guard();
+        $student = $this->student();
+        $student->studentProfile()->create(['student_id' => '2021-00123']);
+
+        $claim = $this->claimPass($student, DocumentRequestStatus::READY_FOR_PICKUP->value, 'Maria Santos');
+
+        $this->actingAs($guard)
+            ->postJson('/guard/scan', ['token' => $claim->claim_token])
+            ->assertOk()
+            ->assertJsonPath('valid', true);
+
+        $log = GateLog::where('pass_type', 'document')->firstOrFail();
+
+        // Timestamp — the moment the reader accepted the code.
+        $this->assertNotNull($log->scanned_at);
+
+        // User details — the account behind the pass where there is one,
+        // and always the name printed on it.
+        $this->assertSame($student->id, $log->user_id);
+        $this->assertSame('Maria Santos', $log->person_name);
+
+        // Transaction type — how the logbook groups and labels the row.
+        $this->assertSame('document', $log->pass_type);
+        $this->assertSame($claim->id, $log->pass_id);
+
+        // Guard identification — who was on the desk, and at which gate.
+        $this->assertSame($guard->id, $log->guard_id);
+        $this->assertSame('Main Gate', $log->gate);
+    }
+
+    /**
+     * The logbook records transactions, not just people: the same four
+     * fields are captured for an appointment scan, so the trail answers
+     * "which booking, scanned by whom, when" as readily as it answers
+     * "who walked in".
+     */
+    public function test_an_appointment_scan_is_also_recorded_in_the_logbook(): void
+    {
+        $guard = $this->guard();
+        $student = $this->student();
+        $appointment = $this->appointment($student, now()->toDateString());
+
+        $this->actingAs($guard)
+            ->postJson('/guard/scan', ['token' => $appointment->qr_token])
+            ->assertOk()
+            ->assertJsonPath('valid', true);
+
+        $log = GateLog::where('pass_type', 'appointment')->firstOrFail();
+
+        $this->assertNotNull($log->scanned_at);
+        $this->assertSame($student->id, $log->user_id);
+        $this->assertSame($appointment->id, $log->pass_id);
+        $this->assertSame($guard->id, $log->guard_id);
+        $this->assertSame('Main Gate', $log->gate);
+    }
+
+    /**
+     * The Daily Logbook reads only what the desk itself wrote. Rows left
+     * by a phone scanning a public verification URL carry no pass_type and
+     * no guard, so they must never appear as gate sessions.
+     */
+    public function test_the_logbook_feed_lists_only_desk_sessions(): void
+    {
+        $guard = $this->guard();
+        $student = $this->student();
+        $claim = $this->claimPass($student, DocumentRequestStatus::READY_FOR_PICKUP->value, 'Maria Santos');
+
+        $this->actingAs($guard)
+            ->postJson('/guard/scan', ['token' => $claim->claim_token])
+            ->assertOk();
+
+        // A legacy row from a public scan: no pass_type, no guard.
+        GateLog::create([
+            'user_id' => $student->id,
+            'direction' => 'in',
+            'gate' => 'Main Gate',
+            'scanned_at' => now(),
+        ]);
+
+        $this->actingAs($guard)
+            ->getJson('/guard/logbook/data')
+            ->assertOk()
+            ->assertJsonPath('logs.0.type', 'document')
+            ->assertJsonPath('logs.0.guard', $guard->name)
+            ->assertJsonPath('logs.0.typeLabel', 'Digital Claim Pass');
+
+        $this->assertSame(1, GateLog::whereNotNull('pass_type')->count());
     }
 
     /**
