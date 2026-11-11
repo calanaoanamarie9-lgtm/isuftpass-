@@ -10,8 +10,8 @@ use Tests\TestCase;
 
 /**
  * Every office / department portal must be able to reach its own
- * notifications page from the sidebar, and the badge count must stay
- * filtered to the signed-in account.
+ * notifications page, and - bar the gate desk - from the sidebar, with
+ * the badge count staying filtered to the signed-in account.
  *
  * Before this, only the Registrar, Cashier and Student portals had a
  * Notifications link (and routes). A Library or SSC staffer received
@@ -49,14 +49,18 @@ class OfficeNotificationAccessTest extends TestCase
     /**
      * Portals whose sidebar must link to their notifications page.
      *
-     * Every desk is held to this, the gate desk included: its sidebar
-     * carries the same live badge as the rest.
+     * Every desk is held to this except the gate desk: the guard's
+     * sidebar deliberately carries no Notifications entry, so the page
+     * opens by URL instead (pinned separately below).
      *
      * @return array<string, array{0: string, 1: string}>
      */
     public static function sidebarLinkedPortals(): array
     {
-        return self::staffPortals();
+        return array_filter(
+            self::staffPortals(),
+            fn (array $portal): bool => $portal[0] !== 'guard',
+        );
     }
 
     private function makeStaff(string $role, ?string $office = null): User
@@ -109,19 +113,23 @@ class OfficeNotificationAccessTest extends TestCase
     }
 
     /**
-     * The gate desk's sidebar now carries its own Notifications entry: the
-     * desk needs to see who is waiting on it, so the link and the live
-     * badge sit alongside the scanner, logbook and visitor passes.
+     * The gate desk's sidebar keeps its Notifications entry out of sight.
+     *
+     * The route and page still work - the portal test above opens it -
+     * but the desk reaches alerts some other way, so the sidebar must
+     * render neither the link nor the badge element. The shared repaint
+     * script still mentions the selector for every role, so the badge is
+     * matched by its markup, not the attribute name.
      */
-    public function test_the_guard_sidebar_links_to_its_notifications_page(): void
+    public function test_the_guard_sidebar_omits_its_notifications_entry(): void
     {
         $guard = $this->makeStaff('guard', 'Main Gate');
 
         $this->actingAs($guard)
             ->get(route('guard.dashboard'))
             ->assertOk()
-            ->assertSee(route('guard.notifications.index'), false)
-            ->assertSee('data-notif-badge', false);
+            ->assertDontSee(route('guard.notifications.index'), false)
+            ->assertDontSee('<span data-notif-badge', false);
     }
 
     /**
