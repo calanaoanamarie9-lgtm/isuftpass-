@@ -132,13 +132,6 @@
                                 View today's logbook
                                 <span aria-hidden="true">→</span>
                             </a>
-
-                            <a href="{{ route('guard.visitors.index') }}"
-                               class="inline-flex items-center justify-between rounded-xl bg-slate-50
-                                      px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition">
-                                Issue a visitor pass
-                                <span aria-hidden="true">→</span>
-                            </a>
                         </div>
                     </div>
 

@@ -212,7 +212,7 @@
 
 
             {{-- Quick destinations --}}
-            <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                 <a href="{{ route('guard.scanner') }}"
                    class="group rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-4
@@ -226,13 +226,6 @@
                           hover:border-blue-200 hover:shadow transition">
                     <p class="text-sm font-bold text-gray-900 group-hover:text-blue-700">Daily Logbook</p>
                     <p class="text-xs text-gray-500 mt-1">Today's complete audit trail of verified entries and exits.</p>
-                </a>
-
-                <a href="{{ route('guard.visitors.index') }}"
-                   class="group rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-4
-                          hover:border-blue-200 hover:shadow transition">
-                    <p class="text-sm font-bold text-gray-900 group-hover:text-blue-700">Visitor Gate Passes</p>
-                    <p class="text-xs text-gray-500 mt-1">Issue a pass for a walk-in guest or revoke one that is no longer valid.</p>
                 </a>
 
             </div>
